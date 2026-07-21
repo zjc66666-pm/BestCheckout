@@ -675,7 +675,6 @@
       view.innerHTML = `<div class="view-wrap">
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-2"><button class="back-btn" data-back>${ICON.arrowLeft}</button><div><h1 class="page-title" style="font-size:18px">${label}</h1><div class="muted" style="font-size:12px">Product trend · funnel (behavior — 神策待建)</div></div></div>
-          
         </div>
         ${chipBar({ currency: true })}
         <div class="grid grid-cols-5 gap-3 mb-4">${kpis.map(([k, v], i) => `<div class="panel card-pad"${i === 0 ? ' style="border:1px solid var(--brand)"' : ''}><div class="muted" style="font-size:13px">${k}</div><div class="stat-value mt-1" style="font-size:22px">${v}</div></div>`).join('')}</div>
