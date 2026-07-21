@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BestCheckout Help Center</title>
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+  <link rel="stylesheet" href="../assets/theme.css" />
+  <style>
+    *{box-sizing:border-box} body{margin:0;background:#f7f8fb;color:#242833;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.55}.help-header{height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 max(24px,calc((100vw - 1120px)/2));background:#eaf3ff;border-bottom:1px solid #dce8f7}.help-brand{display:flex;align-items:center;gap:10px;color:#242833;text-decoration:none;font-size:15px;font-weight:750}.help-mark{display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:#0066e6;color:#fff;font-size:14px}.help-header a{color:#31435e;text-decoration:none;font-size:13px;font-weight:600}.help-header nav{display:flex;gap:22px;align-items:center}.help-main{max-width:900px;margin:0 auto;padding:58px 24px 74px}.eyebrow{color:#0066e6;font-size:12px;font-weight:750;letter-spacing:.08em;text-transform:uppercase}.hero{padding:0 0 42px;border-bottom:1px solid #e5e9ef}.hero h1{margin:10px 0 12px;font-size:36px;letter-spacing:-1px;line-height:1.15}.hero p{margin:0;max-width:650px;color:#62708d;font-size:16px}.guide{margin-top:38px;background:#fff;border:1px solid #e4e8ee;border-radius:14px;padding:30px 34px;box-shadow:0 1px 2px rgba(20,30,50,.03)}.guide h2{margin:0 0 8px;font-size:21px;letter-spacing:-.3px}.guide>p{margin:0;color:#62708d}.steps{display:grid;gap:26px;margin-top:28px}.step{display:grid;grid-template-columns:34px 1fr;gap:14px}.step-no{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#e6f0ff;color:#0066e6;font-size:13px;font-weight:750}.step h3{margin:1px 0 6px;font-size:15px}.step p{margin:0;color:#526178;font-size:13.5px}.notice{margin-top:28px;display:flex;gap:11px;padding:14px 15px;border-radius:9px;background:#fff7e5;color:#6d4c00;font-size:13px}.notice strong{display:block;margin-bottom:2px}.screenshot{margin:14px 0 0;border:1px solid #e4e8ee;border-radius:10px;overflow:hidden;background:#f7f8fb}.screenshot img{display:block;width:100%;height:auto}.screenshot figcaption{padding:9px 12px;color:#62708d;font-size:12px}.footer{max-width:900px;margin:0 auto;padding:20px 24px 36px;color:#7b879a;font-size:12px}@media(max-width:640px){.help-header{padding:0 16px}.help-header nav a:not(:last-child){display:none}.help-main{padding:36px 16px 48px}.hero h1{font-size:29px}.guide{padding:22px 18px}}
+  </style>
+</head>
+<body>
+  <header class="help-header">
+    <a class="help-brand" href="../#/home"><span class="help-mark">B</span><span>BestCheckout</span></a>
+    <nav><a href="../#/home">Back to account</a><a href="#shopify-app">Shopify app guide</a></nav>
+  </header>
+  <main class="help-main">
+    <section class="hero"><span class="eyebrow">BestCheckout Help Center</span><h1>Get your checkout ready to sell.</h1><p>Plain-language guidance for connecting your Shopify store, setting up payments, and launching a purchase flow.</p></section>
+    <article class="guide" id="shopify-app">
+      <h2>Connect your Shopify store</h2><p>Create an app in your own Shopify Dev Dashboard, then connect it to BestCheckout with its Client ID and Client secret.</p>
+      <div class="notice"><div><strong>Your app stays under your control</strong>BestCheckout does not create or own the Shopify app. You can revoke access whenever you need.</div></div>
+      <div class="steps">
+        <section class="step"><div class="step-no">1</div><div><h3>Open App development in Shopify</h3><p>In Shopify admin, go to <b>Settings → Apps → App development</b>. If Shopify shows <b>Build apps in Dev Dashboard</b>, choose it to continue.</p></div></section>
+        <section class="step"><div class="step-no">2</div><div><h3>Create an app in Dev Dashboard</h3><p>Open <b>Apps</b>, choose <b>Create app</b>, and name it clearly, for example “BestCheckout connection”. Save the basic app information.</p></div></section>
+        <section class="step"><div class="step-no">3</div><div><h3>Copy the Client ID and Client secret</h3><p>Open the new app, choose <b>Settings</b>, and find the <b>Credentials</b> section. Copy both values. Keep the Client secret private; BestCheckout will not show it again after connection.</p><figure class="screenshot"><img src="assets/shopify-dev-dashboard-credentials-redacted.png" alt="Shopify Dev Dashboard credentials section with Client ID and Client secret redacted" /><figcaption>Shopify Dev Dashboard → your app → Settings. Credentials are redacted in this example.</figcaption></figure></div></section>
+        <section class="step"><div class="step-no">4</div><div><h3>Return to BestCheckout and connect</h3><p>Enter the <b>myshopify.com</b> store address, Client ID, and Client secret. Then choose <b>Connect store</b>. We verify the connection before any checkout goes live.</p></div></section>
+      </div>
+    </article>
+  </main>
+  <footer class="footer">BestCheckout Help Center</footer>
+</body>
+</html>
