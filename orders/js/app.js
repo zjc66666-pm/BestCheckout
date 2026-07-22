@@ -179,18 +179,11 @@
       ? ((LST.totalMin !== '' ? money(LST.totalMin) : 'Min') + ' – ' + (LST.totalMax !== '' ? money(LST.totalMax) : 'Max'))
       : 'Total range';
 
-    const attentionOrder = rows.find((o) => shopifySyncState(o).key === 'attention');
-    const shopifyBanner =
-      '<div class="info-banner shopify-order-banner">' +
-        '<div style="min-width:0"><div style="font-weight:600;margin-bottom:2px">Shopify order sync</div>' +
-          '<div>Paid BestCheckout orders are automatically created in Shopify. Fulfillment and refunds are managed there.</div></div>' +
-        (attentionOrder ? '<button type="button" class="btn btn-default" data-shopify-attention="' + esc(attentionOrder.order_id) + '">Review sync</button>' : '') +
-      '</div>';
-
     root.innerHTML =
-      // list.tsx header: just the page title, no action buttons
-      '<div class="mb-4"><h1 class="page-title">Orders</h1></div>' +
-      shopifyBanner +
+      '<div class="orders-page-head">' +
+        '<h1 class="page-title">Orders</h1>' +
+        '<p class="orders-page-subtitle">Paid BestCheckout orders are automatically created in Shopify. Fulfillment and refunds are managed there.</p>' +
+      '</div>' +
       '<div class="panel">' +
         '<div class="tabs" style="padding:0 8px" id="ord-tabs">' + tabsHtml + '</div>' +
         // filter bar (search.tsx: keyword group / time group / total-range chip)

@@ -31,7 +31,7 @@
     var l = openLayer; openLayer = null;
     document.removeEventListener('mousedown', l._out, true);
     window.removeEventListener('resize', l._close, true);
-    window.removeEventListener('scroll', l._close, true);
+    window.removeEventListener('scroll', l._close);
     if (l.parentNode) l.parentNode.removeChild(l);
   }
   function openPop(anchor, panel, opts) {
@@ -55,7 +55,9 @@
     layer._out = function (e) { if (!panel.contains(e.target) && !anchor.contains(e.target)) closePop(); };
     setTimeout(function () { document.addEventListener('mousedown', layer._out, true); }, 0);
     window.addEventListener('resize', layer._close, true);
-    window.addEventListener('scroll', layer._close, true);
+    // Do not capture nested scrolling: option lists use their own scrollbars and
+    // must stay open while a merchant scrolls through their choices.
+    window.addEventListener('scroll', layer._close);
     openLayer = layer;
     return layer;
   }
@@ -82,7 +84,8 @@
       var panel = document.createElement('div');
       panel.className = 'ui-select-pop';
       panel.style.minWidth = Math.max(btn.offsetWidth, 160) + 'px';
-      Array.prototype.forEach.call(sel.options, function (o, i) {
+      var appendOption = function (o) {
+        var i = o.index;
         var opt = document.createElement('div');
         opt.className = 'opt' + (i === sel.selectedIndex ? ' sel' : '');
         opt.textContent = o.textContent;
@@ -95,6 +98,17 @@
           closePop();
         };
         panel.appendChild(opt);
+      };
+      Array.prototype.forEach.call(sel.children, function (child) {
+        if (child.tagName === 'OPTGROUP') {
+          var group = document.createElement('div');
+          group.className = 'ui-select-group';
+          group.textContent = child.label;
+          panel.appendChild(group);
+          Array.prototype.forEach.call(child.children, appendOption);
+          return;
+        }
+        if (child.tagName === 'OPTION') appendOption(child);
       });
       var l = openPop(btn, panel);
       l._owner = btn;

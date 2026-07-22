@@ -24,11 +24,10 @@ window.STORES = [
 // Top-level base modules (no group label). Order: Orders / Products / Customers
 // / Discounts / Analytics / Content (analytics intentionally before content).
 window.NAV_MENU = [
-  { id: 'home', label: 'Overview', icon: 'home', route: '#/home', desc: 'Today\'s BestCheckout performance and items needing attention.' },
+  { id: 'home', label: 'Overview', icon: 'home', route: '#/home', desc: 'Setup, attention items, and checkout data for this store.' },
   { id: 'flows', label: 'Purchase flows', icon: 'apps', route: '#/flows', desc: 'Choose who sees each checkout, upsell, and downsell flow.' },
   { id: 'pages', label: 'Checkout pages', icon: 'page', route: '#/pages', desc: 'Customize checkout and Thank you pages.' },
   { id: 'orders', label: 'Orders', icon: 'inbox', route: '#/orders', desc: 'Orders created in BestCheckout and sent back to Shopify.' },
-  { id: 'performance', label: 'Performance', icon: 'analytics', route: '#/performance', desc: 'Checkout conversion and offer performance.' },
   { id: 'activity', label: 'Activity log', icon: 'bell', route: '#/activity', desc: 'Important changes and service events for this Shopify store.' },
   {
     id: 'settings', label: 'Settings', icon: 'settings', route: '#/settings/base', desc: 'Manage the Shopify store and services that power checkout.',
@@ -37,7 +36,8 @@ window.NAV_MENU = [
       { id: 'settings-payments', label: 'Payment services', route: '#/settings/payments' },
       { id: 'settings-domains', label: 'Checkout domain', route: '#/settings/domains' },
       { id: 'settings-notifications', label: 'Email notifications', route: '#/settings/notifications' },
-      { id: 'settings-roles', label: 'Team access', route: '#/settings/roles' }
+      { id: 'settings-roles', label: 'Roles', route: '#/settings/roles' },
+      { id: 'settings-staff', label: 'Staff', route: '#/settings/staff' }
     ]
   }
 ];
@@ -51,7 +51,10 @@ window.NAV_SETTINGS = [
   { id: 'payments', label: 'Payment services', icon: 'card', route: '#/settings/payments' },
   { id: 'domains', label: 'Checkout domain', icon: 'globe', route: '#/settings/domains' },
   { id: 'notifications', label: 'Email notifications', icon: 'bell', route: '#/settings/notifications' },
-  { id: 'roles', label: 'Team access', icon: 'userPen', route: '#/settings/roles' }
+  { id: 'staffperms', label: 'Staff and permissions', icon: 'userPen', route: '#/settings/roles', children: [
+    { id: 'roles', label: 'Roles', route: '#/settings/roles' },
+    { id: 'staff', label: 'Staff', route: '#/settings/staff' }
+  ] }
 ];
 
 /* ---------- Subscriptions workspace (V1.142) ----------
@@ -123,7 +126,6 @@ window.ROUTE_MODULE = {
   flows: 'bestcheckout',
   pages: 'bestcheckout',
   orders: 'orders',
-  performance: 'bestcheckout',
   activity: 'activity',
   payments: 'settings',
   domains: 'settings',

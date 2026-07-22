@@ -9,7 +9,7 @@
    #/orders/5042, or 'base' for #/settings/base). Internal navigation just sets
    location.hash; the router re-dispatches. */
 (function () {
-  var V = '20260721pagepicker1'; // cache-bust for lazy-loaded module scripts
+  var V = '20260722flowtablecleanup1'; // cache-bust for lazy-loaded module scripts
   var s = function (p) { return '<svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>'; };
   var ICONS = {
     home: s('<path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/>'),
@@ -345,24 +345,26 @@
       grid + '<path d="' + area + '" class="home-chart-area" /><polyline points="' + line + '" class="home-chart-line" />' + xLabels + '</svg></div>';
   }
   function homeMetricHtml(metric, comparison) {
-    return '<a class="home-kpi" href="' + metric.href + '"><span class="home-kpi-label">' + homeEsc(metric.title) + '</span>' +
-      '<strong>' + homeEsc(metric.value) + '</strong><span class="home-kpi-meta"><b>' + homeEsc(metric.change) + '</b> ' + homeEsc(comparison) + '</span></a>';
+    var inner = '<span class="home-kpi-label">' + homeEsc(metric.title) + '</span>' +
+      '<strong>' + homeEsc(metric.value) + '</strong><span class="home-kpi-meta"><b>' + homeEsc(metric.change) + '</b> ' + homeEsc(comparison) + '</span>';
+    return metric.href ? '<a class="home-kpi" href="' + metric.href + '">' + inner + '</a>' : '<article class="home-kpi">' + inner + '</article>';
   }
   function homeAttentionHtml(orders, flows) {
-    var draftFlows = flows.draft;
-    var writeback = orders.filter(function (order) {
-      return order.source === 'BestCheckout' && (order.shopify_writeback_status === 'pending' || order.shopify_writeback_status === 'failed');
+    var failedWritebacks = orders.filter(function (order) {
+      return order.source === 'BestCheckout' && order.shopify_writeback_status === 'failed';
     }).length;
     var items = [];
-    if (draftFlows) items.push({ count: draftFlows, label: 'Draft purchase flows', detail: 'Finish the entry and page setup, then publish when it is ready.', href: '#/flows', icon: 'apps', tone: 'warn' });
-    if (writeback) items.push({ count: writeback, label: 'Shopify order sync needs review', detail: 'Paid checkout orders are waiting to be sent to Shopify.', href: '#/orders', icon: 'card', tone: 'warn' });
-    if (!items.length) return '<section class="home-attention home-attention-clear"><div class="home-attention-clear-icon">' + ICONS.home + '</div><div><strong>All checkout actions are complete</strong><span>No purchase flow or Shopify sync needs attention right now.</span></div></section>';
-    return '<section class="home-attention"><div class="home-attention-top"><div><div class="home-overline">Checkout actions</div><div class="home-attention-title">Keep your checkout ready for buyers</div></div><a class="home-text-link" href="#/activity">Open activity log</a></div><div class="home-attention-grid">' + items.map(function (item) {
-      return '<a class="home-attention-item" href="' + item.href + '"><span class="home-attention-icon home-attention-' + item.tone + '">' + (ICONS[item.icon] || ICONS.inbox) + '</span><span class="home-attention-copy"><b>' + item.count + '</b><strong>' + item.label + '</strong><small>' + item.detail + '</small></span><span class="home-row-caret">&rsaquo;</span></a>';
-    }).join('') + '</div></section>';
+    if (failedWritebacks) items.push({ count: failedWritebacks, label: 'Shopify order sync needs review', detail: 'Review failed order syncs before fulfillment starts.', href: '#/orders', icon: 'card', tone: 'danger' });
+    var actionArea = items.length
+      ? '<div class="home-attention-grid' + (items.length === 1 ? ' is-single' : '') + '">' + items.map(function (item) {
+      return '<a class="home-attention-item" href="' + item.href + '"><span class="home-attention-icon home-attention-' + item.tone + '">' + (ICONS[item.icon] || ICONS.inbox) + '</span><span class="home-attention-copy"><strong><b>' + item.count + '</b>' + item.label + '</strong><small>' + item.detail + '</small></span><span class="home-row-caret">&rsaquo;</span></a>';
+      }).join('') + '</div>'
+      : '<div class="home-attention-clear"><div class="home-attention-clear-icon">' + ICONS.home + '</div><div><strong>All checkout actions are complete</strong><span>No purchase flow or Shopify sync needs attention right now.</span></div></div>';
+    return '<section class="home-attention"><div class="home-attention-top"><div><div class="home-overline">Attention</div><div class="home-attention-title">Keep your checkout ready for buyers</div></div><a class="home-text-link" href="#/activity">Open activity log</a></div><div class="home-attention-dashboard">' + actionArea +
+      '<section class="home-attention-support-card"><div class="home-section-head"><div><h2>Recent checkout activity</h2><p>Paid BestCheckout checkouts and their Shopify sync status.</p></div><a class="home-text-link" href="#/orders">View all checkout orders</a></div><div class="home-order-list">' + homeRecentOrdersHtml(orders) + '</div></section><section class="home-attention-support-card"><div class="home-section-head"><div><h2>Purchase flow status</h2><p>Live routes that can receive buyers</p></div></div><div class="home-app-list">' + homeRevenueHtml(flows) + '</div></section></div></section>';
   }
   function homeRecentOrdersHtml(orders) {
-    var rows = orders.slice(0, 5).map(function (order) {
+    var rows = orders.slice(0, 3).map(function (order) {
       var state = homeOrderState(order);
       return '<a class="home-order-row" href="#/orders/' + homeEsc(order.order_id) + '"><span class="home-order-main"><span class="home-order-id">' + homeEsc(order.order_sn) + '</span><span class="home-order-customer">' + homeEsc((order.user || {}).nickname || 'Guest') + '</span><span class="home-order-tags">' + homeOrderTags(order) + '</span></span><span class="home-order-side">' + homePill(state[0], state[1]) + '<strong>$' + Number(order.total || 0).toFixed(2) + '</strong></span></a>';
     }).join('');
@@ -384,7 +386,22 @@
     }).join('');
   }
   function homeRevenueHtml(flows) {
-    return '<a class="home-app-row" href="#/flows"><span class="home-app-icon home-app-checkout">' + ICONS.card + '</span><span class="home-app-copy"><strong>Purchase flows</strong><small>Live checkout routes and their post-purchase offers</small></span><span class="home-app-stats"><b>' + flows.live + '</b><small>live</small><b class="' + (flows.draft ? 'home-stat-warn' : '') + '">' + flows.draft + '</b><small>draft</small></span><span class="home-row-caret">&rsaquo;</span></a>';
+    return '<a class="home-app-row" href="#/flows"><span class="home-app-icon home-app-checkout">' + ICONS.card + '</span><span class="home-app-copy"><strong>Purchase flows</strong><small>Live checkout routes and their post-purchase offers</small></span><span class="home-app-stats"><b>' + flows.live + '</b><small>live</small><b>' + flows.draft + '</b><small>draft</small><b class="' + (flows.paused ? 'home-stat-muted' : '') + '">' + flows.paused + '</b><small>paused</small></span><span class="home-row-caret">&rsaquo;</span></a>';
+  }
+  function homeFlowPerformanceHtml(period) {
+    var rows = (period.flows || []).map(function (flow) {
+      return '<tr><td><a href="#/flows/' + homeEsc(flow.id) + '">' + homeEsc(flow.name) + '</a><small>Attributed in this period</small></td><td>' + homeEsc(flow.sessions) + '</td><td><strong>' + homeEsc(flow.orders) + '</strong></td><td><strong>' + homeEsc(flow.conversion) + '</strong><small class="home-positive">' + homeEsc(flow.lift) + ' <span>vs Shopify</span></small></td><td>' + homeEsc(flow.aov) + '</td><td><strong>' + homeEsc(flow.sales) + '</strong></td></tr>';
+    }).join('');
+    return '<section class="home-panel home-flow-performance"><div class="home-section-head"><div><h2>Purchase flow performance</h2><p>Compare purchase flow results during the selected period.</p></div><a class="home-text-link" href="#/flows">Manage purchase flows</a></div><div class="home-data-table-wrap"><table class="home-data-table"><thead><tr><th>Purchase flow</th><th>Entered checkout</th><th>Completed orders</th><th>Conversion</th><th>Average order value</th><th>Sales</th></tr></thead><tbody>' + rows + '</tbody></table></div></section>';
+  }
+  function homeOfferPerformanceHtml(period) {
+    var offers = (period.offers || []).map(function (offer) {
+      return '<article class="home-offer-card"><span class="home-offer-tag home-offer-' + homeEsc(offer.tone) + '">' + homeEsc(offer.type) + '</span><strong>' + homeEsc(offer.title) + '</strong><p>' + homeEsc(offer.note) + '</p><div><span><small>Accept rate</small><b>' + homeEsc(offer.rate) + '</b></span><span><small>Added sales</small><b>' + homeEsc(offer.sales) + '</b></span></div></article>';
+    }).join('');
+    return '<section class="home-offer-section"><div class="home-section-head home-offer-section-head"><div><h2>Offer performance</h2><p>Revenue and acceptance rate for Upsell, Downsell, and order bump offers.</p></div><a class="home-text-link" href="#/flows">Manage offers</a></div><div class="home-offer-grid">' + offers + '</div></section>';
+  }
+  function homeDataInsightHtml(period) {
+    return '<section class="home-panel home-data-insight"><div class="home-section-head"><div><div class="home-overline">This period</div><h2>More shoppers complete checkout</h2><p>Your checkout conversion is higher than the Shopify control group. Keep the current setup running, then test the next segment.</p></div></div><div class="home-data-insight-value"><span>Checkout conversion</span><strong>' + homeEsc(period.metrics[2].value) + '</strong><small>' + homeEsc(period.metrics[2].change) + ' <span>vs Shopify</span></small></div><a class="btn btn-primary" href="#/flows">Review purchase flows</a></section>';
   }
   function checkoutLaunchGuideHtml() {
     // The connection is completed automatically during Shopify authorization.
@@ -407,10 +424,9 @@
       return '<div class="onboard-row' + state + '"><span class="onboard-step">' + marker + '</span><div class="onboard-copy"><strong>' + homeEsc(task.title) + '</strong><small>' + homeEsc(task.desc) + '</small></div>' + end + '</div>';
     }).join('');
     return '<section class="home-onboarding">' +
-      '<header class="onboard-head"><div><div class="home-overline">Get ready to launch</div><h2>Complete your launch setup</h2><p>Follow these steps once to start taking orders with BestCheckout.</p></div>' +
+      '<header class="onboard-head"><div><div class="home-overline">Quick start</div><h2>Complete your launch setup</h2><p>Follow these steps once to start taking orders with BestCheckout.</p></div>' +
       '<div class="onboard-progress"><div><strong>' + complete + ' / ' + tasks.length + '</strong><span>complete</span></div><i><b style="width:' + Math.round(complete / tasks.length * 100) + '%"></b></i></div></header>' +
       '<div class="onboard-rows">' + rows + '</div>' +
-      '<div class="onboard-optional"><div><span>Optional growth</span><strong>Add Upsell, Downsell, or conversion tracking after launch.</strong></div><div class="onboard-optional-actions"><a href="#/flows">Add Upsell / Downsell</a><a href="#/performance">View performance</a></div></div>' +
       '<div class="onboard-safety"><span>!</span><p>Your Shopify checkout stays available until you publish a purchase flow.</p></div>' +
     '</section>';
   }
@@ -439,23 +455,21 @@
   function renderHome() {
     if (isNewStore) { renderNewStoreHome(); return; }
     var data = window.DATA_HOME || { periods: {}, storeHealth: [], update: {} };
-    var period = data.periods[homeRange] || data.periods['7d'] || { label: 'Last 7 days', comparison: 'vs previous period', metrics: [], series: [], labels: [] };
+    var period = data.periods[homeRange] || data.periods['30d'] || { label: 'Last 30 days', comparison: 'vs previous period', metrics: [], series: [], labels: [], flows: [], offers: [] };
     // BestCheckout owns only orders created through its checkout. Shopify native
     // checkout orders remain in Shopify Admin and must not influence this home view.
     var orders = ((window.DATA_ORDERS || {}).ORDERS || []).filter(function (order) {
       return order && order.source === 'BestCheckout' && order.payment_status === 'paid';
     });
     var flowCounts = homeFlowCounts();
-    var rangeTabs = [['today', 'Today'], ['7d', 'Last 7 days'], ['30d', 'Last 30 days']].map(function (tab) {
+    var rangeTabs = [['7d', 'Last 7 days'], ['30d', 'Last 30 days'], ['90d', 'Last 90 days']].map(function (tab) {
       return '<button type="button" class="home-range-tab' + (homeRange === tab[0] ? ' active' : '') + '" data-home-range="' + tab[0] + '" aria-pressed="' + (homeRange === tab[0] ? 'true' : 'false') + '">' + tab[1] + '</button>';
     }).join('');
-    root.innerHTML = '<div class="home-page"><div class="home-head"><div><h1>Good morning, ' + homeEsc(SITE.store || 'your store') + '</h1><p>Review the setup and results that affect buyers in BestCheckout.</p></div><div class="home-actions"><a class="btn" href="#/pages">Preview checkout</a><a class="btn btn-primary" href="#/flows">Manage flows</a></div></div>' +
+    root.innerHTML = '<div class="home-page"><div class="home-head"><div><h1>Good morning, ' + homeEsc(SITE.store || 'your store') + '</h1><p>Review the setup and results that affect buyers in BestCheckout.</p></div></div>' +
       checkoutLaunchGuideHtml() +
       homeAttentionHtml(orders, flowCounts) +
-      '<section class="home-performance"><div class="home-section-head home-performance-head"><div><h2>Performance</h2><p>' + homeEsc(period.label) + ' ' + homeEsc(period.comparison) + '</p></div><div class="home-range-tabs" role="group" aria-label="Performance period">' + rangeTabs + '</div></div><div class="home-kpi-grid">' + (period.metrics || []).map(function (metric) { return homeMetricHtml(metric, period.comparison); }).join('') + '</div></section>' +
-      '<div class="home-main-grid"><section class="home-panel home-chart-panel"><div class="home-section-head"><div><h2>Checkout sales</h2><p>Completed through BestCheckout · ' + homeEsc(period.label) + '</p></div><a class="home-text-link" href="#/performance">Open performance</a></div>' + homeChartHtml(period) + '</section><section class="home-panel home-health-panel"><div class="home-section-head"><div><h2>Checkout health</h2><p>Connections and live-flow status</p></div><a class="home-icon-link" href="#/settings/base" aria-label="Open settings">' + ICONS.settings + '</a></div><div class="home-health-list">' + homeHealthHtml(data.storeHealth || [], flowCounts) + '</div></section></div>' +
-      '<div class="home-detail-grid"><section class="home-panel home-orders-panel"><div class="home-section-head"><div><h2>Recent checkout activity</h2><p>Paid BestCheckout checkouts and their Shopify sync status.</p></div><a class="home-text-link" href="#/orders">View all checkout orders</a></div><div class="home-order-list">' + homeRecentOrdersHtml(orders) + '</div></section><section class="home-panel home-revenue-panel"><div class="home-section-head"><div><h2>Purchase flow status</h2><p>Live routes that can receive buyers</p></div></div><div class="home-app-list">' + homeRevenueHtml(flowCounts) + '</div></section></div>' +
-      '<section class="home-update"><span class="home-update-mark">' + homeEsc((data.update || {}).version || 'Update') + '</span><div><strong>' + homeEsc((data.update || {}).title || 'BestShopio updates') + '</strong><span>' + homeEsc((data.update || {}).detail || '') + '</span></div><a class="home-text-link" href="' + homeEsc((data.update || {}).href || '#/home') + '">Review</a></section></div>';
+      '<section class="home-data" id="home-data"><div class="home-section-head home-performance-head"><div><div class="home-overline">Data</div><h2>Checkout data</h2><p>' + homeEsc(period.label) + ' ' + homeEsc(period.comparison) + '</p></div><div class="home-range-tabs" role="group" aria-label="Data period">' + rangeTabs + '</div></div><div class="home-kpi-grid">' + (period.metrics || []).map(function (metric) { return homeMetricHtml(metric, period.comparison); }).join('') + '</div>' +
+      '<div class="home-main-grid"><section class="home-panel home-chart-panel"><div class="home-section-head"><div><h2>Checkout sales trend</h2><p><span>Completed checkout sales</span> · <span>' + homeEsc(period.label) + '</span></p></div></div>' + homeChartHtml(period) + '</section>' + homeDataInsightHtml(period) + '</div>' + homeFlowPerformanceHtml(period) + homeOfferPerformanceHtml(period) + '<section class="home-data-note"><span>i</span><div><strong>How sales are counted</strong><p>Sales are counted after payment succeeds. Paid orders are then sent to Shopify, so the result here matches the orders your team fulfills.</p></div></section></section></div>';
     wireHome();
     // See renderNewStoreHome: this view is assembled after the initial i18n pass.
     if (window.I18N) window.I18N.apply(root);
@@ -464,6 +478,8 @@
   // ---------- router ----------
   function dispatch() {
     var p = parse();
+    // Performance is now part of Overview. Keep existing shared links useful.
+    if (p.first === 'performance') { location.hash = '#/home'; return; }
     // Preserve previously shared links while grouping these operational pages
     // under Settings in the primary navigation.
     if (p.first === 'payments' || p.first === 'domains' || p.first === 'notifications') {
@@ -489,7 +505,6 @@
     // that flow's detail workspace.
     if (p.first === 'flows') viewRest = p.rest ? 'funnel/' + p.rest : 'flows';
     if (p.first === 'pages') viewRest = 'templates';
-    if (p.first === 'performance') viewRest = 'performance';
     var activeId = p.first;
     if (p.first === 'settings') { var settingsSub = p.rest.split('/')[0] || 'base'; activeId = 'settings-' + settingsSub; }
     if (p.first === 'analytics') { var asub = p.rest.split('/')[0]; activeId = asub ? 'analytics-' + asub : 'analytics'; }
