@@ -9,7 +9,7 @@
    #/orders/5042, or 'base' for #/settings/base). Internal navigation just sets
    location.hash; the router re-dispatches. */
 (function () {
-  var V = '20260722flowtablecleanup1'; // cache-bust for lazy-loaded module scripts
+  var V = '20260722attentionfocus1'; // cache-bust for lazy-loaded module scripts
   var s = function (p) { return '<svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>'; };
   var ICONS = {
     home: s('<path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/>'),
@@ -337,12 +337,13 @@
       var y = (padY + (height - padY * 2) * ratio).toFixed(1);
       return '<line x1="' + padX + '" x2="' + (width - padX) + '" y1="' + y + '" y2="' + y + '" class="home-chart-grid" />';
     }).join('');
-    var xLabels = labels.map(function (label, index) {
-      var x = points[index] ? points[index][0] : padX;
-      return '<text x="' + x + '" y="' + (height - 2) + '" text-anchor="middle" class="home-chart-label">' + homeEsc(label) + '</text>';
-    }).join('');
+    // Keep date labels out of the stretched SVG. `preserveAspectRatio="none"`
+    // makes the chart line fill any width, but SVG text would scale with it.
+    var xLabels = '<div class="home-chart-labels' + (labels.length > 7 ? ' is-dense' : '') + '" style="grid-template-columns:repeat(' + Math.max(labels.length, 1) + ',minmax(0,1fr))">' + labels.map(function (label) {
+      return '<span title="' + homeEsc(label) + '">' + homeEsc(label) + '</span>';
+    }).join('') + '</div>';
     return '<div class="home-chart-wrap"><svg class="home-chart" viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none" role="img" aria-label="Checkout sales trend for ' + homeEsc(period.label) + '">' +
-      grid + '<path d="' + area + '" class="home-chart-area" /><polyline points="' + line + '" class="home-chart-line" />' + xLabels + '</svg></div>';
+      grid + '<path d="' + area + '" class="home-chart-area" /><polyline points="' + line + '" class="home-chart-line" /></svg>' + xLabels + '</div>';
   }
   function homeMetricHtml(metric, comparison) {
     var inner = '<span class="home-kpi-label">' + homeEsc(metric.title) + '</span>' +
@@ -360,8 +361,7 @@
       return '<a class="home-attention-item" href="' + item.href + '"><span class="home-attention-icon home-attention-' + item.tone + '">' + (ICONS[item.icon] || ICONS.inbox) + '</span><span class="home-attention-copy"><strong><b>' + item.count + '</b>' + item.label + '</strong><small>' + item.detail + '</small></span><span class="home-row-caret">&rsaquo;</span></a>';
       }).join('') + '</div>'
       : '<div class="home-attention-clear"><div class="home-attention-clear-icon">' + ICONS.home + '</div><div><strong>All checkout actions are complete</strong><span>No purchase flow or Shopify sync needs attention right now.</span></div></div>';
-    return '<section class="home-attention"><div class="home-attention-top"><div><div class="home-overline">Attention</div><div class="home-attention-title">Keep your checkout ready for buyers</div></div><a class="home-text-link" href="#/activity">Open activity log</a></div><div class="home-attention-dashboard">' + actionArea +
-      '<section class="home-attention-support-card"><div class="home-section-head"><div><h2>Recent checkout activity</h2><p>Paid BestCheckout checkouts and their Shopify sync status.</p></div><a class="home-text-link" href="#/orders">View all checkout orders</a></div><div class="home-order-list">' + homeRecentOrdersHtml(orders) + '</div></section><section class="home-attention-support-card"><div class="home-section-head"><div><h2>Purchase flow status</h2><p>Live routes that can receive buyers</p></div></div><div class="home-app-list">' + homeRevenueHtml(flows) + '</div></section></div></section>';
+    return '<section class="home-attention"><div class="home-attention-top"><div><div class="home-overline">Attention</div><div class="home-attention-title">Keep your checkout ready for buyers</div></div></div>' + actionArea + '</section>';
   }
   function homeRecentOrdersHtml(orders) {
     var rows = orders.slice(0, 3).map(function (order) {
