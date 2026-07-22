@@ -38,7 +38,7 @@ import { renderEditor, mountEditor } from './pages/editor.js?rev=20260719-previe
 import { renderOrders } from './pages/orders.js?rev=20260720-standalone-portal-v145';
 import { renderConnectShopify, renderSignIn, renderSignUp } from './pages/auth.js?rev=20260722authgate2';
 import { renderHelpCenter } from './pages/help.js?rev=20260722shopifyappguide1';
-import { renderMarketingSite } from './pages/website.js?rev=20260722landingmotion2';
+import { renderMarketingSite } from './pages/website.js?rev=20260722landingfable4';
 import { escapeHtml, formatDateTime, getRouteName, parseRoute, setRoute } from './utils.js?rev=20260720-standalone-portal-v145';
 import { applyLocale, renderLanguageSwitcher, translate } from './i18n.js?rev=20260720-standalone-portal-v150';
 
@@ -53,6 +53,119 @@ try {
   state.ui.locale = 'en';
 }
 let modalReturnFocus = null;
+let marketingMotionCleanup = null;
+
+function clearMarketingMotion() {
+  if (typeof marketingMotionCleanup === 'function') marketingMotionCleanup();
+  marketingMotionCleanup = null;
+}
+
+function mountMarketingMotion() {
+  clearMarketingMotion();
+  const root = appRoot.querySelector('.fable-site');
+  if (!root) return;
+
+  const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const revealSelectors = [
+    '.fable-outcomes article',
+    '.fable-capability-grid article',
+    '.fable-section-title',
+    '.fable-value-grid article',
+    '.fable-process li',
+    '.fable-testimonial-grid article',
+    '.fable-trust-grid article',
+    '.fable-final .fable-container > div',
+    '.fable-footer .fable-container > div',
+    '.fable-footer .fable-container > nav',
+    '.fable-footer .fable-container > small',
+  ];
+  const revealTargets = Array.from(new Set(revealSelectors.flatMap(function (selector) {
+    return Array.from(root.querySelectorAll(selector));
+  })));
+  let heroFrame = 0;
+  let workspaceTimer = 0;
+  const animationFrames = new Set();
+  let observer = null;
+
+  function setCounterValue(counter, progress) {
+    const valueNode = counter.querySelector('[data-fable-counter-value]');
+    if (!valueNode) return;
+    const target = Number(counter.dataset.fableCounterTarget || 0);
+    const decimals = Number(counter.dataset.fableCounterDecimals || 0);
+    const prefix = counter.dataset.fableCounterPrefix || '';
+    const current = target * progress;
+    const formatted = current.toLocaleString('en-US', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
+    valueNode.textContent = prefix + formatted;
+  }
+
+  function animateCounter(counter) {
+    if (counter.dataset.fableCounterDone === 'true') return;
+    counter.dataset.fableCounterDone = 'true';
+    if (reducedMotion) {
+      setCounterValue(counter, 1);
+      return;
+    }
+    const startedAt = window.performance.now();
+    const duration = 1350;
+    function tick(now) {
+      const elapsed = Math.min((now - startedAt) / duration, 1);
+      const eased = 1 - Math.pow(1 - elapsed, 3);
+      setCounterValue(counter, eased);
+      if (elapsed < 1) {
+        const frame = window.requestAnimationFrame(tick);
+        animationFrames.add(frame);
+      } else {
+        setCounterValue(counter, 1);
+      }
+    }
+    const frame = window.requestAnimationFrame(tick);
+    animationFrames.add(frame);
+  }
+
+  root.querySelectorAll('[data-fable-counter]').forEach(function (counter) {
+    setCounterValue(counter, 0);
+  });
+  revealTargets.forEach(function (target, index) {
+    target.classList.add('fable-reveal');
+    target.style.setProperty('--fable-reveal-delay', String((index % 3) * 90) + 'ms');
+  });
+
+  heroFrame = window.requestAnimationFrame(function () {
+    root.classList.add('is-motion-ready');
+    workspaceTimer = window.setTimeout(function () {
+      const workspace = root.querySelector('.fable-workspace');
+      if (workspace) workspace.classList.add('is-animated');
+    }, reducedMotion ? 0 : 260);
+  });
+
+  function reveal(target) {
+    target.classList.add('is-visible');
+    target.querySelectorAll('[data-fable-counter]').forEach(animateCounter);
+  }
+
+  if (reducedMotion || !('IntersectionObserver' in window)) {
+    revealTargets.forEach(reveal);
+  } else {
+    observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        reveal(entry.target);
+        observer.unobserve(entry.target);
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+    revealTargets.forEach(function (target) { observer.observe(target); });
+  }
+
+  marketingMotionCleanup = function () {
+    window.cancelAnimationFrame(heroFrame);
+    window.clearTimeout(workspaceTimer);
+    animationFrames.forEach(function (frame) { window.cancelAnimationFrame(frame); });
+    if (observer) observer.disconnect();
+  };
+}
 let modalHistory = [];
 let toastTimer = null;
 let lastRenderedHash = window.location.hash;
@@ -322,7 +435,9 @@ function renderShell(options) {
     return;
   }
   if (isPublicRoute(route)) {
+    clearMarketingMotion();
     appRoot.innerHTML = renderPublicRoute(route);
+    if (route.segments[0] === 'landing') mountMarketingMotion();
     const section = route.segments[0] === 'landing' ? route.query.get('section') : null;
     if (section && ['product', 'results', 'how-it-works'].includes(section)) {
       window.requestAnimationFrame(function () {
@@ -334,6 +449,7 @@ function renderShell(options) {
     lastRenderedWasEditor = false;
     return;
   }
+  clearMarketingMotion();
   if (!state.ui.isAuthenticated) {
     setRoute('sign-in?next=' + encodeURIComponent(route.raw || 'home'));
     return;
