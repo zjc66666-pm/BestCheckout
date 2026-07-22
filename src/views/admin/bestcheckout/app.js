@@ -36,9 +36,9 @@ import { renderActivity } from './pages/activity.js?rev=20260720-standalone-port
 import { renderSettings } from './pages/settings.js?rev=20260720-standalone-portal-v150';
 import { renderEditor, mountEditor } from './pages/editor.js?rev=20260719-preview-session-v92';
 import { renderOrders } from './pages/orders.js?rev=20260720-standalone-portal-v145';
-import { renderConnectShopify, renderSignIn, renderSignUp } from './pages/auth.js?rev=20260720-launch-checklist-v154';
-import { renderHelpCenter } from './pages/help.js?rev=20260720-launch-checklist-v154';
-import { renderMarketingSite } from './pages/website.js?rev=20260722landingroute7';
+import { renderConnectShopify, renderSignIn, renderSignUp } from './pages/auth.js?rev=20260722authgate2';
+import { renderHelpCenter } from './pages/help.js?rev=20260722shopifyappguide1';
+import { renderMarketingSite } from './pages/website.js?rev=20260722landingmotion2';
 import { escapeHtml, formatDateTime, getRouteName, parseRoute, setRoute } from './utils.js?rev=20260720-standalone-portal-v145';
 import { applyLocale, renderLanguageSwitcher, translate } from './i18n.js?rev=20260720-standalone-portal-v150';
 
@@ -317,6 +317,10 @@ function pageForRoute(route) {
 
 function renderShell(options) {
   const route = parseRoute();
+  if (route.segments[0] === 'connect-shopify' && !state.ui.isAuthenticated) {
+    setRoute('sign-up?next=connect-shopify');
+    return;
+  }
   if (isPublicRoute(route)) {
     appRoot.innerHTML = renderPublicRoute(route);
     const section = route.segments[0] === 'landing' ? route.query.get('section') : null;
@@ -328,6 +332,10 @@ function renderShell(options) {
     }
     lastRenderedHash = window.location.hash;
     lastRenderedWasEditor = false;
+    return;
+  }
+  if (!state.ui.isAuthenticated) {
+    setRoute('sign-in?next=' + encodeURIComponent(route.raw || 'home'));
     return;
   }
   enforceWritebackCircuit();
@@ -913,6 +921,7 @@ function initialAudienceForPreset(preset, locale) {
 
 function handleAction(action, element) {
   if (action === 'portal-signout') {
+    state.ui.isAuthenticated = false;
     state.ui.languageOpen = false;
     closePortalHeaderMenus();
     setRoute('landing');
@@ -1023,8 +1032,10 @@ function handleAction(action, element) {
   if (action === 'switch-demo-profile') {
     const profile = element.dataset.profile === 'live' ? 'live' : 'installed';
     const locale = state.ui.locale;
+    const isAuthenticated = state.ui.isAuthenticated;
     state = createMockBestCheckoutState(profile);
     state.ui.locale = locale;
+    state.ui.isAuthenticated = isAuthenticated;
     state.ui.storeMenuOpen = false;
     renderShell({ focus: true });
     showToast(profile === 'live'
@@ -1873,13 +1884,25 @@ function bindFormSubmissions(event) {
   }
   if (form.id === 'portal-login-form') {
     event.preventDefault();
-    setRoute('home');
+    state.ui.isAuthenticated = true;
+    setRoute(parseRoute().query.get('next') || 'home');
     showToast('Welcome back to BestCheckout.', 'success');
     return;
   }
   if (form.id === 'portal-signup-form') {
     event.preventDefault();
-    setRoute('connect-shopify');
+    const terms = form.querySelector('[data-signup-terms]');
+    const error = form.querySelector('[data-signup-terms-error]');
+    if (!terms || !terms.checked) {
+      const termsLabel = terms && terms.closest('.portal-terms');
+      if (termsLabel) termsLabel.classList.add('is-error');
+      if (terms) terms.setAttribute('aria-invalid', 'true');
+      if (error) error.hidden = false;
+      if (terms) terms.focus();
+      return;
+    }
+    state.ui.isAuthenticated = true;
+    setRoute(parseRoute().query.get('next') || 'connect-shopify');
     return;
   }
   if (form.id === 'connect-shopify-form') {
@@ -2790,6 +2813,17 @@ function syncAudienceIdentityGate(builder) {
 }
 
 function handleChange(event) {
+  if (event.target.matches('[data-signup-terms]')) {
+    const form = event.target.closest('#portal-signup-form');
+    const error = form && form.querySelector('[data-signup-terms-error]');
+    const termsLabel = event.target.closest('.portal-terms');
+    if (event.target.checked) {
+      event.target.removeAttribute('aria-invalid');
+      if (termsLabel) termsLabel.classList.remove('is-error');
+      if (error) error.hidden = true;
+    }
+    return;
+  }
   if (event.target.matches('#add-offer-form [name="targetVariantId"]')) {
     const form = event.target.closest('#add-offer-form');
     const picker = form && form.querySelector('.product-choice-list');

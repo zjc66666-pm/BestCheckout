@@ -1181,9 +1181,7 @@
         ? '<span class="fj-node-meta fj-offer-meta">' + esc(fnOfferSummary(node)) + '</span>'
         : '<span class="fj-node-meta">' + t('Template') + ': ' + esc(bcTplName(node.type, node.tpl)) + '</span>';
       var buttons = '';
-      if (isOffer) {
-        buttons += '<button type="button" class="btn btn-default" data-flow-offer="' + esc(node.id) + '">' + t(type === 'upsell' ? 'Configure Upsell' : 'Configure Downsell') + '</button>';
-      } else {
+      if (!isOffer) {
         buttons += '<button type="button" class="btn btn-default" data-flow-template="' + esc(node.id) + '">' + t('Change template') + '</button>';
       }
       buttons += '<a class="btn btn-default" href="' + esc(bcEditHash(node.type, node.tpl, '#/flows/' + activeFlowId)) + '">' + t('Edit design') + '</a>';
@@ -1682,7 +1680,7 @@
     return '<div class="fc-node t-' + n.type + '" data-id="' + n.id + '" style="left:' + pos.x + 'px;top:' + pos.y + 'px">' +
       '<div class="fc-node-bar"><span class="fc-dot"></span><span class="fc-node-type">' + t(fnLabel(n.type)) + '</span>' + deleteControl + '<span class="fc-grip">⠿</span></div>' +
       '<div class="fc-node-body">' + body +
-        '<div class="fn-acts">' + ((n.type === 'upsell' || n.type === 'downsell') ? '<button type="button" class="btn btn-default" data-offer="' + n.id + '">' + t(n.type === 'upsell' ? 'Configure Upsell' : 'Configure Downsell') + '</button>' : '') + '<a class="btn btn-default" href="' + bcEditHash(n.type, n.tpl, '#/flows/' + activeFlowId) + '">' + t('Edit') + '</a></div>' +
+        '<div class="fn-acts"><a class="btn btn-default" href="' + bcEditHash(n.type, n.tpl, '#/flows/' + activeFlowId) + '">' + t('Edit') + '</a></div>' +
       '</div>' +
       '<span class="fc-port" title="' + t('Drag to another node to connect') + '"></span>' +
     '</div>';
@@ -1747,7 +1745,7 @@
       return '<div class="fc-node t-' + n.type + '" data-id="' + n.id + '" style="left:' + pos.x + 'px;top:' + pos.y + 'px">' +
         '<div class="fc-node-bar"><span class="fc-dot"></span><span class="fc-node-type">' + t(fnLabel(n.type)) + '</span>' + deleteControl + '<span class="fc-grip">⠿</span></div>' +
         '<div class="fc-node-body">' + body +
-          '<div class="fn-acts">' + ((n.type === 'upsell' || n.type === 'downsell') ? '<button type="button" class="btn btn-default" data-offer="' + n.id + '">' + t(n.type === 'upsell' ? 'Configure Upsell' : 'Configure Downsell') + '</button>' : '') + '<a class="btn btn-default" href="' + bcEditHash(n.type, n.tpl, '#/flows/' + activeFlowId) + '">' + t('Edit') + '</a></div>' +
+          '<div class="fn-acts"><a class="btn btn-default" href="' + bcEditHash(n.type, n.tpl, '#/flows/' + activeFlowId) + '">' + t('Edit') + '</a></div>' +
         '</div>' +
         '<span class="fc-port" title="' + t('Drag to another node to connect') + '"></span>' +
       '</div>';

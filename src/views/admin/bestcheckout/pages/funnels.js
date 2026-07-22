@@ -152,7 +152,10 @@ function renderJourneyNode(node, state, allocation, canRemove) {
     : canRemove
       ? '<button type="button" class="journey-page-card-remove" data-action="remove-journey-page" ' + settingsAttrs + ' aria-label="' + escapeHtml(copy(state, 'Remove from Funnel', '从漏斗移除')) + '" title="' + escapeHtml(copy(state, 'Remove from Funnel', '从漏斗移除')) + '">×</button>'
       : '<span class="journey-page-card-required" title="' + escapeHtml(copy(state, 'Keep at least one page of this type in the Funnel.', '漏斗中至少保留一个此类型页面。')) + '">' + icon('lock', 13) + '<span>' + escapeHtml(copy(state, 'Required', '必须保留')) + '</span></span>';
-  const actionGroup = '<div class="journey-page-card-actions">' + editAction + '<button type="button" class="journey-page-card-config" data-action="' + settingsAction + '" ' + settingsAttrs + '>' + escapeHtml(settingsLabel) + '</button>' + removal + '</div>';
+  const configurationAction = isOffer
+    ? ''
+    : '<button type="button" class="journey-page-card-config" data-action="' + settingsAction + '" ' + settingsAttrs + '>' + escapeHtml(settingsLabel) + '</button>';
+  const actionGroup = '<div class="journey-page-card-actions">' + editAction + configurationAction + removal + '</div>';
   return '<article class="journey-page-card journey-page-card-' + escapeHtml(node.kind) + selected + '"><button type="button" class="journey-page-card-select" data-action="select-node" data-node-id="' + escapeHtml(node.id) + '" aria-pressed="' + (selected ? 'true' : 'false') + '"><span class="journey-page-card-head"><span><strong data-i18n-skip>' + escapeHtml(node.label) + '</strong></span></span>' + body + '</button>' + actionGroup + '</article>';
 }
 
