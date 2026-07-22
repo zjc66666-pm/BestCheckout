@@ -1,0 +1,35 @@
+:root {
+  color-scheme: light;
+  /* BestShopio Admin canonical tokens: aligned with prototypes/_shared/admin-theme.css. */
+  --p-bg: #f7f8fb;
+  --p-bg-subdued: #f7f8fb;
+  --p-surface: #ffffff;
+  --p-surface-hover: #f7f8fb;
+  --p-text: #242833;
+  --p-text-subdued: #62708d;
+  --p-text-disabled: #8b95a8;
+  --p-border: #eaedf1;
+  --p-border-strong: #d7dbe7;
+  --p-action: #0066e6;
+  --p-action-hover: #0058c4;
+  --p-interactive: #0066e6;
+  --p-success: #008051;
+  --p-success-bg: #e0f2ec;
+  --p-success-border: #cce6dd;
+  --p-warning: #9a6700;
+  --p-warning-bg: #fff7df;
+  --p-warning-border: #f0d487;
+  --p-critical: #d33612;
+  --p-critical-bg: #fff0ee;
+  --p-critical-border: #efc4bd;
+  --p-info: #0066e6;
+  --p-info-bg: #e6f0ff;
+  --p-info-border: #cfe1ff;
+  --p-shadow-card: 0 1px 0 rgba(0, 0, 0, .05), 0 1px 3px rgba(0, 0, 0, .08);
+  --p-shadow-popover: 0 12px 28px rgba(0, 0, 0, .16), 0 2px 6px rgba(0, 0, 0, .08);
+  --p-radius: 12px;
+  --p-radius-control: 8px;
+  /* Shared BestShopio Admin application frame. */
+  --admin-sidebar: 224px;
+  --admin-header: 56px;
+}

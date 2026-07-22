@@ -337,7 +337,7 @@
         '</div>' +
       '</div>' +
       '<div class="os-top-r">' +
-        ((ED.exitTo && ED.exitTo.indexOf('#/bestcheckout') === 0) ? '<button class="btn btn-default" id="t-saveas" title="Save the current layout as a new template in the library">Save as template</button>' : '') +
+        ((ED.exitTo && /^#\/(?:bestcheckout|flows(?:\/|$))/.test(ED.exitTo)) ? '<button class="btn btn-default" id="t-saveas" title="Save the current layout as a new template in the library">Save as template</button>' : '') +
         '<button class="btn btn-default" id="t-discard"' + (dirty && !busy ? '' : ' disabled') + '>Discard</button>' +
         '<button class="btn btn-default" id="t-save"' + (dirty && !busy ? '' : ' disabled') + '>' + (busy === 'saving' ? 'Saving…' : 'Save') + '</button>' +
         '<button class="btn ' + (issues.length ? 'btn-warn' : 'btn-primary') + '" id="t-pub"' + (((dirty || draft) && !busy) ? '' : ' disabled') + ' title="' + (issues.length ? issues.length + ' validation issue(s)' : 'Publish to storefront') + '">' +
@@ -1241,7 +1241,7 @@
   // ==========================================================================
   //  REFRESHERS
   // ==========================================================================
-  function rerender() { renderBuilder(ED.meta.handle); }
+  function rerender() { renderBuilder(ED.meta.handle, ED.currentPage, ED.exitTo); }
   function refreshTop() { const b = document.getElementById('os-builder'); if (!b) return; const old = b.querySelector('.os-top'); const nw = topBar(); old.replaceWith(nw); wireTop(); }
   function refreshTree() { const b = document.getElementById('os-builder'); if (!b) return; const old = b.querySelector('.os-left'); const nw = leftPanel(); old.replaceWith(nw); wireLeft(); }
   function refreshRight() { const b = document.getElementById('os-builder'); if (!b) return; const old = b.querySelector('.os-right'); const nw = rightPanel(); old.replaceWith(nw); if (ED.leftMode === 'settings' || ED.selection.kind === 'theme-settings') wireSettings(); else wireRight(); }
@@ -1350,8 +1350,15 @@
       const tpl = tplM ? decodeURIComponent(tplM[1]) : null;
       const savedM = q.match(/(?:^|&)saved=([^&]+)/);
       const saved = savedM ? decodeURIComponent(savedM[1]) : null;
-      // from BestCheckout: 装修 is always reached from the Funnel (template choice is contextual there) → return to it
-      const exitTo = /(^|&)from=bestcheckout(&|$)/.test(q) ? '#/bestcheckout/funnel' : null;
+      // BestCheckout can open the builder from either the page library or a purchase flow.
+      // Only accept in-app destinations so this parameter cannot redirect elsewhere.
+      const returnM = q.match(/(?:^|&)return=([^&]+)/);
+      const requestedExit = returnM ? decodeURIComponent(returnM[1]) : null;
+      const exitTo = requestedExit && /^#\/(?:pages|flows(?:\/[^/?]+)?)$/.test(requestedExit)
+        ? requestedExit
+        : /(^|&)from=bestcheckout(&|$)/.test(q)
+          ? '#/pages'
+          : null;
       ensureSections().then(() => renderBuilder(decodeURIComponent(m[1]), pg, exitTo, tpl, saved));
     } else renderList();
   }

@@ -13,7 +13,7 @@
     'Block added': '已添加区块', 'Block removed': '已删除区块', 'Search blocks': '搜索区块', 'Esc to close': 'Esc 关闭', 'block types available': '种区块可用',
     'Content': '内容', 'Commerce': '商品 / 转化', 'Social proof & urgency': '信任与紧迫', 'Checkout fields': '结账字段',
     'Hero': '主视觉', 'Headline': '标题', 'Text': '文本', 'Image': '图片', 'Product': '产品', 'Button': '按钮', 'Yes / No buttons': '是 / 否按钮',
-    'Order bump': '凑单', 'Countdown timer': '倒计时', 'Reviews': '评价', 'Feature list': '功能列表', 'Logo': 'Logo', 'Contact': '联系方式',
+    'Countdown timer': '倒计时', 'Reviews': '评价', 'Feature list': '功能列表', 'Logo': 'Logo', 'Contact': '联系方式',
     'Shipping': '配送', 'Payment': '支付', 'Order summary': '订单摘要', 'Tracking': '物流追踪',
     'Subtitle': '副标题', 'Button label': '按钮文字', 'Alignment': '对齐', 'Background': '背景色', 'Text color': '文字颜色', 'Image URL': '图片地址',
     'Height': '高度', 'Size': '字号', 'Product name': '产品名称', 'Price': '价格', 'Compare-at price': '原价', 'Show compare-at': '显示原价',
@@ -86,10 +86,6 @@
       name: 'Yes / No buttons', icon: 'check', schema: [{ key: 'yes', label: 'Yes label', control: 'text' }, { key: 'no', label: 'No / decline label', control: 'text' }, { key: 'color', label: 'Color', control: 'color', default: '#3b6fd4' }],
       render: (p) => '<div class="pv-yn"><span class="pv-btn full" style="background:' + esc(p.color || '#3b6fd4') + '">' + esc(p.yes || 'Yes') + '</span><span class="pv-no">' + esc(p.no || 'No thanks') + '</span></div>',
     },
-    orderBump: {
-      name: 'Order bump', icon: 'tag', schema: [{ key: 'title', label: 'Title', control: 'text' }, { key: 'desc', label: 'Description', control: 'text' }, { key: 'price', label: 'Add-on price', control: 'number', min: 0, step: 0.01 }],
-      render: (p) => '<div class="pv-bump"><span class="pv-cb"></span><div><div class="pv-bt">' + esc(p.title || '') + '</div>' + (p.desc ? '<div class="pv-bd">' + esc(p.desc) + '</div>' : '') + '<div class="pv-bp">+ ' + money(p.price) + '</div></div></div>',
-    },
     timer: {
       name: 'Countdown timer', icon: 'clock', schema: [{ key: 'text', label: 'Text', control: 'text' }, { key: 'minutes', label: 'Minutes', control: 'number', min: 1, max: 60, step: 1, default: 10 }],
       render: (p) => '<div class="pv-timer">' + esc(p.text || '') + ' <b>' + ('0' + (Math.max(0, (p.minutes || 10) - 1))).slice(-2) + ':58</b></div>',
@@ -115,7 +111,7 @@
   function formPv(title, n) { let r = ''; for (let i = 0; i < n; i++) r += '<div class="pv-input"></div>'; return '<div class="pv-form"><div class="pv-fl2">' + esc(title) + '</div>' + r + '</div>'; }
   const CATALOG = [
     { label: 'Content', kinds: ['hero', 'headline', 'text', 'image', 'logo'] },
-    { label: 'Commerce', kinds: ['product', 'button', 'yesno', 'orderBump'] },
+    { label: 'Commerce', kinds: ['product', 'button', 'yesno'] },
     { label: 'Social proof & urgency', kinds: ['timer', 'reviews', 'features'] },
     { label: 'Checkout fields', kinds: ['contact', 'shipping', 'payment', 'cartSummary', 'tracking'] },
   ];
@@ -123,7 +119,7 @@
   const SEED = {
     hero: { headline: 'Sleep better in 7 nights', sub: 'Doctor-formulated magnesium blend', cta: 'Shop now' }, headline: { text: 'Special one-time offer' }, text: { text: 'Add your content here.' },
     product: { name: 'Product', price: 19, compareAt: 24, showCompare: true }, button: { label: 'Buy now' }, yesno: { yes: 'Yes, add to my order', no: 'No thanks' },
-    orderBump: { title: 'Add shipping protection', price: 2.99 }, timer: { text: 'This offer expires in', minutes: 10 }, reviews: { rating: 4.8, count: '1,200 reviews' },
+    timer: { text: 'This offer expires in', minutes: 10 }, reviews: { rating: 4.8, count: '1,200 reviews' },
     features: { title: 'Why it works', f1: 'Clinically dosed', f2: 'Third-party tested', f3: 'Money-back guarantee' }, logo: { text: 'Lavender Labs' }, cartSummary: { title: 'Order summary', subtotal: 39.97, total: 42.96 },
   };
   function blockName(b) { return (BLOCKS[b.type] || {}).name || b.type; }
@@ -339,7 +335,6 @@
     '.pv-prod{padding:16px 18px;text-align:center}.pv-pimg{height:130px;border-radius:10px;background:#e9edf3;margin-bottom:10px}.pv-pn{font-size:14px;font-weight:600;color:#1a2233}.pv-pp{font-size:15px;margin-top:4px;color:#1a2233}.pv-pp s{color:#9aa3ad;font-weight:400;margin-left:6px}' +
     '.pv-btn{display:inline-flex;align-items:center;justify-content:center;background:#3b6fd4;color:#fff;font-size:13.5px;font-weight:600;border-radius:9px;padding:11px 22px}.pv-btn.full{width:100%;padding:13px}' +
     '.pv-yn{padding:14px 18px;display:flex;flex-direction:column;align-items:center;gap:10px}.pv-no{font-size:12.5px;color:#9aa3ad;text-decoration:underline}' +
-    '.pv-bump{margin:12px 18px;padding:12px;border:1.5px dashed #c7d2e8;border-radius:10px;display:flex;align-items:center;gap:11px;background:#f7faff}.pv-cb{width:18px;height:18px;border:2px solid #3b6fd4;border-radius:5px;flex:none}.pv-bt{font-size:13px;font-weight:600;color:#1a2233}.pv-bd{font-size:11.5px;color:#5b6470;margin:2px 0}.pv-bp{font-size:12px;color:#3b6fd4;font-weight:600}' +
     '.pv-timer{margin:10px 18px;padding:9px;text-align:center;background:#fff3e0;color:#b9770e;border-radius:8px;font-size:12.5px;font-weight:600}' +
     '.pv-rev{padding:11px 18px;text-align:center;font-size:13px;font-weight:600;color:#5b6470}.pv-stars{color:#f5b301;letter-spacing:1px}.pv-stars-o{color:#e3e7ee}' +
     '.pv-feat{padding:14px 18px}.pv-ft{font-size:14px;font-weight:700;color:#1a2233;margin-bottom:9px}.pv-fi{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#5b6470;padding:3px 0}.pv-fi svg{color:#1f8f4e;flex:none}' +

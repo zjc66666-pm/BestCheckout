@@ -780,7 +780,7 @@ window.I18N.extend({
   "Failed-payment recovery (dunning) with automatic retries and reminder emails": "失败扣款挽回（催款），自动重试并发送提醒邮件",
   "MRR, active subscribers, churn and an upcoming-charges forecast on the Overview": "在概览中查看 MRR、活跃订阅者、流失率和即将扣款预测",
   "Reuses your connected payment gateways and writes recurring orders straight into your main Orders — turn it off and the store runs exactly as before.": "复用你已连接的支付网关，并把周期订单直接写入主订单——关闭它，店铺照旧运行。",
-  "External high-converting checkout: one-page checkout with order bumps and one-click post-purchase upsell / downsell — no re-entering the card": "高转化外部结账：单页结账，支持订单加购和一键购后追加 / 降级销售——无需重新输入银行卡",
+  "External high-converting checkout: one-page checkout with one-click post-purchase Upsell / Downsell — no re-entering the card": "高转化外部结账：单页结账，支持一键购后 Upsell / Downsell——无需重新输入银行卡",
   "Multi-MID payment routing (ATRI): cascade on soft declines, load-balance across processors, recycle failed rebills": "多 MID 支付路由（ATRI）：软拒付时级联切换、在多个收单机构间负载均衡、重试失败的续费扣款",
   "Bring your Shopify store: products, collections, discounts, shipping and customers sync automatically from Shopify for checkout": "接入你的 Shopify 店铺：商品、系列、折扣、运费与客户从 Shopify 自动同步供结账使用",
   "Paid orders write back to Shopify and trigger your existing fulfillment apps (Bestfulfill / Zendrop) — nothing to re-wire": "已付款订单回写到 Shopify，并触发你现有的履约应用（Bestfulfill / Zendrop）——无需重新对接",

@@ -20,7 +20,7 @@ window.DATA_APPS = {
     bestcheckout: {
       tagline: 'Win the checkout. Keep the customer.',
       features: [
-        'External high-converting checkout: one-page checkout with order bumps and one-click post-purchase upsell / downsell — no re-entering the card',
+        'External high-converting checkout: one-page checkout with one-click post-purchase Upsell / Downsell — no re-entering the card',
         'Multi-MID payment routing (ATRI): cascade on soft declines, load-balance across processors, recycle failed rebills',
         'Bring your Shopify store: products, collections, discounts and shipping sync both ways and stay editable here in BestShopio',
         'Paid orders write back to Shopify and trigger your existing fulfillment apps (Bestfulfill / Zendrop) — nothing to re-wire',

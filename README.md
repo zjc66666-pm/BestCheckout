@@ -1,4 +1,4 @@
-# BestCheckout standalone portal prototype
+# BestCheckout merchant admin and marketing prototype
 
 BestCheckout is a focused checkout-growth workspace for Shopify brands. It has its own website, sign-in journey and merchant admin. BestShopio is an internal capability foundation and is not shown to merchants.
 
@@ -11,7 +11,7 @@ BestCheckout is a focused checkout-growth workspace for Shopify brands. It has i
 
 ## Included prototype surfaces
 
-- Marketing website: `#/landing`
+- Marketing website: `landing/#/landing`
 - Authentication: `#/sign-in`, `#/sign-up`
 - Shopify connection guide: `#/connect-shopify`
 - Overview and launch checklist: `#/home`
@@ -29,7 +29,7 @@ Run this in the repository root:
 python -m http.server 4175
 ```
 
-Open [http://127.0.0.1:4175/#/landing](http://127.0.0.1:4175/#/landing).
+Open the merchant admin at [http://127.0.0.1:4175/#/home](http://127.0.0.1:4175/#/home). The marketing website is at [http://127.0.0.1:4175/landing/#/landing](http://127.0.0.1:4175/landing/#/landing).
 
 ## Prototype conventions
 

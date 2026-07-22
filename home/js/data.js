@@ -11,7 +11,7 @@
           { title: 'Sales through BestCheckout', value: '$117,284', change: '+16.7%' },
           { title: 'Completed orders', value: '2,016', change: '+14.9%' },
           { title: 'Checkout conversion', value: '63.8%', change: '+4.7 pts' },
-          { title: 'Additional offer sales', value: '$15,448', change: '+13.2%' }
+          { title: 'Additional offer sales', value: '$11,552', change: '+13.2%' }
         ],
         series: [13200, 14860, 15520, 16140, 17280, 18310, 21974],
         labels: ['Jul 9', 'Jul 10', 'Jul 11', 'Jul 12', 'Jul 13', 'Jul 14', 'Jul 15'],
@@ -21,8 +21,7 @@
         ],
         offers: [
           { type: 'Upsell', title: 'Sleep Bundle offer', rate: '21.4%', sales: '$8,642', note: 'Shoppers accepted after payment', tone: 'blue' },
-          { type: 'Downsell', title: 'Half-size alternative', rate: '9.8%', sales: '$2,910', note: 'Recovered after the first offer was declined', tone: 'violet' },
-          { type: 'Order bump', title: 'Shipping protection', rate: '38.2%', sales: '$3,896', note: 'Added during checkout', tone: 'amber' }
+          { type: 'Downsell', title: 'Half-size alternative', rate: '9.8%', sales: '$2,910', note: 'Recovered after the first offer was declined', tone: 'violet' }
         ]
       },
       '30d': {
@@ -32,7 +31,7 @@
           { title: 'Sales through BestCheckout', value: '$490,044', change: '+18.4%' },
           { title: 'Completed orders', value: '8,420', change: '+17.8%' },
           { title: 'Checkout conversion', value: '64.2%', change: '+5.1 pts' },
-          { title: 'Additional offer sales', value: '$63,180', change: '+12.9%' }
+          { title: 'Additional offer sales', value: '$46,360', change: '+12.9%' }
         ],
         series: [14120, 15240, 14980, 16040, 17120, 16980, 18140, 18820, 20160, 21040, 21870, 23120],
         labels: ['Jun 24', 'Jun 27', 'Jun 30', 'Jul 3', 'Jul 6', 'Jul 9', 'Jul 12', 'Jul 15'],
@@ -42,8 +41,7 @@
         ],
         offers: [
           { type: 'Upsell', title: 'Sleep Bundle offer', rate: '21.4%', sales: '$35,120', note: 'Shoppers accepted after payment', tone: 'blue' },
-          { type: 'Downsell', title: 'Half-size alternative', rate: '9.8%', sales: '$11,240', note: 'Recovered after the first offer was declined', tone: 'violet' },
-          { type: 'Order bump', title: 'Shipping protection', rate: '38.2%', sales: '$16,820', note: 'Added during checkout', tone: 'amber' }
+          { type: 'Downsell', title: 'Half-size alternative', rate: '9.8%', sales: '$11,240', note: 'Recovered after the first offer was declined', tone: 'violet' }
         ]
       },
       '90d': {
@@ -53,7 +51,7 @@
           { title: 'Sales through BestCheckout', value: '$1,367,890', change: '+15.2%' },
           { title: 'Completed orders', value: '23,470', change: '+13.6%' },
           { title: 'Checkout conversion', value: '62.9%', change: '+4.3 pts' },
-          { title: 'Additional offer sales', value: '$166,740', change: '+12.2%' }
+          { title: 'Additional offer sales', value: '$122,130', change: '+12.2%' }
         ],
         series: [138800, 143220, 148140, 150680, 154920, 160140, 163480, 169030, 174920, 181340, 187220, 196000],
         labels: ['Apr 17', 'May 1', 'May 15', 'May 29', 'Jun 12', 'Jun 26', 'Jul 10', 'Jul 15'],
@@ -63,8 +61,7 @@
         ],
         offers: [
           { type: 'Upsell', title: 'Sleep Bundle offer', rate: '21.4%', sales: '$92,750', note: 'Shoppers accepted after payment', tone: 'blue' },
-          { type: 'Downsell', title: 'Half-size alternative', rate: '9.8%', sales: '$29,380', note: 'Recovered after the first offer was declined', tone: 'violet' },
-          { type: 'Order bump', title: 'Shipping protection', rate: '38.2%', sales: '$44,610', note: 'Added during checkout', tone: 'amber' }
+          { type: 'Downsell', title: 'Half-size alternative', rate: '9.8%', sales: '$29,380', note: 'Recovered after the first offer was declined', tone: 'violet' }
         ]
       }
     },

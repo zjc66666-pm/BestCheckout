@@ -9,7 +9,7 @@
    #/orders/5042, or 'base' for #/settings/base). Internal navigation just sets
    location.hash; the router re-dispatches. */
 (function () {
-  var V = '20260722flowlistview1'; // cache-bust for lazy-loaded module scripts
+  var V = '20260722removeorderbump2'; // cache-bust for lazy-loaded module scripts
   var s = function (p) { return '<svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>'; };
   var ICONS = {
     home: s('<path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/>'),
@@ -361,7 +361,7 @@
       return '<a class="home-attention-item" href="' + item.href + '"><span class="home-attention-icon home-attention-' + item.tone + '">' + (ICONS[item.icon] || ICONS.inbox) + '</span><span class="home-attention-copy"><strong><b>' + item.count + '</b>' + item.label + '</strong><small>' + item.detail + '</small></span><span class="home-row-caret">&rsaquo;</span></a>';
       }).join('') + '</div>'
       : '<div class="home-attention-clear"><div class="home-attention-clear-icon">' + ICONS.home + '</div><div><strong>All checkout actions are complete</strong><span>No purchase flow or Shopify sync needs attention right now.</span></div></div>';
-    return '<section class="home-attention"><div class="home-attention-top"><div><div class="home-overline">Attention</div><div class="home-attention-title">Keep your checkout ready for buyers</div></div></div>' + actionArea + '</section>';
+    return '<section class="home-attention"><div class="home-attention-top"><div><div class="home-overline">Attention</div><div class="home-attention-title">Orders need attention</div></div></div>' + actionArea + '</section>';
   }
   function homeRecentOrdersHtml(orders) {
     var rows = orders.slice(0, 3).map(function (order) {
@@ -398,7 +398,7 @@
     var offers = (period.offers || []).map(function (offer) {
       return '<article class="home-offer-card"><span class="home-offer-tag home-offer-' + homeEsc(offer.tone) + '">' + homeEsc(offer.type) + '</span><strong>' + homeEsc(offer.title) + '</strong><p>' + homeEsc(offer.note) + '</p><div><span><small>Accept rate</small><b>' + homeEsc(offer.rate) + '</b></span><span><small>Added sales</small><b>' + homeEsc(offer.sales) + '</b></span></div></article>';
     }).join('');
-    return '<section class="home-offer-section"><div class="home-section-head home-offer-section-head"><div><h2>Offer performance</h2><p>Revenue and acceptance rate for Upsell, Downsell, and order bump offers.</p></div><a class="home-text-link" href="#/flows">Manage offers</a></div><div class="home-offer-grid">' + offers + '</div></section>';
+    return '<section class="home-offer-section"><div class="home-section-head home-offer-section-head"><div><h2>Offer performance</h2><p>Revenue and acceptance rate for Upsell and Downsell offers.</p></div><a class="home-text-link" href="#/flows">Manage offers</a></div><div class="home-offer-grid">' + offers + '</div></section>';
   }
   function homeDataInsightHtml(period) {
     return '<section class="home-panel home-data-insight"><div class="home-section-head"><div><div class="home-overline">This period</div><h2>More shoppers complete checkout</h2><p>Your checkout conversion is higher than the Shopify control group. Keep the current setup running, then test the next segment.</p></div></div><div class="home-data-insight-value"><span>Checkout conversion</span><strong>' + homeEsc(period.metrics[2].value) + '</strong><small>' + homeEsc(period.metrics[2].change) + ' <span>vs Shopify</span></small></div><a class="btn btn-primary" href="#/flows">Review purchase flows</a></section>';

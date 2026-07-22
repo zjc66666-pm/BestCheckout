@@ -68,13 +68,14 @@
 
   // ===========================================================================
   // PAINT: shell renders the sidebar + "Settings" bar; we render ONLY the active
-  // sub-page content into #root. Edit-like centered pages use .detail-wrap.
+  // sub-page content into #root. All settings pages use the same readable
+  // centered width; edit-like forms keep the narrower .set-narrow variant.
   // ===========================================================================
   // `centered` pages mirror the real admin's centered w-[860px] forms.
   function paint(bodyHtml, centered) {
     root.innerHTML =
       '<style>' + STYLES + '</style>' +
-      (centered ? '<div class="set-narrow">' + bodyHtml + '</div>' : bodyHtml);
+      '<div class="set-page' + (centered ? ' set-narrow' : '') + '">' + bodyHtml + '</div>';
     // wire generic toggles (visual only)
     root.querySelectorAll('[data-toggle]').forEach((el) => el.onclick = () => el.classList.toggle('on'));
     // image upload tiles → open the OS file chooser (Store logo/ico/no-data, Checkout logo)
@@ -283,8 +284,8 @@
         '<div class="mt-4"><div class="b-c bc-writeback"><span class="bc-writeback-ico">' + I.check + '</span><div><strong>Paid BestCheckout orders are automatically created in Shopify</strong><p>After payment, your existing Shopify fulfillment workflow continues as usual. There is no setting to save on this page.</p><div class="bc-writeback-links"><a class="lnk" href="#/orders">View orders</a><a class="lnk" href="#/activity">View sync activity</a></div></div></div></div>' +
       '</section>';
 
-    // This is an operational overview, not a compact form. Keep it aligned
-    // with Orders and notifications instead of centering it at 860px.
+    // The shared Settings frame keeps this operational overview readable while
+    // allowing its cards and data rows to use the full settings content width.
     paint(body, false);
     const sync = root.querySelector('[data-act="sync"]');
     if (sync) sync.onclick = () => {
@@ -1531,7 +1532,7 @@
     if (clear) clear.onclick = () => { roleQuery = ''; scope.querySelector('#sp-role-q').value = ''; refreshRoles(scope); };
   }
   function renderRoles() {
-    root.innerHTML = '<style>' + SP_STYLES + '</style>' +
+    paint('<style>' + SP_STYLES + '</style>' +
       '<div class="sp-wrap">' +
         '<div class="sp-head"><div><div class="page-title">Roles</div><div class="sp-sub">Manage staff roles and access permissions</div></div>' +
           '<button class="btn btn-primary" data-add>Add role</button></div>' +
@@ -1541,7 +1542,7 @@
           '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Role</th><th>Description</th><th style="width:120px">Member</th><th style="width:120px">Action</th></tr></thead><tbody id="sp-rbody"></tbody></table></div>' +
           '<div class="sp-foot"><span class="muted">Total ' + rolesData.length + ' records</span>' + spPager() + '</div>' +
         '</div>' +
-      '</div>';
+      '</div>', false);
     const scope = root;
     refreshRoles(scope);
     scope.querySelector('[data-add]').onclick = () => openRoleModal(null);
@@ -1637,7 +1638,7 @@
     scope.querySelectorAll('#sp-sbody [data-del]').forEach((b) => b.onclick = (e) => { e.stopPropagation(); deleteStaff(b.closest('tr').getAttribute('data-email')); });
   }
   function renderStaff() {
-    root.innerHTML = '<style>' + SP_STYLES + '</style>' +
+    paint('<style>' + SP_STYLES + '</style>' +
       '<div class="sp-wrap">' +
         '<div class="sp-head"><div><div class="page-title">Staff</div><div class="sp-sub">Manage team members and their account access.</div>' +
           '<div class="sp-sub" style="margin-top:6px">Access code: <b id="sp-code" style="color:var(--ink)">' + accessCode + '</b></div></div>' +
@@ -1651,7 +1652,7 @@
           '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Email</th><th style="width:230px">Role</th><th style="width:130px">Name</th><th style="width:150px">Status</th><th style="width:110px">Action</th></tr></thead><tbody id="sp-sbody"></tbody></table></div>' +
           '<div class="sp-foot"><span class="muted">Total ' + staffData.length + ' records</span>' + spPager() + '</div>' +
         '</div>' +
-      '</div>';
+      '</div>', false);
     const scope = root;
     refreshStaff(scope);
     scope.querySelector('[data-add]').onclick = () => openStaffModal('add');
@@ -1867,7 +1868,7 @@
         '.checkout-domain-card{border:1px solid var(--hair);border-radius:12px;background:#fff;padding:20px}.checkout-domain-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.checkout-domain-icon{width:40px;height:40px;border-radius:10px;background:#eef3ff;color:var(--brand);display:grid;place-items:center;flex:none}.checkout-domain-eyebrow{font-size:12px;font-weight:600;color:var(--ink-muted);margin-bottom:5px}.checkout-domain-name{font-size:16px;line-height:1.35;font-weight:600;color:var(--ink)}.checkout-domain-note{font-size:12.5px;line-height:1.55;color:var(--ink-muted);margin-top:6px}.checkout-domain-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:20px;padding-top:16px;border-top:1px solid var(--hair)}.checkout-domain-fact{min-width:0}.checkout-domain-fact small{display:block;color:var(--ink-muted);font-size:11px;margin-bottom:4px}.checkout-domain-fact strong{display:block;color:var(--ink-body);font-size:13px;font-weight:600;line-height:1.4}.checkout-domain-assurance{display:flex;gap:10px;align-items:flex-start;margin-top:16px;padding:12px 13px;border-radius:8px;background:#f7f9fc;color:var(--ink-body);font-size:12.5px;line-height:1.55}.checkout-domain-assurance svg{color:var(--brand);width:18px;height:18px;flex:none;margin-top:1px}@media(max-width:720px){.checkout-domain-top{flex-direction:column}.checkout-domain-grid{grid-template-columns:1fr;gap:10px}}' +
         '</style><div class="dom-wrap">' +
         pageHead('Checkout domain', 'Set the secure address buyers see throughout a BestCheckout purchase flow: checkout, Upsell, Downsell, and Thank you pages. Your Shopify storefront domain stays unchanged.',
-          '<button class="btn btn-primary" data-add-domain>Change checkout domain</button>') +
+          '<button class="btn btn-primary domain-change-action" data-add-domain>Change checkout domain</button>') +
         '<section class="checkout-domain-card"><div class="checkout-domain-top"><div class="flex" style="gap:12px"><span class="checkout-domain-icon">' + I.globe + '</span><div><div class="checkout-domain-eyebrow">Checkout address</div><div class="checkout-domain-name">' + esc(checkoutDomain.domain) + '</div><div class="checkout-domain-note">Used throughout each BestCheckout purchase flow.</div></div></div><span class="pill ' + badge.cls + '"><span class="dot"></span><span>' + badge.label + '</span><span> · </span><span>SSL active</span></span></div>' +
           '<div class="checkout-domain-grid"><div class="checkout-domain-fact"><small>Used on</small><strong>Checkout · Upsell · Downsell · Thank you pages</strong></div><div class="checkout-domain-fact"><small>SSL</small><strong>Active · renews automatically</strong></div><div class="checkout-domain-fact"><small>Shopify storefront</small><strong>lavender-labs.myshopify.com</strong></div></div>' +
           '<div class="checkout-domain-assurance">' + I.info + '<span>Your Shopify storefront keeps its current address. This domain is used only for BestCheckout purchase-flow pages: checkout, Upsell, Downsell, and Thank you.</span></div>' +
@@ -2449,8 +2450,11 @@
   // page-scoped styles (Settings-only widgets layered on top of theme.css)
   // ===========================================================================
   const STYLES = `
-  /* centered forms mirror the real admin's w-[860px] pages */
-  .set-narrow { width: 860px; max-width: 100%; margin: 0 auto; }
+  /* All Settings pages share a focused reading width. Forms retain the
+     narrower 860px measure used by the live admin. */
+  .set-page { width: 960px; max-width: 100%; margin: 0 auto; }
+  .set-page.set-narrow { width: 860px; }
+  .domain-change-action { flex: 0 0 auto; min-width: 168px; justify-content: center; white-space: nowrap; }
 
   /* switch */
   .set-switch { display: inline-flex; align-items: center; width: 40px; height: 22px; border-radius: 9999px; background: var(--ctl); cursor: pointer; transition: background .15s; flex: none; padding: 2px; }

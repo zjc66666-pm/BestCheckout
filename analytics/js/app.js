@@ -486,7 +486,7 @@
   const CAT_DESC = {
     'Checkout performance': 'Revenue, completed orders, and average order value from BestCheckout.',
     'Purchase flows': 'See where buyers move forward or leave each configured purchase flow.',
-    Offers: 'Compare upsell, downsell, and order-bump results by the discount used.',
+    Offers: 'Compare Upsell and Downsell results by the discount used.',
     Payments: 'Review payment approval so you can improve the checkout experience.',
     Traffic: 'Understand which traffic sources and landing pages convert through checkout.',
   };

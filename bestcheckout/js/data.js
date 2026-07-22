@@ -6,7 +6,7 @@ window.DATA_BC = {
   // ---- Overview KPIs (down=good for chargebacks/decline) ----
   KPIS: [
     { label: 'Checkout conversion', value: '64.2%',  delta: '+5.1 pts', up: true,  sub: 'fast single-page checkout' },
-    { label: 'AOV',                 value: '$58.20', delta: '+12.8%',   up: true,  sub: 'post-purchase upsell + order bumps' },
+    { label: 'AOV',                 value: '$58.20', delta: '+12.8%',   up: true,  sub: 'post-purchase Upsell + Downsell' },
     { label: 'Upsell take rate',    value: '23.4%',  delta: '+3.2 pts', up: true,  sub: 'one-click, no re-enter card' },
     { label: 'Orders · 30d',        value: '8,420',  delta: '+18.3%',   up: true,  sub: 'captured, written back to Shopify' },
     { label: 'GMV · 30d',           value: '$2.68M', delta: '+14.8%',   up: true,  sub: 'through BestCheckout' },
@@ -20,7 +20,6 @@ window.DATA_BC = {
   },
 
   AI_RECS: [
-    { tone: 'blue',   title: 'Add a free-shipping order bump on the checkout page', impact: 'Est. AOV +$3.10 / order' },
     { tone: 'violet', title: 'Add a downsell after the “Sleep Bundle” upsell', impact: 'Est. +9.8% recovered on upsell declines' },
     { tone: 'amber',  title: 'Default repeat customers to Subscribe & Save 15%', impact: 'Est. subscription rate +6 pts' },
     { tone: 'green',  title: 'Collapse the checkout to a single step', impact: 'Est. conversion +2.4 pts' },
@@ -28,7 +27,6 @@ window.DATA_BC = {
 
   ACTIVITY: [
     { who: 'Upsell',       what: 'accepted — Calm Tea added at 15% off',                when: '2 min ago',  tag: '+$19.00',  tone: 'green'  },
-    { who: 'Order bump',   what: 'free-shipping protection added at checkout',          when: '15 min ago', tag: '+$2.99',   tone: 'amber'  },
     { who: 'Downsell',     what: 'Magnesium 30ct accepted after the upsell decline',    when: '1 hr ago',   tag: '+$16.00',  tone: 'violet' },
     { who: 'Checkout',     what: 'order completed, written back to Shopify (#1042)',     when: '1 hr ago',   tag: 'paid',     tone: 'blue'   },
     { who: 'Subscription', what: 'new Daily Greens monthly started from the checkout',  when: '2 hr ago',   tag: 'recurring',tone: 'green'  },
@@ -91,8 +89,6 @@ window.DATA_BC = {
   POST_PURCHASE: [
     { name: 'Sleep Bundle upsell',     type: 'Upsell',     trigger: 'After checkout',    product: 'Magnesium + Tea',  discount: '15%', take: '21.4%', status: 'on' },
     { name: 'Half-size downsell',      type: 'Downsell',   trigger: 'On upsell decline', product: 'Magnesium 30ct',   discount: '20%', take: '9.8%',  status: 'on' },
-    { name: 'Free shipping bump',      type: 'Order bump', trigger: 'In checkout',       product: 'Shipping protect', discount: '—',   take: '38.2%', status: 'on' },
-    { name: 'Subscribe & Save bump',   type: 'Order bump', trigger: 'In checkout',       product: 'Daily Greens sub', discount: '15%', take: '17.5%', status: 'on' },
     { name: 'Second-product upsell',   type: 'Upsell',     trigger: 'After upsell #1',   product: 'Protein Refill',   discount: '10%', take: '12.1%', status: 'off' },
   ],
 
@@ -194,13 +190,12 @@ window.DATA_BC = {
         { id: 'b3', type: 'reviews',  props: { title: '4.8 · 12,480 reviews' } },
         { id: 'b4', type: 'button',   props: { label: 'Get 30% off today', color: '#3b6fd4' } },
       ] },
-      { id: 'st2', type: 'checkout', name: 'Checkout', sub: 'Single-page · order bump', locked: true, x: 250, y: 250, blocks: [
+      { id: 'st2', type: 'checkout', name: 'Checkout', sub: 'Single-page checkout', locked: true, x: 250, y: 250, blocks: [
         { id: 'b1', type: 'logo',        props: { text: 'Lavender Labs' } },
         { id: 'b2', type: 'contact',     props: { title: 'Contact' } },
         { id: 'b3', type: 'shipping',    props: { title: 'Shipping address' } },
-        { id: 'b4', type: 'orderBump',   props: { title: 'Add shipping protection', price: '2.99' } },
-        { id: 'b5', type: 'payment',     props: { title: 'Payment' } },
-        { id: 'b6', type: 'cartSummary', props: { title: 'Order summary' } },
+        { id: 'b4', type: 'payment',     props: { title: 'Payment' } },
+        { id: 'b5', type: 'cartSummary', props: { title: 'Order summary' } },
       ] },
       { id: 'st3', type: 'upsell', name: 'Upsell #1', sub: 'New customer · Calm Tea 15% off', x: 480, y: 70, blocks: [
         { id: 'b1', type: 'timer',    props: { minutes: '10', text: 'This one-time offer expires in' } },
@@ -226,7 +221,7 @@ window.DATA_BC = {
     ],
     edges: [
       { id: 'e1', from: 'st1', to: 'st2', button: 'Get 30% off today', products: [], tags: [], matchAll: false, includePrev: false, countries: [], customers: 'all' },
-      { id: 'e2', from: 'st2', to: 'st3', button: 'Complete My Order', products: ['(496) Premium Edition – $59.99', '(497) Order Bump – $27.90'], tags: [], matchAll: true, includePrev: false, countries: [], customers: 'new' },
+      { id: 'e2', from: 'st2', to: 'st3', button: 'Complete My Order', products: ['(496) Premium Edition – $59.99'], tags: [], matchAll: true, includePrev: false, countries: [], customers: 'new' },
       { id: 'e3', from: 'st2', to: 'st5', button: 'Complete My Order', products: [], tags: [], matchAll: false, includePrev: false, countries: [], customers: 'repeat' },
       { id: 'e4', from: 'st3', to: 'st6', button: 'Yes, add to my order', products: [], tags: [], matchAll: false, includePrev: false, countries: [], customers: 'all' },
       { id: 'e5', from: 'st3', to: 'st4', button: 'No thanks', products: [], tags: [], matchAll: false, includePrev: false, countries: [], customers: 'all' },
@@ -249,7 +244,6 @@ window.DATA_BC = {
       { type: 'product',  name: 'Product' },
       { type: 'button',   name: 'Button' },
       { type: 'yesno',    name: 'Yes / No buttons' },
-      { type: 'orderBump',name: 'Order bump' },
       { type: 'timer',    name: 'Countdown timer' },
       { type: 'reviews',  name: 'Reviews' },
       { type: 'features',  name: 'Feature list' },

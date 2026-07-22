@@ -1,10 +1,10 @@
 {
-  "name": "BestCheckout standalone portal",
+  "name": "BestCheckout merchant admin prototype",
   "entry": "index.html",
   "staticRoot": ".",
   "routing": {
     "prototype": "hash",
-    "production": "standalone-portal-routes"
+    "production": "merchant-admin-and-marketing-routes"
   },
   "contracts": {
     "funnelDeploymentSchema": "bestcheckout.funnel-deployment.v1",
@@ -16,7 +16,7 @@
   },
   "localPreview": {
     "command": "python -m http.server 4175",
-    "url": "http://127.0.0.1:4175/#/landing"
+    "url": "http://127.0.0.1:4175/#/home"
   },
   "githubPages": {
     "branch": "main",
@@ -28,40 +28,52 @@
       "404.html",
       "index.html",
       "preview.config.json",
+      "assets/**",
+      "account/**",
+      "activity/**",
+      "analytics/**",
+      "apps/**",
+      "bestcheckout/**",
+      "blog/**",
+      "bundles/**",
+      "collections/**",
+      "customers/**",
+      "discounts/**",
+      "facebook/**",
+      "google/**",
+      "help/**",
+      "home/**",
+      "landing/**",
+      "menu/**",
+      "online-store/**",
+      "orders/**",
+      "page/**",
+      "products/**",
+      "reviews/**",
+      "settings/**",
+      "storefront/**",
+      "subscriptions/**",
       "src/views/admin/bestcheckout/**"
     ],
     "targetOptions": [
       {
-        "repo": "zjc66666-pm/bestcheckout-shopify-custom-app-prototype",
+        "repo": "zjc66666-pm/BestCheckout",
         "path": "/",
-        "status": "repository-not-created"
-      },
-      {
-        "repo": "zjc66666-pm/bestshopio-prototypes",
-        "path": "/bestcheckout-shopify-app/",
-        "status": "recommended-after-user-confirmation"
+        "status": "current-target"
       }
     ]
   },
   "smokeRoutes": [
-    "#/landing",
-    "#/sign-in",
-    "#/sign-up",
-    "#/connect-shopify",
+    "landing/#/landing",
     "#/home",
-    "#/funnels",
+    "#/flows",
     "#/pages",
     "#/orders",
-    "#/orders/BC-1045",
-    "#/performance",
     "#/activity",
-    "#/settings?tab=store",
-    "#/settings?tab=payments",
-    "#/settings?tab=emails",
-    "#/settings?tab=tracking",
-    "#/settings?tab=diagnostics",
-    "#/pages/page-aura-checkout/edit",
-    "#/funnels/funnel-sleep-reset/nodes/checkout-main/edit"
+    "#/settings/base",
+    "#/settings/domains",
+    "#/settings/payments",
+    "help/#guide=connect-shopify"
   ],
   "interactionSmoke": [
     "English -> 简体中文 -> English",

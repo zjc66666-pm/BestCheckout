@@ -351,7 +351,7 @@ window.I18N.extend({
   "GMV · 30d": "GMV · 30 天",
   "Recovered by routing": "路由救回",
   "multi-MID routing + cascade": "多 MID 路由 + 级联",
-  "post-purchase + order bumps": "购后追加 + 凑单",
+  "post-purchase Upsell + Downsell": "购后 Upsell + Downsell",
   "cycle-over-cycle": "逐周期",
   "RDR + Ethoca + 3DS": "RDR + Ethoca + 3DS",
   "routed via BestCheckout": "经 BestCheckout 路由",
@@ -432,7 +432,6 @@ window.I18N.extend({
   // post-purchase section
   "The funnel": "转化漏斗",
   "Checkout": "结账",
-  "Single-page · order bump": "单页 · 凑单",
   "Upsell": "追加",
   "One-click, no re-enter card": "一键，无需重输卡",
   "Downsell": "降级",
@@ -446,7 +445,6 @@ window.I18N.extend({
   "Trigger": "触发",
   "Take rate": "接受率",
   "Edit": "编辑",
-  "Order bump": "凑单",
 
   // reports section
   "Retention — cycle by cycle": "留存 — 逐周期",
@@ -501,7 +499,7 @@ window.I18N.extend({
   // funnel editor data.js: step names + subs + palette
   "Lead page": "引导页",
   "Pre-sell / ad lander": "预售 / 广告落地页",
-  "Single-page · order bump": "单页 · 凑单",
+  "Single-page checkout": "单页结账",
   "New customer · Calm Tea 15% off": "新客 · Calm Tea 85 折",
   "On decline · 30ct 20% off": "拒绝后 · 30 粒装 8 折",
   "Repeat customer · Protein 10% off": "复购客户 · 蛋白粉 9 折",

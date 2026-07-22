@@ -19,7 +19,6 @@
     { at: '2026-07-15T09:34:00', type: 'Flow', title: 'Disabled abandoned flow', detail: 'Customers who no longer match the flow now continue to your default checkout.', status: 'Completed' },
     { at: '2026-07-14T18:16:00', type: 'Domain', title: 'Renewed checkout domain certificate', detail: 'checkout.lavenderlabs.co will remain available to buyers without interruption.', status: 'Completed' },
     { at: '2026-07-14T09:30:00', type: 'Payment', title: 'Airwallex connection verified', detail: 'Card and express checkout are ready to accept payments.', status: 'Completed' },
-    { at: '2026-07-13T16:42:00', type: 'Page', title: 'Published order bump on checkout', detail: 'Added shipping protection as an optional item before payment.', status: 'Published' },
     { at: '2026-07-12T13:05:00', type: 'Flow', title: 'Updated first-order boost routing', detail: 'New customers now receive the intended checkout allocation.', status: 'Published' },
     { at: '2026-07-11T10:24:00', type: 'Order', title: 'Order #BC-10439 sent to Shopify', detail: 'Paid order was created in your Shopify admin and is ready for fulfillment.', status: 'Completed' },
     { at: '2026-07-10T15:18:00', type: 'Store', title: 'Shopify delivery options synced', detail: 'Updated delivery methods are ready for checkout.', status: 'Completed' },
