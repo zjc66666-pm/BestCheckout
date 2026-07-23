@@ -8103,7 +8103,7 @@ kbd {
 .portal-terms { margin-top:2px; }
 .connect-confirmation { margin-top:2px; }
 .connect-confirmation.is-invalid .portal-terms { padding:0; border:0; border-radius:0; background:transparent; }
-.connect-confirmation.is-invalid .portal-terms input { appearance:none; -webkit-appearance:none; box-sizing:border-box; width:16px; min-width:16px; height:16px; padding:0; border:1px solid #d82c0d; background:#fffafa; outline:0; box-shadow:none; }
+.connect-confirmation.is-invalid .portal-terms input { appearance:none; -webkit-appearance:none; box-sizing:border-box; width:16px; min-width:16px; height:16px; padding:0; border:1px solid #d82c0d; border-radius:2px; background:#fffafa; outline:0; box-shadow:none; }
 .connect-confirmation-error { margin:7px 0 0 24px; color:#c22b18; font-size:12px; font-weight:600; line-height:1.4; }
 .portal-terms-note { margin:12px 0 0 !important; color:#748097 !important; font-size:11px !important; line-height:1.5; text-align:center; }
 .portal-auth-foot { margin:22px 0 0 !important; text-align:center; color:#748097 !important; font-size:13px; }
