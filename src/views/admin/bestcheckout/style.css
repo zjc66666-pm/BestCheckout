@@ -8089,7 +8089,7 @@ kbd {
 .portal-code-field input { min-width:0; }
 .portal-code-send { flex:0 0 auto; min-width:104px; height:44px; padding:0 11px; color:var(--bc-blue); border:1px solid #cfd8ff; border-radius:8px; background:#f6f8ff; font-size:12px; font-weight:750; white-space:nowrap; transition:border-color .2s ease, background .2s ease, color .2s ease; }
 .portal-code-send:hover:not(:disabled) { border-color:#9eaff9; background:#eef2ff; }
-.portal-code-send:disabled { color:#8994a9; border-color:#e0e4ec; background:#f5f6f8; cursor:not-allowed; }
+.portal-code-send:disabled { color:#8994a9; border-color:#e0e4ec; background:#f5f6f8; font-weight:500; cursor:not-allowed; }
 .portal-form-row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
 .portal-check { display:flex !important; grid-template-columns:16px minmax(0,1fr); align-items:start; gap:8px !important; color:#5e6a7e !important; font-size:12px !important; font-weight:550 !important; }
 .portal-check input { width:16px; height:16px; margin:0; accent-color:var(--bc-blue); }
