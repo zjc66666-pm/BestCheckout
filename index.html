@@ -3,12 +3,8 @@
 <head>
   <script>
     (function () {
-      if (window.location.hash === '#/connect-shopify' && !window.location.search.includes('shopify=unlinked')) {
-        var destination = new URL(window.location.href);
-        destination.searchParams.set('shopify', 'unlinked');
-        destination.searchParams.set('connect', 'shopify');
-        destination.hash = '#/connect-shopify';
-        window.location.replace(destination.pathname + destination.search + destination.hash);
+      if (window.location.hash === '#/connect-shopify') {
+        window.location.replace('landing/?entry=connect-new-shopify-store#/connect-shopify');
       } else if (['#/sign-in', '#/sign-up'].includes(window.location.hash)) {
         window.location.replace('landing/?rev=20260723connectionchoice1' + window.location.hash);
       }
@@ -36,7 +32,7 @@
   <script src="bundles/js/data.js?v=20260706ab"></script>
   <!-- Subscription data is also a read-only dependency of order-detail deep links. -->
   <script src="subscriptions/js/data.js?v=20260713k"></script>
-  <script src="assets/shell.js?v=20260723variantalignment1"></script>
+  <script src="assets/shell.js?v=20260723pagegallery4up1"></script>
   <script src="assets/widgets.js?v=20260723selectmatchwidth1"></script>
   <!-- Runtime i18n overlay: engine + shared-chrome dict, then the per-module dictionary.
        Default language is ZH; the top-right toggle switches and persists. -->
