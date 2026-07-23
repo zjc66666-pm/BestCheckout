@@ -26,9 +26,10 @@
     return 'ok';
   }
 
-  function render(root) {
+  function render(root, rest) {
     var rows = (window.DATA_ACTIVITY || []).slice();
-    var selectedType = 'all';
+    var routeType = { order: 'Order' }[String(rest || '').split('/')[0].toLowerCase()];
+    var selectedType = routeType || 'all';
     var selectedStatus = 'all';
     var query = '';
     var queryDraft = '';
@@ -41,25 +42,24 @@
       '<div class="view-wrap ac-view">' +
         '<style>' +
           '.ac-view{max-width:none;margin:0;padding:0 0 4px}' +
-          '.ac-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:16px}.ac-head h1{margin:0;color:var(--ink);font-size:20px;font-weight:600;line-height:1.5}.ac-head p{margin:5px 0 0;color:var(--ink-muted);font-size:13px;line-height:1.5;max-width:620px}' +
-          '.ac-summary{display:flex;align-items:center;gap:8px;border:1px solid var(--hair);background:#fff;border-radius:10px;padding:9px 12px;color:var(--ink-muted);font-size:12.5px;white-space:nowrap}.ac-summary b{color:var(--ink)}' +
+          '.ac-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:16px}.ac-head h1{margin:0;color:var(--ink);font-size:20px;font-weight:600;line-height:1.5}.ac-head p{margin:5px 0 0;color:var(--ink-muted);font-size:13px;line-height:1.5}' +
           '.ac-panel{background:#fff;border:1px solid var(--hair);border-radius:12px;box-shadow:0 1px 2px rgba(20,30,50,.03);overflow:visible}' +
           '.ac-filter{padding:16px 18px;border-bottom:1px solid var(--hair)}.ac-filter-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.ac-filter-pair{display:flex;min-width:0}.ac-search{position:relative;flex:1;min-width:0}.ac-search svg{position:absolute;right:10px;top:9px;width:14px;height:14px;fill:none;stroke:var(--ink-muted);stroke-width:1.8;pointer-events:none}.ac-kw-clear{position:absolute;right:32px;top:50%;transform:translateY(-50%);width:16px;height:16px;border:0;border-radius:50%;background:var(--ctl);color:#fff;display:grid;place-items:center;font-size:12px;line-height:1;cursor:pointer;padding:0}.ac-kw-clear:hover{background:var(--ink-muted)}#ac-search:placeholder-shown~.ac-kw-clear{display:none}.ac-filter-tags{display:flex;gap:0;flex-wrap:wrap;margin-top:10px}.ac-filter-tags:empty{display:none}.ac-filter-tags .field-pill{cursor:pointer}.ac-filter .filter-select:hover,.ac-filter .filter-input:hover{position:relative;z-index:2}' +
-          '.ac-table-wrap{overflow-x:auto}.ac-table{width:100%;border-collapse:collapse;min-width:760px}.ac-table th{text-align:left;background:var(--panel);color:var(--ink-muted);font-size:11.5px;font-weight:650;letter-spacing:.02em;padding:10px 18px;border-bottom:1px solid var(--hair)}.ac-table td{padding:15px 18px;border-bottom:1px solid var(--hair);vertical-align:top}.ac-table tr:last-child td{border-bottom:0}.ac-title{font-size:13.5px;font-weight:650;color:var(--ink);line-height:1.4}.ac-detail{font-size:12.5px;line-height:1.5;color:var(--ink-muted);margin-top:3px;max-width:560px}.ac-type{display:inline-flex;align-items:center;border-radius:5px;background:#f0f3f7;color:#546174;font-size:11.5px;font-weight:650;padding:4px 7px;white-space:nowrap}.ac-status{display:inline-flex;align-items:center;gap:5px;border-radius:999px;font-size:11.5px;font-weight:650;padding:4px 8px;white-space:nowrap}.ac-status:before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}.ac-status.ok{color:#008051;background:#e8f5ee}.ac-status.blue{color:#1565c0;background:#eaf2fe}.ac-status.warn{color:#9c6500;background:#fff3d4}.ac-status.muted{color:#62708d;background:#eef1f5}.ac-time{color:var(--ink-muted);font-size:12.5px;white-space:nowrap}.ac-empty{padding:48px 20px;text-align:center;color:var(--ink-muted);font-size:13px}.ac-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;background:#fff}.ac-total{color:var(--ink-muted);font-size:12.5px}.ac-total b{color:var(--ink);font-weight:600}.ac-footer .pg{margin-left:auto}.ac-footer .pg-item{font:inherit;font-size:13px}.ac-footer .pg-size{font-size:12.5px}' +
-          '@media(max-width:760px){.ac-head{display:block}.ac-summary{display:inline-flex;margin-top:14px}.ac-filter-row{align-items:stretch}.ac-filter-pair{width:100%!important;min-width:0}.ac-filter .ui-select.ac-status-select{width:100%!important}.ac-filter .ui-range{flex:1;min-width:0}.ac-footer{align-items:flex-start;flex-direction:column}.ac-footer .pg{margin-left:0;max-width:100%;gap:5px}.ac-footer .pg-item{min-width:30px}.ac-footer .pg-size{min-width:0}}' +
+          '.ac-list-shell{overflow:hidden;border-radius:0 0 11px 11px}.ac-table-wrap{overflow-x:auto}.ac-table{width:100%;border-collapse:collapse;min-width:760px}.ac-table th{text-align:left;background:var(--panel);color:var(--ink-muted);font-size:11.5px;font-weight:650;letter-spacing:.02em;padding:10px 18px;border-bottom:1px solid var(--hair)}.ac-table td{padding:15px 18px;border-bottom:1px solid var(--hair);vertical-align:top}.ac-table tr:last-child td{border-bottom:0}.ac-title{font-size:13.5px;font-weight:650;color:var(--ink);line-height:1.4}.ac-detail{font-size:12.5px;line-height:1.5;color:var(--ink-muted);margin-top:3px;max-width:560px}.ac-type{display:inline-flex;align-items:center;border-radius:5px;background:#f0f3f7;color:#546174;font-size:11.5px;font-weight:650;padding:4px 7px;white-space:nowrap}.ac-status{display:inline-flex;align-items:center;gap:5px;border-radius:999px;font-size:11.5px;font-weight:650;padding:4px 8px;white-space:nowrap}.ac-status:before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}.ac-status.ok{color:#008051;background:#e8f5ee}.ac-status.blue{color:#1565c0;background:#eaf2fe}.ac-status.warn{color:#9c6500;background:#fff3d4}.ac-status.muted{color:#62708d;background:#eef1f5}.ac-time{color:var(--ink-muted);font-size:12.5px;white-space:nowrap}.ac-empty{padding:48px 20px;text-align:center;color:var(--ink-muted);font-size:13px}.ac-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-top:1px solid var(--hair);background:#fff}.ac-total{color:var(--ink-muted);font-size:12.5px}.ac-total b{color:var(--ink);font-weight:600}.ac-footer .pg{margin-left:auto}.ac-footer .pg-item{font:inherit;font-size:13px}.ac-footer .pg-size{font-size:12.5px}' +
+          '@media(max-width:760px){.ac-head{display:block}.ac-filter-row{align-items:stretch}.ac-filter-pair{width:100%!important;min-width:0}.ac-filter .ui-select.ac-status-select{width:100%!important}.ac-filter .ui-range{flex:1;min-width:0}.ac-footer{align-items:flex-start;flex-direction:column}.ac-footer .pg{margin-left:0;max-width:100%;gap:5px}.ac-footer .pg-item{min-width:30px}.ac-footer .pg-size{min-width:0}}' +
         '</style>' +
-        '<div class="ac-head"><div><h1>Activity log</h1><p>Review the meaningful changes to this Shopify store: purchase flows, checkout pages, payment services, and orders.</p></div><div class="ac-summary">Showing <b data-count></b> events</div></div>' +
+        '<div class="ac-head"><div><h1>Activity log</h1><p>Review the meaningful changes to this Shopify store: purchase flows, checkout pages, payment services, and orders.</p></div></div>' +
         '<section class="ac-panel">' +
           '<div class="ac-filter">' +
             '<div class="ac-filter-row">' +
-              '<div class="ac-filter-pair" style="width:360px;max-width:100%"><select class="filter-select" id="ac-type" aria-label="' + esc(tr('Type')) + '" style="width:142px;border-top-right-radius:0;border-bottom-right-radius:0"><option value="all">All activity</option><option value="Flow">Flow</option><option value="Page">Page</option><option value="Order">Order</option><option value="Payment">Payment</option><option value="Domain">Domain</option><option value="Store">Store</option></select><div class="ac-search"><input class="filter-input" id="ac-search" type="search" autocomplete="off" placeholder="' + esc(tr('Search activity')) + '" value="' + esc(queryDraft) + '" style="width:100%;padding-left:12px;padding-right:52px;border-top-left-radius:0;border-bottom-left-radius:0;margin-left:-1px" /><button class="ac-kw-clear" type="button" data-search-clear aria-label="' + esc(tr('Clear')) + '">&times;</button><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4.5 4.5"></path></svg></div></div>' +
+              '<div class="ac-filter-pair" style="width:360px;max-width:100%"><select class="filter-select" id="ac-type" data-ui-match-width aria-label="' + esc(tr('Type')) + '" style="width:142px;border-top-right-radius:0;border-bottom-right-radius:0"><option value="all">All activity</option><option value="Flow">Flow</option><option value="Page">Page</option><option value="Order">Order</option><option value="Payment">Payment</option><option value="Domain">Domain</option><option value="Store">Store</option></select><div class="ac-search"><input class="filter-input" id="ac-search" type="search" autocomplete="off" placeholder="' + esc(tr('Search activity')) + '" value="' + esc(queryDraft) + '" style="width:100%;padding-left:12px;padding-right:52px;border-top-left-radius:0;border-bottom-left-radius:0;margin-left:-1px" /><button class="ac-kw-clear" type="button" data-search-clear aria-label="' + esc(tr('Clear')) + '">&times;</button><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4.5 4.5"></path></svg></div></div>' +
               '<div class="ac-filter-pair" style="width:428px;max-width:100%"><select class="filter-select" id="ac-time" aria-label="' + esc(tr('Event time')) + '" style="width:160px;border-top-right-radius:0;border-bottom-right-radius:0"><option value="at">Event time</option></select><div class="ui-range filter-input" data-ui-range data-ph="Start date → End date" style="width:268px;border-top-left-radius:0;border-bottom-left-radius:0;margin-left:-1px;padding-left:12px;padding-right:10px"><input type="hidden" id="ac-from" data-range="start" value="' + esc(from) + '" /><input type="hidden" id="ac-to" data-range="end" value="' + esc(to) + '" /></div></div>' +
               '<select class="filter-select ac-status-select" id="ac-status" aria-label="' + esc(tr('Status')) + '" style="width:160px"><option value="all">All statuses</option><option value="Completed">Completed</option><option value="Published">Published</option><option value="Draft">Draft</option><option value="Needs attention">Needs attention</option></select>' +
             '</div>' +
             '<div class="ac-filter-tags" data-filter-tags></div>' +
           '</div>' +
-          '<div class="ac-table-wrap"><table class="ac-table"><thead><tr><th>Activity</th><th>Type</th><th>Status</th><th>Time</th></tr></thead><tbody data-rows></tbody></table></div>' +
-          '<footer class="ac-footer"><span class="ac-total" data-total></span><div class="pg" data-pager></div></footer>' +
+          '<div class="ac-list-shell"><div class="ac-table-wrap"><table class="ac-table"><thead><tr><th>Activity</th><th>Type</th><th>Status</th><th>Time</th></tr></thead><tbody data-rows></tbody></table></div>' +
+          '<footer class="ac-footer"><span class="ac-total" data-total></span><div class="pg" data-pager></div></footer></div>' +
         '</section>' +
       '</div>';
 
@@ -69,11 +69,11 @@
     var fromInput = root.querySelector('#ac-from');
     var toInput = root.querySelector('#ac-to');
     var rowsEl = root.querySelector('[data-rows]');
-    var countEl = root.querySelector('[data-count]');
     var totalEl = root.querySelector('[data-total]');
     var pagerEl = root.querySelector('[data-pager]');
     var tagsEl = root.querySelector('[data-filter-tags]');
 
+    typeSelect.value = selectedType;
     if (window.I18N) window.I18N.apply(root);
 
     function activeRows() {
@@ -161,7 +161,6 @@
       if (page > pages) page = pages;
       var start = (page - 1) * pageSize;
       var pageRows = visible.slice(start, start + pageSize);
-      countEl.textContent = visible.length;
       totalEl.innerHTML = totalLabel(visible.length);
       rowsEl.innerHTML = pageRows.length ? pageRows.map(function (row) {
         return '<tr><td><div class="ac-title">' + esc(row.title) + '</div><div class="ac-detail">' + esc(row.detail) + '</div></td><td><span class="ac-type">' + esc(row.type) + '</span></td><td><span class="ac-status ' + tone(row.status) + '">' + esc(row.status) + '</span></td><td class="ac-time">' + formatDate(row.at) + '</td></tr>';

@@ -83,11 +83,14 @@
 
   function shopifySyncCell(o) {
     const state = shopifySyncState(o);
-    const id = o.shopify_order_id ? '<span class="shopify-status-id">' + esc(o.shopify_order_id) + '</span>' : '';
     const shopifyUrl = state.key === 'in_shopify' ? shopifyAdminOrderUrl(o) : '';
-    const openInShopify = shopifyUrl ? '<a class="shopify-inline-action shopify-admin-link" href="' + esc(shopifyUrl) + '" target="_blank" rel="noreferrer">View in Shopify</a>' : '';
-    const review = state.key === 'attention' ? '<button class="shopify-inline-action" type="button" data-review-shopify="' + esc(o.order_id) + '">Review sync</button>' : '';
-    return '<div class="shopify-status-cell"><div class="flex items-center gap-2" style="white-space:nowrap">' + shopifySyncPill(o) + id + '</div>' + (openInShopify || review) + '</div>';
+    const shopifyOrder = shopifyUrl && o.shopify_order_id
+      ? '<a class="shopify-sync-reference shopify-admin-link" href="' + esc(shopifyUrl) + '" target="_blank" rel="noreferrer" aria-label="Open Shopify order ' + esc(o.shopify_order_id) + '">' + esc(o.shopify_order_id) + '<span aria-hidden="true">↗</span></a>'
+      : '';
+    const review = state.key === 'attention'
+      ? '<button class="shopify-sync-action" type="button" data-review-shopify="' + esc(o.order_id) + '">Review sync<span aria-hidden="true">→</span></button>'
+      : '';
+    return '<div class="shopify-sync-cell"><div class="shopify-sync-status">' + shopifySyncPill(o) + '</div>' + (shopifyOrder || review) + '</div>';
   }
 
   // ---- count rows per tab (for tab badges) ----

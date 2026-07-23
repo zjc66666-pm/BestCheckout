@@ -3,8 +3,14 @@
 <head>
   <script>
     (function () {
-      if (['#/sign-in', '#/sign-up', '#/connect-shopify'].includes(window.location.hash)) {
-        window.location.replace('landing/?rev=20260722landingfable4' + window.location.hash);
+      if (window.location.hash === '#/connect-shopify' && !window.location.search.includes('shopify=unlinked')) {
+        var destination = new URL(window.location.href);
+        destination.searchParams.set('shopify', 'unlinked');
+        destination.searchParams.set('connect', 'shopify');
+        destination.hash = '#/connect-shopify';
+        window.location.replace(destination.pathname + destination.search + destination.hash);
+      } else if (['#/sign-in', '#/sign-up'].includes(window.location.hash)) {
+        window.location.replace('landing/?rev=20260723connectionchoice1' + window.location.hash);
       }
     }());
   </script>
@@ -14,7 +20,7 @@
   <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="assets/tailwind-config.js?v=20260607k"></script>
-  <link rel="stylesheet" href="assets/theme.css?v=20260722removeorderbump1" />
+  <link rel="stylesheet" href="assets/theme.css?v=20260723shopsynccompacttag1" />
   <!-- ECharts GL must register after ECharts. `defer` keeps the page non-blocking
        while preserving execution order for the Live View globe. -->
   <script defer src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
@@ -30,8 +36,8 @@
   <script src="bundles/js/data.js?v=20260706ab"></script>
   <!-- Subscription data is also a read-only dependency of order-detail deep links. -->
   <script src="subscriptions/js/data.js?v=20260713k"></script>
-  <script src="assets/shell.js?v=20260722offerconfig1"></script>
-  <script src="assets/widgets.js?v=20260722selectgroups1"></script>
+  <script src="assets/shell.js?v=20260723variantalignment1"></script>
+  <script src="assets/widgets.js?v=20260723selectmatchwidth1"></script>
   <!-- Runtime i18n overlay: engine + shared-chrome dict, then the per-module dictionary.
        Default language is ZH; the top-right toggle switches and persists. -->
   <script src="assets/i18n.js?v=20260706a"></script>

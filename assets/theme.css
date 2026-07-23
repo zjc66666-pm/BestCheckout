@@ -31,7 +31,7 @@ body { font-size: 14px; line-height: 1.5; color: var(--ink); }
   height: 100%;
 }
 .brand-row { height: var(--header-h); display: flex; align-items: center; gap: 8px; padding: 0 16px; border-bottom: 1px solid var(--hair); }
-.brand-mark { width: 26px; height: 26px; border-radius: 6px; background: var(--brand); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 15px; }
+.brand-mark { display: block; width: 28px; height: 28px; object-fit: contain; filter: drop-shadow(0 3px 7px rgb(90 91 255 / 20%)); }
 .nav-scroll { flex: 1; overflow-y: auto; padding: 8px; }
 .nav-group-label { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-muted); padding: 14px 10px 6px; }
 .nav-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--radius); color: var(--ink-body); font-size: 14px; cursor: pointer; user-select: none; white-space: nowrap; }
@@ -274,10 +274,19 @@ input[list]::-webkit-calendar-picker-indicator { display: none !important; }
 .orders-page-head { margin-bottom: 16px; }
 .orders-page-head .page-title { margin-bottom: 4px; }
 .orders-page-subtitle { margin: 0; color: var(--ink-muted); font-size: 13px; line-height: 20px; }
-.shopify-status-cell { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.shopify-status-id { color: var(--ink-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
-.shopify-inline-action { border: 0; padding: 0; background: transparent; color: var(--brand); font-size: 12px; font-weight: 500; cursor: pointer; }
-.shopify-inline-action:hover { color: var(--brand-hover); text-decoration: underline; }
+.shopify-sync-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; min-width: 124px; padding: 2px 0; line-height: 1; }
+.shopify-sync-status { display: flex; min-width: 0; }
+/* Sync state is a compact metadata tag, matching the Subscription / Bundle tags
+   beneath the order number instead of reading like a primary status pill. */
+.shopify-sync-status .pill { gap: 0; padding: 3px 6px; border-radius: 4px; font-size: 10.5px; font-weight: 600; line-height: 1; }
+.shopify-sync-status .pill .dot { display: none; }
+.shopify-sync-status .pill-green { background: #e8f7f0; color: #16875f; }
+.shopify-sync-status .pill-orange { background: #fff1df; color: #c46a0a; }
+.shopify-sync-status .pill-red { background: #fff0f0; color: #c74343; }
+.shopify-sync-status .pill-gray { background: #eef0f4; color: #596273; }
+.shopify-sync-reference, .shopify-sync-action { display: inline-flex; align-items: center; gap: 4px; border: 0; padding: 0; background: transparent; color: var(--brand); font-size: 12px; font-weight: 600; line-height: 16px; text-decoration: none; cursor: pointer; }
+.shopify-sync-reference { font-variant-numeric: tabular-nums; }
+.shopify-sync-reference:hover, .shopify-sync-action:hover { color: var(--brand-hover); text-decoration: underline; }
 .info-banner .x { margin-left: auto; cursor: pointer; color: var(--ink-muted); font-size: 12px; }
 .info-banner .x:hover { color: var(--ink); }
 .metric-sel { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border: 1px solid var(--ctl); border-radius: var(--radius); background: #fff; font-size: 13px; font-weight: 500; color: var(--ink); cursor: pointer; }

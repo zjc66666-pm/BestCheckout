@@ -4,7 +4,7 @@ import {
   FUNNEL_STATUS,
   TRACKING_CONTRACT_VERSION,
 } from './type.js?rev=20260720-standalone-portal-v150';
-import { createMockBestCheckoutState } from './mock.js?rev=20260720-bestshopio-shell-v162';
+import { createMockBestCheckoutState } from './mock.js?rev=20260723-connected-overview-v1';
 import { buildRuntimePayload, deterministicPayloadHash, graphEdgesForNodes, validateGraphCoverage } from './runtime.js?rev=20260716-rich-audience-v19';
 import { icon } from './components/common.js?rev=20260716-focus-mode-v27';
 import {
@@ -27,7 +27,7 @@ import {
   renderTrackingReviewModal,
   renderTrafficModal,
   renderUnsavedChangesModal,
-} from './components/modals.js?rev=20260720-standalone-portal-v150';
+} from './components/modals.js?rev=20260723brandunify1';
 import { renderHome } from './pages/home.js?rev=20260720-launch-checklist-v154';
 import { renderFunnels } from './pages/funnels.js?rev=20260720-standalone-portal-v148';
 import { renderPages } from './pages/pages.js?rev=20260719-page-actions-menu-v84';
@@ -36,17 +36,27 @@ import { renderActivity } from './pages/activity.js?rev=20260720-standalone-port
 import { renderSettings } from './pages/settings.js?rev=20260720-standalone-portal-v150';
 import { renderEditor, mountEditor } from './pages/editor.js?rev=20260719-preview-session-v92';
 import { renderOrders } from './pages/orders.js?rev=20260720-standalone-portal-v145';
-import { renderConnectShopify, renderSignIn, renderSignUp } from './pages/auth.js?rev=20260722authgate2';
-import { renderHelpCenter } from './pages/help.js?rev=20260722shopifyappguide1';
-import { renderMarketingSite } from './pages/website.js?rev=20260722landingfable4';
+import { renderConnectShopify, renderForgotPasswordCode, renderSignIn, renderSignUp } from './pages/auth.js?rev=20260723forgotcode1';
+import { renderHelpCenter } from './pages/help.js?rev=20260723brandunify1';
+import { renderMarketingSite } from './pages/website.js?rev=20260723brandmark1';
 import { escapeHtml, formatDateTime, getRouteName, parseRoute, setRoute } from './utils.js?rev=20260720-standalone-portal-v145';
 import { applyLocale, renderLanguageSwitcher, translate } from './i18n.js?rev=20260720-standalone-portal-v150';
 
 const appRoot = document.getElementById('app');
 const modalRoot = document.getElementById('modal-root');
 const toastRoot = document.getElementById('toast-root');
+const BRAND_MARK_SRC = '../assets/brand-mark.svg?v=20260723brandmark1';
+
+function renderBrandMark(className) {
+  return '<img class="' + className + '" src="' + BRAND_MARK_SRC + '" alt="" aria-hidden="true"/>';
+}
+
 let state = createMockBestCheckoutState();
 try {
+  // Existing merchants can add another Shopify store without creating a second
+  // BestCheckout account. This entry is only produced by the store switcher.
+  const entry = new URLSearchParams(window.location.search).get('entry');
+  if (entry === 'connect-new-shopify-store') state.ui.isAuthenticated = true;
   const storedLocale = window.localStorage.getItem('bestcheckout-prototype-locale');
   if (storedLocale === 'zh' || storedLocale === 'en') state.ui.locale = storedLocale;
 } catch (error) {
@@ -58,6 +68,12 @@ let marketingMotionCleanup = null;
 function clearMarketingMotion() {
   if (typeof marketingMotionCleanup === 'function') marketingMotionCleanup();
   marketingMotionCleanup = null;
+}
+
+function useEnglishPortalDefault() {
+  state.ui.locale = 'en';
+  state.ui.languageOpen = false;
+  try { window.localStorage.setItem('bestcheckout-prototype-locale', 'en'); } catch (error) { /* no-op */ }
 }
 
 function mountMarketingMotion() {
@@ -75,9 +91,8 @@ function mountMarketingMotion() {
     '.fable-testimonial-grid article',
     '.fable-trust-grid article',
     '.fable-final .fable-container > div',
-    '.fable-footer .fable-container > div',
+    '.fable-footer .fable-footer-brand',
     '.fable-footer .fable-container > nav',
-    '.fable-footer .fable-container > small',
   ];
   const revealTargets = Array.from(new Set(revealSelectors.flatMap(function (selector) {
     return Array.from(root.querySelectorAll(selector));
@@ -276,7 +291,7 @@ function renderBestShopioChrome(pageMarkup, route) {
   const appNavMarkup = '<nav class="nav-scroll bc-shell-nav" aria-label="BestCheckout navigation"><button type="button" class="app-nav-item nav-item' + (homeActive ? ' active is-active' : '') + '" data-route="home"' + (homeActive ? ' aria-current="page"' : '') + '>' + icon('home', 17) + '<span>Overview</span></button>' + appNav + '</nav>';
   return '<button type="button" class="skip-link" data-action="skip-content">Skip to content</button>'
     + '<div class="bc-shell shell-root' + (isEditorRoute(route) && route.query.get('appWindow') === 'open' ? ' is-focus-mode' : '') + '">'
-    + '<header class="app-header bc-shell-header" data-i18n-skip><button type="button" class="sidebar-toggle" data-action="toggle-portal-sidebar" aria-label="' + escapeHtml(menuLabel) + '">' + icon('menu', 20) + '</button><a class="hdr-logo" href="#/home" aria-label="BestCheckout home"><span class="brand-mark">B</span><span class="hdr-logo-name">BestCheckout</span></a><div class="hdr-right"><a class="bc-header-help" href="#/help" target="_blank" rel="noopener" aria-label="' + escapeHtml(helpLabel) + '" title="' + escapeHtml(helpLabel) + '">' + icon('help', 18) + '</a>' + renderHeaderLocaleToggle() + '<div class="hdr-menu-wrap"><button type="button" class="hdr-store" data-action="toggle-portal-store-menu" aria-haspopup="menu" aria-expanded="' + Boolean(state.ui.portalStoreMenuOpen) + '">' + escapeHtml(activeStore.name) + icon('chevron', 16) + '</button>' + (state.ui.portalStoreMenuOpen ? renderPortalStoreMenu() : '') + '</div><div class="hdr-menu-wrap"><button type="button" class="hdr-user" data-action="toggle-portal-account-menu" aria-label="Account" aria-haspopup="menu" aria-expanded="' + Boolean(state.ui.portalAccountMenuOpen) + '">' + icon('user', 18) + '</button>' + (state.ui.portalAccountMenuOpen ? renderPortalAccountMenu() : '') + '</div></div></header>'
+    + '<header class="app-header bc-shell-header" data-i18n-skip><button type="button" class="sidebar-toggle" data-action="toggle-portal-sidebar" aria-label="' + escapeHtml(menuLabel) + '">' + icon('menu', 20) + '</button><a class="hdr-logo" href="#/home" aria-label="BestCheckout home">' + renderBrandMark('brand-mark') + '<span class="hdr-logo-name">BestCheckout</span></a><div class="hdr-right"><a class="bc-header-help" href="#/help" target="_blank" rel="noopener" aria-label="' + escapeHtml(helpLabel) + '" title="' + escapeHtml(helpLabel) + '">' + icon('help', 18) + '</a>' + renderHeaderLocaleToggle() + '<div class="hdr-menu-wrap"><button type="button" class="hdr-store" data-action="toggle-portal-store-menu" aria-haspopup="menu" aria-expanded="' + Boolean(state.ui.portalStoreMenuOpen) + '">' + escapeHtml(activeStore.name) + icon('chevron', 16) + '</button>' + (state.ui.portalStoreMenuOpen ? renderPortalStoreMenu() : '') + '</div><div class="hdr-menu-wrap"><button type="button" class="hdr-user" data-action="toggle-portal-account-menu" aria-label="Account" aria-haspopup="menu" aria-expanded="' + Boolean(state.ui.portalAccountMenuOpen) + '">' + icon('user', 18) + '</button>' + (state.ui.portalAccountMenuOpen ? renderPortalAccountMenu() : '') + '</div></div></header>'
     + '<div class="app-body"><button type="button" class="sidebar-backdrop' + (state.ui.portalSidebarOpen ? ' show' : '') + '" data-action="toggle-portal-sidebar" aria-label="' + escapeHtml(menuLabel) + '"></button><aside class="app-sidebar scroll-thin bc-shell-sidebar' + (state.ui.portalSidebarOpen ? ' open' : '') + '" aria-label="BestCheckout navigation"><div class="bc-mobile-store-switch hdr-menu-wrap"><button type="button" class="hdr-store" data-action="toggle-portal-store-menu" aria-haspopup="menu" aria-expanded="' + Boolean(state.ui.portalStoreMenuOpen) + '">' + escapeHtml(activeStore.name) + icon('chevron', 16) + '</button>' + (state.ui.portalStoreMenuOpen ? renderPortalStoreMenu() : '') + '</div>' + appNavMarkup + '<div class="nav-footer"><button type="button" class="app-nav-item nav-item' + (activeName === 'settings' ? ' active is-active' : '') + '" data-route="settings?tab=store">' + icon('settings', 17) + '<span>Settings</span></button></div></aside><main id="page-root" class="shell-view page-root bc-shell-page" tabindex="-1">' + pageMarkup + '</main></div></div>';
 }
 
@@ -319,7 +334,7 @@ function renderShopifyChrome(pageMarkup, route) {
     staticNavItem('globe', 'Markets') +
     staticNavItem('card', 'Finance') +
     staticNavItem('analytics', 'Analytics');
-  const appTitle = '<div class="shopify-app-title"><button type="button" class="shopify-app-home' + (activeName === 'home' ? ' is-home' : '') + '" data-route="home"' + (activeName === 'home' ? ' aria-current="page"' : '') + '><span class="bestcheckout-mark">B</span><strong>BestCheckout</strong></button><span class="shopify-more-static" aria-hidden="true">' + icon('more', 16) + '</span></div>';
+  const appTitle = '<div class="shopify-app-title"><button type="button" class="shopify-app-home' + (activeName === 'home' ? ' is-home' : '') + '" data-route="home"' + (activeName === 'home' ? ' aria-current="page"' : '') + '>' + renderBrandMark('bestcheckout-logo') + '<strong>BestCheckout</strong></button><span class="shopify-more-static" aria-hidden="true">' + icon('more', 16) + '</span></div>';
   const exitFullscreenLabel = focusScope === 'canvas' ? 'Exit full-screen canvas' : 'Exit full-screen editor';
   const exitAction = editorMode ? 'exit-editor-window' : 'toggle-focus-mode';
   const exitLabel = editorMode ? (state.ui.locale === 'zh' ? '返回页面库' : 'Back to Pages') : exitFullscreenLabel;
@@ -343,7 +358,7 @@ function renderShopifyChrome(pageMarkup, route) {
           '<div class="shopify-sidebar-footer" data-i18n-skip>' + staticNavItem('settings', 'Settings') + '</div>' +
         '</aside>' +
         '<section class="embedded-app' + (editorMode ? ' embedded-app-editor' : '') + (focusActive ? ' embedded-app-focus' : '') + '">' +
-          '<header class="embedded-titlebar" data-i18n-skip><button type="button" class="embedded-app-home" data-route="home"><span class="bestcheckout-mark">B</span><strong>BestCheckout</strong></button><div class="embedded-title-actions"><div class="mobile-language-widget">' + languageSwitcher + '</div><span class="shopify-more-static">' + icon('more', 18) + '</span></div></header>' +
+          '<header class="embedded-titlebar" data-i18n-skip><button type="button" class="embedded-app-home" data-route="home">' + renderBrandMark('bestcheckout-logo') + '<strong>BestCheckout</strong></button><div class="embedded-title-actions"><div class="mobile-language-widget">' + languageSwitcher + '</div><span class="shopify-more-static">' + icon('more', 18) + '</span></div></header>' +
           '<nav class="mobile-app-nav" aria-label="BestCheckout navigation">' + appNav + '</nav>' +
           '<main id="page-root" class="page-root' + (editorMode ? ' page-root-editor' : '') + '" tabindex="-1">' + pageMarkup + '</main>' +
           '<div class="desktop-language-floating" data-i18n-skip>' + languageSwitcher + '</div>' +
@@ -353,12 +368,13 @@ function renderShopifyChrome(pageMarkup, route) {
 }
 
 function isPublicRoute(route) {
-  return ['landing', 'sign-in', 'sign-up', 'connect-shopify', 'help'].includes(route.segments[0]);
+  return ['landing', 'sign-in', 'sign-up', 'forgot-password', 'connect-shopify', 'help'].includes(route.segments[0]);
 }
 
 function renderPublicRoute(route) {
   if (route.segments[0] === 'sign-in') return renderSignIn();
   if (route.segments[0] === 'sign-up') return renderSignUp();
+  if (route.segments[0] === 'forgot-password') return renderForgotPasswordCode(route.segments[1]);
   if (route.segments[0] === 'connect-shopify') return renderConnectShopify();
   if (route.segments[0] === 'help') return renderHelpCenter(route);
   return renderMarketingSite();
@@ -376,13 +392,13 @@ function renderPortalChrome(pageMarkup, route) {
   return '<button type="button" class="skip-link" data-action="skip-content">Skip to content</button>'
     + '<div class="bc-portal admin-shell' + (focusActive ? ' is-focus-mode is-focus-' + focusScope : '') + '">'
     + '<aside class="bc-portal-sidebar app-sidebar" aria-label="BestCheckout navigation">'
-    + '<a class="bc-portal-brand brand-row" href="#/home"><span class="bestcheckout-mark">B</span><strong>BestCheckout</strong></a>'
+    + '<a class="bc-portal-brand brand-row" href="#/home">' + renderBrandMark('bestcheckout-logo') + '<strong>BestCheckout</strong></a>'
     + '<div class="bc-portal-store"><span class="bc-store-avatar">' + userInitials + '</span><span><small>Connected store</small><strong>Lavender Labs</strong></span><i>' + icon('chevron', 14) + '</i></div>'
     + '<nav class="bc-portal-nav"><button type="button" class="app-nav-item' + (homeActive ? ' is-active' : '') + '" data-route="home"' + (homeActive ? ' aria-current="page"' : '') + '>' + icon('home', 17) + '<span>Overview</span></button>' + appNav + '</nav>'
     + '<div class="bc-portal-sidebar-foot"><a href="#/settings?tab=store">' + icon('store', 16) + '<span>Shopify store connected</span>' + icon('chevron', 14) + '</a><button type="button" data-action="portal-signout">' + icon('logout', 16) + '<span>Sign out</span></button></div>'
     + '</aside>'
     + '<section class="bc-portal-content' + (editorMode ? ' bc-portal-content-editor' : '') + '">'
-    + '<header class="bc-portal-topbar app-header"><div class="bc-portal-mobile-brand"><span class="bestcheckout-mark">B</span><strong>BestCheckout</strong></div><div class="bc-portal-search search-box">' + icon('search', 16) + '<span>Search checkout settings</span><kbd>⌘</kbd><kbd>K</kbd></div><div class="bc-portal-top-actions"><a class="bc-top-help hdr-ico" href="#/help" target="_blank" rel="noopener">' + icon('help', 17) + '<span>Help</span></a><button type="button" class="bc-top-notice hdr-ico" aria-label="Notifications">' + icon('alert', 17) + '<i></i></button><div class="desktop-language-floating">' + languageSwitcher + '</div><button type="button" class="bc-top-avatar avatar" data-route="settings?tab=store" aria-label="Account settings">' + userInitials + '</button></div></header>'
+    + '<header class="bc-portal-topbar app-header"><div class="bc-portal-mobile-brand">' + renderBrandMark('bestcheckout-logo') + '<strong>BestCheckout</strong></div><div class="bc-portal-search search-box">' + icon('search', 16) + '<span>Search checkout settings</span><kbd>⌘</kbd><kbd>K</kbd></div><div class="bc-portal-top-actions"><a class="bc-top-help hdr-ico" href="#/help" target="_blank" rel="noopener">' + icon('help', 17) + '<span>Help</span></a><button type="button" class="bc-top-notice hdr-ico" aria-label="Notifications">' + icon('alert', 17) + '<i></i></button><div class="desktop-language-floating">' + languageSwitcher + '</div><button type="button" class="bc-top-avatar avatar" data-route="settings?tab=store" aria-label="Account settings">' + userInitials + '</button></div></header>'
     + '<nav class="mobile-app-nav bc-portal-mobile-nav" aria-label="BestCheckout navigation"><button type="button" class="app-nav-item' + (homeActive ? ' is-active' : '') + '" data-route="home">' + icon('home', 17) + '<span>Overview</span></button>' + appNav + '</nav>'
     + '<main id="page-root" class="page-root bc-portal-page view-wrap' + (editorMode ? ' page-root-editor' : '') + '" tabindex="-1">' + pageMarkup + '</main>'
     + '</section></div>';
@@ -403,7 +419,7 @@ function renderPortalChromeV160(pageMarkup, route) {
   const appNav = renderAppNav(activeName);
   return '<button type="button" class="skip-link" data-action="skip-content">Skip to content</button>'
     + '<div class="bc-portal bc-portal-v160 admin-shell' + (focusActive ? ' is-focus-mode is-focus-' + focusScope : '') + '">'
-    + '<header class="bc-portal-topbar app-header" data-i18n-skip><a class="bc-portal-header-brand" href="#/home" aria-label="BestCheckout home"><span class="bestcheckout-mark">B</span><strong>BestCheckout</strong></a><div class="bc-portal-header-actions"><button type="button" class="bc-portal-store-trigger" data-route="settings?tab=store" aria-label="' + escapeHtml(storeSettingsLabel) + '"><span>Lavender Labs</span>' + icon('chevron', 14) + '</button><div class="bc-portal-mobile-language">' + languageSwitcher + '</div><button type="button" class="bc-portal-account-trigger hdr-ico" data-route="settings?tab=store" aria-label="' + escapeHtml(accountSettingsLabel) + '">' + icon('user', 17) + '</button></div></header>'
+    + '<header class="bc-portal-topbar app-header" data-i18n-skip><a class="bc-portal-header-brand" href="#/home" aria-label="BestCheckout home">' + renderBrandMark('bestcheckout-logo') + '<strong>BestCheckout</strong></a><div class="bc-portal-header-actions"><button type="button" class="bc-portal-store-trigger" data-route="settings?tab=store" aria-label="' + escapeHtml(storeSettingsLabel) + '"><span>Lavender Labs</span>' + icon('chevron', 14) + '</button><div class="bc-portal-mobile-language">' + languageSwitcher + '</div><button type="button" class="bc-portal-account-trigger hdr-ico" data-route="settings?tab=store" aria-label="' + escapeHtml(accountSettingsLabel) + '">' + icon('user', 17) + '</button></div></header>'
     + '<div class="bc-portal-body">'
     + '<aside class="bc-portal-sidebar app-sidebar" aria-label="BestCheckout navigation">'
     + '<nav class="bc-portal-nav"><button type="button" class="app-nav-item' + (homeActive ? ' is-active' : '') + '" data-route="home"' + (homeActive ? ' aria-current="page"' : '') + '>' + icon('home', 17) + '<span>Overview</span></button>' + appNav + '</nav>'
@@ -463,7 +479,7 @@ function renderShell(options) {
   const focusScope = focusScopeForRoute(route);
   state.ui.focusMode = route.query.get('appWindow') === 'open' && focusScope ? focusScope : null;
   syncUiFromRoute(route);
-  appRoot.innerHTML = renderBestShopioChrome(pageForRoute(route), route);
+  appRoot.innerHTML = renderPortalChromeV160(pageForRoute(route), route);
   applyLocale(appRoot, state.ui.locale);
   if (isEditorRoute(route)) {
     mountEditor(appRoot, state, route, { setRoute: setRoute, showToast: showToast, renderShell: renderShell, openPreview: openEditorPreview });
@@ -1981,6 +1997,85 @@ function handleClick(event) {
   handleAction(element.dataset.action, element);
 }
 
+function startShopifyConnection(form) {
+  const card = form.closest('.connect-card');
+  if (!card || card.dataset.connecting === 'true') return;
+
+  card.dataset.connecting = 'true';
+  card.classList.add('is-connecting');
+  const progressPanel = document.createElement('section');
+  progressPanel.className = 'connect-progress';
+  progressPanel.setAttribute('role', 'status');
+  progressPanel.setAttribute('aria-live', 'polite');
+  progressPanel.setAttribute('aria-label', 'Connecting your Shopify store');
+  progressPanel.innerHTML = '<div class="connect-progress-heading"><span class="connect-progress-orbit" aria-hidden="true"></span><div><strong>Connecting your Shopify store</strong><p>We\'re securely verifying your app and syncing the essentials for your checkout workspace.</p></div></div><ol><li class="is-active" data-connect-step><span class="connect-step-mark" aria-hidden="true"></span><span>Checking your app credentials</span></li><li data-connect-step><span class="connect-step-mark" aria-hidden="true"></span><span>Syncing your store data</span></li><li data-connect-step><span class="connect-step-mark" aria-hidden="true"></span><span>Finishing your checkout setup</span></li></ol><small>This usually takes less than a minute.</small>';
+  form.replaceWith(progressPanel);
+
+  const steps = Array.from(progressPanel.querySelectorAll('[data-connect-step]'));
+  const setStep = function (activeIndex) {
+    steps.forEach(function (step, index) {
+      step.classList.toggle('is-complete', index < activeIndex);
+      step.classList.toggle('is-active', index === activeIndex);
+    });
+  };
+
+  window.setTimeout(function () { setStep(1); }, 850);
+  window.setTimeout(function () { setStep(2); }, 1750);
+  window.setTimeout(function () {
+    setStep(3);
+    progressPanel.classList.add('is-complete');
+    const heading = progressPanel.querySelector('.connect-progress-heading');
+    if (heading) heading.innerHTML = '<span class="connect-progress-complete" aria-hidden="true">✓</span><div><strong>Your Shopify store is connected</strong><p>Taking you to your BestCheckout dashboard.</p></div>';
+  }, 2700);
+  window.setTimeout(function () {
+    openNewBestCheckoutDashboard();
+  }, 3250);
+}
+
+function openNewBestCheckoutDashboard() {
+  // The standalone merchant dashboard is the root prototype, not this legacy
+  // landing/portal shell. Keep authentication and Shopify-connect handoffs on
+  // the same destination so merchants always enter the current Overview.
+  window.location.assign('../?rev=20260723newdashboardentry1#/home');
+}
+
+function portalFieldMessage(input) {
+  if (input.validity.valid) return '';
+  if (input.validity.valueMissing) return input.dataset.validationRequired || 'Enter a value.';
+  if (input.validity.tooShort) return input.dataset.validationTooShort || 'Use more characters.';
+  return input.dataset.validationInvalid || 'Enter a valid value.';
+}
+
+function setPortalFieldValidation(input, revealError) {
+  const field = input.closest('[data-portal-field]');
+  if (!field) return true;
+  const error = field.querySelector('[data-field-error]');
+  const message = portalFieldMessage(input);
+  const invalid = Boolean(revealError && message);
+  field.classList.toggle('is-invalid', invalid);
+  if (invalid) input.setAttribute('aria-invalid', 'true');
+  else input.removeAttribute('aria-invalid');
+  if (error) {
+    error.hidden = !invalid;
+    error.textContent = invalid ? message : '';
+  }
+  return !message;
+}
+
+function validatePortalForm(form) {
+  const fields = Array.from(form.querySelectorAll('[data-portal-field] input[required]'));
+  let firstInvalid = null;
+  fields.forEach(function (input) {
+    const valid = setPortalFieldValidation(input, true);
+    if (!valid && !firstInvalid) firstInvalid = input;
+  });
+  if (firstInvalid) {
+    firstInvalid.focus();
+    return false;
+  }
+  return true;
+}
+
 function bindFormSubmissions(event) {
   const form = event.target;
   if (form.id === 'portal-change-password-form') {
@@ -2000,31 +2095,58 @@ function bindFormSubmissions(event) {
   }
   if (form.id === 'portal-login-form') {
     event.preventDefault();
-    state.ui.isAuthenticated = true;
-    setRoute(parseRoute().query.get('next') || 'home');
-    showToast('Welcome back to BestCheckout.', 'success');
+    if (!validatePortalForm(form)) return;
+    openNewBestCheckoutDashboard();
+    return;
+  }
+  if (form.id === 'portal-forgot-password-form') {
+    event.preventDefault();
+    if (!validatePortalForm(form)) return;
+    setRoute('forgot-password/reset');
+    return;
+  }
+  if (form.id === 'portal-reset-password-form') {
+    event.preventDefault();
+    if (!validatePortalForm(form)) return;
+    const data = new FormData(form);
+    const next = String(data.get('newPassword') || '');
+    const confirmation = String(data.get('confirmPassword') || '');
+    if (next !== confirmation) {
+      const confirmInput = form.querySelector('[name="confirmPassword"]');
+      const field = confirmInput && confirmInput.closest('[data-portal-field]');
+      const error = field && field.querySelector('[data-field-error]');
+      if (field) field.classList.add('is-invalid');
+      if (confirmInput) { confirmInput.setAttribute('aria-invalid', 'true'); confirmInput.focus(); }
+      if (error) { error.hidden = false; error.textContent = 'Passwords do not match.'; }
+      return;
+    }
+    setRoute('forgot-password/complete');
     return;
   }
   if (form.id === 'portal-signup-form') {
     event.preventDefault();
-    const terms = form.querySelector('[data-signup-terms]');
-    const error = form.querySelector('[data-signup-terms-error]');
-    if (!terms || !terms.checked) {
-      const termsLabel = terms && terms.closest('.portal-terms');
-      if (termsLabel) termsLabel.classList.add('is-error');
-      if (terms) terms.setAttribute('aria-invalid', 'true');
-      if (error) error.hidden = false;
-      if (terms) terms.focus();
-      return;
-    }
+    if (!validatePortalForm(form)) return;
     state.ui.isAuthenticated = true;
+    useEnglishPortalDefault();
     setRoute(parseRoute().query.get('next') || 'connect-shopify');
     return;
   }
   if (form.id === 'connect-shopify-form') {
     event.preventDefault();
-    setRoute('home');
-    showToast('Your Shopify store is connected. Next, create your first checkout flow.', 'success');
+    if (!validatePortalForm(form)) return;
+    const authorization = form.querySelector('[name="authorizationConfirmed"]');
+    const confirmation = form.querySelector('[data-connect-confirmation]');
+    const confirmationError = form.querySelector('[data-connect-confirmation-error]');
+    if (!authorization || !authorization.checked) {
+      if (confirmation) confirmation.classList.add('is-invalid');
+      if (confirmationError) confirmationError.hidden = false;
+      if (authorization) {
+        authorization.setAttribute('aria-invalid', 'true');
+        authorization.focus();
+      }
+      return;
+    }
+    startShopifyConnection(form);
     return;
   }
   if (form.id === 'rename-page-form') {
@@ -2512,6 +2634,11 @@ function bindFormSubmissions(event) {
 }
 
 function handleInput(event) {
+  if (event.target.matches('[data-portal-field] input')) {
+    const field = event.target.closest('[data-portal-field]');
+    if (field && field.classList.contains('is-invalid')) setPortalFieldValidation(event.target, true);
+    return;
+  }
   if (event.target.matches('[data-offer-product-search]')) {
     const picker = event.target.closest('.offer-product-picker-modal');
     if (!picker) return;
@@ -2929,14 +3056,13 @@ function syncAudienceIdentityGate(builder) {
 }
 
 function handleChange(event) {
-  if (event.target.matches('[data-signup-terms]')) {
-    const form = event.target.closest('#portal-signup-form');
-    const error = form && form.querySelector('[data-signup-terms-error]');
-    const termsLabel = event.target.closest('.portal-terms');
+  if (event.target.matches('#connect-shopify-form [name="authorizationConfirmed"]')) {
+    const confirmation = event.target.closest('[data-connect-confirmation]');
+    const confirmationError = confirmation && confirmation.querySelector('[data-connect-confirmation-error]');
     if (event.target.checked) {
       event.target.removeAttribute('aria-invalid');
-      if (termsLabel) termsLabel.classList.remove('is-error');
-      if (error) error.hidden = true;
+      if (confirmation) confirmation.classList.remove('is-invalid');
+      if (confirmationError) confirmationError.hidden = true;
     }
     return;
   }
@@ -3185,7 +3311,7 @@ window.addEventListener('beforeunload', function (event) {
 });
 
 const initialRoute = parseRoute();
-if (!window.location.hash || !['landing', 'sign-in', 'sign-up', 'connect-shopify', 'help', 'home', 'funnels', 'pages', 'orders', 'performance', 'activity', 'settings'].includes(initialRoute.segments[0])) {
+if (!window.location.hash || !['landing', 'sign-in', 'sign-up', 'forgot-password', 'connect-shopify', 'help', 'home', 'funnels', 'pages', 'orders', 'performance', 'activity', 'settings'].includes(initialRoute.segments[0])) {
   setRoute('landing');
 } else {
   renderShell();

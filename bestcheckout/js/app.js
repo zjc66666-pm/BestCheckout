@@ -65,13 +65,19 @@
   ];
   var SYS_TPL = {
     checkout: [
-      { id: 'standard', name: 'Aura Checkout', tag: 'Cart checkout — clean & trusted', accent: '#1a1a1a', layout: '2col', rec: true },
-      { id: 'express-funnel', name: 'Conversion', tag: 'Cart + full funnel extras', accent: '#c0392b', layout: '2col', urgency: true },
-      { id: 'offer-funnel', name: 'Single-page funnel', tag: 'Offer picker for paid-media traffic', accent: '#2b62d6', layout: 'offer', soon: true },
+      { id: 'standard', name: 'Checkout', tag: 'Ready-to-use checkout for the default purchase flows', accent: '#1a1a1a', layout: '2col', rec: true, status: 'Live' },
+      { id: 'checkout-a', name: 'Checkout A', tag: 'A/B test variant A', accent: '#2b62d6', layout: '2col', status: 'Live' },
+      { id: 'checkout-b', name: 'Checkout B', tag: 'A/B test variant B', accent: '#7b4bd0', layout: '2col', status: 'Live' }
     ],
-    thankyou: [ { id: 'default', name: 'Aura Thank you', tag: 'Confirmation + tracking + reviews', accent: '#1a8a5a', layout: '2col' } ],
-    upsell:   [ { id: 'default', name: 'One-click upsell', tag: 'Post-purchase add in one click', accent: '#2b62d6', layout: 'solo' } ],
-    downsell: [ { id: 'default', name: 'Downsell', tag: 'Lower-price save offer', accent: '#7b4bd0', layout: 'solo' } ],
+    thankyou: [ { id: 'default', name: 'Thank you', tag: 'Confirmation + tracking + reviews', accent: '#1a8a5a', layout: '2col', status: 'Live' } ],
+    upsell: [
+      { id: 'new-customer-upsell', name: 'New customer Upsell', tag: '20% off one-click offer for first orders', accent: '#2b62d6', layout: 'solo', status: 'Live' },
+      { id: 'returning-customer-upsell', name: 'Returning customer Upsell', tag: '20% off one-click offer for repeat orders', accent: '#246b8e', layout: 'solo', status: 'Live' }
+    ],
+    downsell: [
+      { id: 'new-customer-downsell', name: 'New customer Downsell', tag: '20% off fallback offer for first orders', accent: '#7b4bd0', layout: 'solo', status: 'Live' },
+      { id: 'returning-customer-downsell', name: 'Returning customer Downsell', tag: '20% off fallback offer for repeat orders', accent: '#9b5b38', layout: 'solo', status: 'Live' }
+    ],
   };
   function bcSavedTpls() { try { return JSON.parse(localStorage.getItem('bsio_bc_templates') || '{}'); } catch (e) { return {}; } }
   function bcSavedTplsSave(s) { try { localStorage.setItem('bsio_bc_templates', JSON.stringify(s)); } catch (e) {} }
@@ -101,6 +107,7 @@
     return '<div class="cg-thumb" style="--acc:' + tp.accent + '">' + (tp.urgency ? '<div class="cg-t-bar"></div>' : '<div class="cg-t-gap"></div>') + body + '<div class="cg-t-foot"></div></div>';
   }
   function bcTplName(k, id) { var l = bcTplList(k).filter(function (x) { return x.id === id; })[0]; return l ? l.name : id; }
+  function bcPageName(k, id) { return String(bcTplName(k, id) || '').replace(/^Default\s+/, ''); }
 
   // ---- Pages library (reusable checkout + post-purchase assets) ----
   // A page stays a reusable asset until a purchase flow chooses it. This keeps
@@ -154,21 +161,23 @@
     }).join('');
     var cards = pages.map(function (item) {
       var pt = item.type, tp = item.page, usage = bcTplUsageCount(pt.key, tp.id);
-      var state = tp.soon ? t('Coming soon') : t('Draft');
+      var state = tp.status || (tp.soon ? 'Coming soon' : 'Draft');
+      var stateClass = state === 'Live' ? ' is-live' : '';
       var source = tp.saved ? t('Saved page') : t('System starter');
       var usageText = usage === 1 ? '1 ' + t('purchase flow') : usage + ' ' + t('purchase flows');
       var cardActions = tp.soon
         ? '<button class="btn btn-default" disabled>' + t('Coming soon') + '</button>'
         : '<button type="button" class="btn btn-default" data-page-preview="' + pt.key + ':' + tp.id + '">' + t('Preview') + '</button><a class="btn btn-primary" href="' + bcEditHash(pt.key, tp.id, '#/pages') + '">' + t('Edit') + '</a><button type="button" class="btn btn-default" data-page-duplicate="' + pt.key + ':' + tp.id + '">' + t('Duplicate') + '</button>';
       return '<article class="pl-card' + (tp.soon ? ' is-soon' : '') + '">' + bcTplThumb(tp, pt.key) +
-        '<div class="pl-card-body"><div class="pl-card-top"><span class="pl-type">' + t(pt.label) + '</span><span class="pl-status"><i></i>' + state + '</span></div>' +
+        '<div class="pl-card-body"><div class="pl-card-top"><span class="pl-type">' + t(pt.label) + '</span><span class="pl-status' + stateClass + '"><i></i>' + t(state) + '</span></div>' +
         '<h2>' + esc(t(tp.name)) + '</h2><p class="pl-description">' + esc(t(tp.tag || pt.desc || source)) + '</p>' +
-        '<div class="pl-facts"><span><small>' + t('Published version') + '</small><b>' + (tp.saved ? 'r1' : t('No published version')) + '</b></span><span><small>' + t('Draft version') + '</small><b>r' + (tp.saved ? '2' : '1') + '</b></span><span><small>' + t('Used in') + '</small><b>' + usageText + '</b></span><span><small>' + t('Source') + '</small><b>' + source + '</b></span></div>' +
-        '<div class="pl-metric"><span>' + t(pageMetricLabel(pt.key)) + '</span><strong>—</strong><em>' + t('Not live') + '</em></div>' +
+        '<div class="pl-facts"><span><small>' + t('Published version') + '</small><b>' + (tp.saved || tp.status === 'Live' ? 'r1' : t('No published version')) + '</b></span><span><small>' + t('Draft version') + '</small><b>r' + (tp.saved ? '2' : '1') + '</b></span><span><small>' + t('Used in') + '</small><b>' + usageText + '</b></span><span><small>' + t('Source') + '</small><b>' + source + '</b></span></div>' +
+        '<div class="pl-metric"><span>' + t(pageMetricLabel(pt.key)) + '</span><strong>—</strong><em>' + t(tp.status === 'Live' ? 'Live' : 'Not live') + '</em></div>' +
         '<div class="pl-actions">' + cardActions + '</div></div></article>';
     }).join('');
     root.innerHTML = wrap(GSTYLE + FSTYLE + '<style>' +
-      '.pl-page{width:100%;max-width:none;margin:0;padding-bottom:40px}.pl-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:18px}.pl-head h1{margin:0;font-size:20px;font-weight:600;color:var(--ink)}.pl-head p{margin:6px 0 0;font-size:13px;line-height:1.55;color:var(--ink-muted)}.pl-actions-top{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.pl-actions-top .btn{text-decoration:none}.pl-info{display:flex;gap:11px;border:1px solid #bcd5ff;background:#eff6ff;border-radius:11px;padding:14px 16px;margin-bottom:14px;color:#295894}.pl-info-mark{width:20px;height:20px;display:grid;place-items:center;border:1px solid #80a9e8;border-radius:50%;font-size:12px;font-weight:750;flex:none}.pl-info strong{display:block;font-size:13px;color:#204b84}.pl-info p{margin:3px 0 0;font-size:12.5px;line-height:1.5;color:#426b9d}.pl-filterbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}.pl-filters{display:flex;align-items:center;gap:4px;overflow:auto;padding-bottom:8px}.pl-filter{height:31px;border:0;border-radius:8px;background:transparent;padding:0 11px;color:var(--ink-body);font-size:13px;white-space:nowrap;cursor:pointer}.pl-filter:hover{background:var(--panel)}.pl-filter.active{background:#fff;border:1px solid var(--ctl);box-shadow:0 1px 2px rgb(16 24 40 / 5%);color:var(--ink);font-weight:600}.pl-count{font-size:12.5px;color:var(--ink-muted);white-space:nowrap;padding-bottom:8px}.pl-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.pl-card{border:1px solid var(--hair);border-radius:12px;overflow:hidden;background:#fff;box-shadow:0 1px 2px rgb(16 24 40 / 4%);display:flex;flex-direction:column}.pl-card:hover{border-color:#d3d9e3;box-shadow:var(--float-shadow)}.pl-card .cg-thumb{height:156px;padding:10px}.pl-card.is-soon{opacity:.72}.pl-preview{flex:1;min-height:0;overflow:hidden;border:1px solid #dde2e8;border-radius:7px;background:#fff;color:#536174;font-size:8px;line-height:1.25}.pl-preview-checkout{display:flex;flex-direction:column}.pl-preview-nav{height:23px;padding:0 9px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #edf0f3}.pl-preview-nav b{font-size:8px;color:#1f2937}.pl-preview-nav i{width:22px;height:4px;border-radius:3px;background:var(--acc);opacity:.85}.pl-preview-checkout-body{flex:1;display:grid;grid-template-columns:1.08fr .92fr;gap:7px;padding:8px}.pl-preview-fields{display:flex;flex-direction:column;gap:4px}.pl-preview-fields small,.pl-preview-checkout aside small{font-size:7px;color:#7d8999}.pl-preview-fields span{height:10px;border:1px solid #e4e8ed;border-radius:3px;background:#fff}.pl-preview-checkout aside{border-radius:4px;background:#f6f7f9;padding:5px;display:flex;flex-direction:column;gap:4px}.pl-preview-checkout aside p{margin:0;display:flex;gap:4px;align-items:center}.pl-preview-checkout aside p i{width:13px;height:13px;border-radius:3px;background:#dfe4e9}.pl-preview-checkout aside p b{height:4px;flex:1;border-radius:2px;background:#d7dce2}.pl-preview-checkout aside em{height:8px;border-radius:3px;background:var(--acc);margin-top:auto}.pl-preview-thankyou{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:10px}.pl-preview-check{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#e5f5ed;color:#16864f;font-size:13px}.pl-preview-thankyou strong{color:#253244;font-size:10px}.pl-preview-thankyou small{font-size:7px;color:#738094}.pl-preview-thankyou span{width:60%;height:4px;border-radius:3px;background:#dfe4e9}.pl-preview-thankyou i{width:54%;height:10px;border-radius:3px;background:var(--acc)}.pl-preview-offer{display:flex;align-items:center;justify-content:center;gap:12px;padding:12px 17%;background:linear-gradient(135deg,#fff 0%,#f9fafb 100%)}.pl-preview-product{width:51px;height:51px;display:grid;place-items:center;flex:none;border-radius:7px;background:color-mix(in srgb,var(--acc) 16%,#fff);border:2px solid color-mix(in srgb,var(--acc) 35%,#fff);color:var(--acc);font-size:21px;font-weight:700}.pl-preview-offer-copy{min-width:0;display:flex;flex-direction:column;gap:3px}.pl-preview-offer-copy small{font-size:7px;color:#728096}.pl-preview-offer-copy strong{font-size:10px;white-space:nowrap;color:#273448}.pl-preview-offer-copy span{font-size:8px;color:#78869a}.pl-preview-offer-copy b{display:block;margin-top:2px;border-radius:3px;background:var(--acc);color:#fff;padding:4px 9px;text-align:center;font-size:7px}.pl-preview-downsell{background:linear-gradient(135deg,#fff 0%,#fbfaff 100%)}.pl-card-body{padding:14px;display:flex;flex-direction:column;gap:8px;flex:1}.pl-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px}.pl-type{font-size:11px;font-weight:600;letter-spacing:.45px;text-transform:uppercase;color:var(--ink-muted)}.pl-status{display:inline-flex;align-items:center;gap:5px;border-radius:999px;background:#edf4ff;color:#3d73b6;padding:3px 7px;font-size:11px;font-weight:600}.pl-status i{width:5px;height:5px;border-radius:50%;background:#5d95d9}.pl-card h2{margin:0;font-size:14px;font-weight:600;line-height:1.3;color:var(--ink)}.pl-description{margin:0;color:var(--ink-muted);font-size:12.5px;line-height:1.45;min-height:34px}.pl-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px;padding-top:3px}.pl-facts span{min-width:0}.pl-facts small{display:block;color:var(--ink-muted);font-size:11px;line-height:1.35}.pl-facts b{display:block;margin-top:2px;color:var(--ink-body);font-size:12px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pl-metric{margin-top:2px;border-radius:8px;background:var(--panel);padding:10px;display:grid;grid-template-columns:1fr auto;gap:1px 8px}.pl-metric span{font-size:11px;color:var(--ink-muted)}.pl-metric strong{grid-row:2;font-size:18px;line-height:1;color:var(--ink)}.pl-metric em{align-self:end;font-size:11px;font-style:normal;font-weight:600;color:var(--ok)}.pl-actions{display:flex;gap:8px;margin-top:auto;padding-top:4px}.pl-actions .btn{flex:1;justify-content:center;text-decoration:none}.pl-create-note{padding:10px 11px;border:1px solid #cfe1ff;border-radius:8px;background:#eff6ff;color:#426b9d;font-size:12px;line-height:1.5}.pl-empty{grid-column:1/-1;min-height:220px;border:1px dashed var(--ctl);border-radius:12px;display:grid;place-items:center;color:var(--ink-muted);font-size:13px}@media(max-width:1020px){.pl-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:700px){.pl-head{flex-direction:column}.pl-actions-top{justify-content:flex-start}.pl-filterbar{align-items:flex-start;flex-direction:column}.pl-count{padding:0}.pl-grid{grid-template-columns:1fr}.pl-info{padding:12px}.pl-card .cg-thumb{height:140px}.pl-preview-offer{padding:10px 14%}}' +
+      '.pl-page{width:100%;max-width:none;margin:0;padding-bottom:40px}.pl-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:18px}.pl-head h1{margin:0;font-size:20px;font-weight:600;color:var(--ink)}.pl-head p{margin:6px 0 0;font-size:13px;line-height:1.55;color:var(--ink-muted)}.pl-actions-top{display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;justify-content:flex-end}.pl-actions-top .btn{box-sizing:border-box;height:32px;text-decoration:none}.pl-info{display:flex;gap:11px;border:1px solid #bcd5ff;background:#eff6ff;border-radius:11px;padding:14px 16px;margin-bottom:14px;color:#295894}.pl-info-mark{width:20px;height:20px;display:grid;place-items:center;border:1px solid #80a9e8;border-radius:50%;font-size:12px;font-weight:750;flex:none}.pl-info strong{display:block;font-size:13px;color:#204b84}.pl-info p{margin:3px 0 0;font-size:12.5px;line-height:1.5;color:#426b9d}.pl-filterbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}.pl-filters{display:flex;align-items:center;gap:4px;overflow:auto;padding-bottom:8px}.pl-filter{height:31px;border:0;border-radius:8px;background:transparent;padding:0 11px;color:var(--ink-body);font-size:13px;white-space:nowrap;cursor:pointer}.pl-filter:hover{background:var(--panel)}.pl-filter.active{background:#fff;border:1px solid var(--ctl);box-shadow:0 1px 2px rgb(16 24 40 / 5%);color:var(--ink);font-weight:600}.pl-count{font-size:12.5px;color:var(--ink-muted);white-space:nowrap;padding-bottom:8px}.pl-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.pl-card{border:1px solid var(--hair);border-radius:12px;overflow:hidden;background:#fff;box-shadow:0 1px 2px rgb(16 24 40 / 4%);display:flex;flex-direction:column}.pl-card:hover{border-color:#d3d9e3;box-shadow:var(--float-shadow)}.pl-card .cg-thumb{height:156px;padding:10px}.pl-card.is-soon{opacity:.72}.pl-preview{flex:1;min-height:0;overflow:hidden;border:1px solid #dde2e8;border-radius:7px;background:#fff;color:#536174;font-size:8px;line-height:1.25}.pl-preview-checkout{display:flex;flex-direction:column}.pl-preview-nav{height:23px;padding:0 9px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #edf0f3}.pl-preview-nav b{font-size:8px;color:#1f2937}.pl-preview-nav i{width:22px;height:4px;border-radius:3px;background:var(--acc);opacity:.85}.pl-preview-checkout-body{flex:1;display:grid;grid-template-columns:1.08fr .92fr;gap:7px;padding:8px}.pl-preview-fields{display:flex;flex-direction:column;gap:4px}.pl-preview-fields small,.pl-preview-checkout aside small{font-size:7px;color:#7d8999}.pl-preview-fields span{height:10px;border:1px solid #e4e8ed;border-radius:3px;background:#fff}.pl-preview-checkout aside{border-radius:4px;background:#f6f7f9;padding:5px;display:flex;flex-direction:column;gap:4px}.pl-preview-checkout aside p{margin:0;display:flex;gap:4px;align-items:center}.pl-preview-checkout aside p i{width:13px;height:13px;border-radius:3px;background:#dfe4e9}.pl-preview-checkout aside p b{height:4px;flex:1;border-radius:2px;background:#d7dce2}.pl-preview-checkout aside em{height:8px;border-radius:3px;background:var(--acc);margin-top:auto}.pl-preview-thankyou{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:10px}.pl-preview-check{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#e5f5ed;color:#16864f;font-size:13px}.pl-preview-thankyou strong{color:#253244;font-size:10px}.pl-preview-thankyou small{font-size:7px;color:#738094}.pl-preview-thankyou span{width:60%;height:4px;border-radius:3px;background:#dfe4e9}.pl-preview-thankyou i{width:54%;height:10px;border-radius:3px;background:var(--acc)}.pl-preview-offer{display:flex;align-items:center;justify-content:center;gap:12px;padding:12px 17%;background:linear-gradient(135deg,#fff 0%,#f9fafb 100%)}.pl-preview-product{width:51px;height:51px;display:grid;place-items:center;flex:none;border-radius:7px;background:color-mix(in srgb,var(--acc) 16%,#fff);border:2px solid color-mix(in srgb,var(--acc) 35%,#fff);color:var(--acc);font-size:21px;font-weight:700}.pl-preview-offer-copy{min-width:0;display:flex;flex-direction:column;gap:3px}.pl-preview-offer-copy small{font-size:7px;color:#728096}.pl-preview-offer-copy strong{font-size:10px;white-space:nowrap;color:#273448}.pl-preview-offer-copy span{font-size:8px;color:#78869a}.pl-preview-offer-copy b{display:block;margin-top:2px;border-radius:3px;background:var(--acc);color:#fff;padding:4px 9px;text-align:center;font-size:7px}.pl-preview-downsell{background:linear-gradient(135deg,#fff 0%,#fbfaff 100%)}.pl-card-body{padding:14px;display:flex;flex-direction:column;gap:8px;flex:1}.pl-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px}.pl-type{font-size:11px;font-weight:600;letter-spacing:.45px;text-transform:uppercase;color:var(--ink-muted)}.pl-status{display:inline-flex;align-items:center;gap:5px;border-radius:999px;background:#edf4ff;color:#3d73b6;padding:3px 7px;font-size:11px;font-weight:600}.pl-status i{width:5px;height:5px;border-radius:50%;background:#5d95d9}.pl-card h2{margin:0;font-size:14px;font-weight:600;line-height:1.3;color:var(--ink)}.pl-description{margin:0;color:var(--ink-muted);font-size:12.5px;line-height:1.45;min-height:34px}.pl-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px;padding-top:3px}.pl-facts span{min-width:0}.pl-facts small{display:block;color:var(--ink-muted);font-size:11px;line-height:1.35}.pl-facts b{display:block;margin-top:2px;color:var(--ink-body);font-size:12px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pl-metric{margin-top:2px;border-radius:8px;background:var(--panel);padding:10px;display:grid;grid-template-columns:1fr auto;gap:1px 8px}.pl-metric span{font-size:11px;color:var(--ink-muted)}.pl-metric strong{grid-row:2;font-size:18px;line-height:1;color:var(--ink)}.pl-metric em{align-self:end;font-size:11px;font-style:normal;font-weight:600;color:var(--ok)}.pl-actions{display:flex;gap:8px;margin-top:auto;padding-top:4px}.pl-actions .btn{flex:1;justify-content:center;text-decoration:none}.pl-create-note{padding:10px 11px;border:1px solid #cfe1ff;border-radius:8px;background:#eff6ff;color:#426b9d;font-size:12px;line-height:1.5}.pl-empty{grid-column:1/-1;min-height:220px;border:1px dashed var(--ctl);border-radius:12px;display:grid;place-items:center;color:var(--ink-muted);font-size:13px}@media(max-width:1020px){.pl-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:700px){.pl-head{flex-direction:column}.pl-actions-top{justify-content:flex-start}.pl-filterbar{align-items:flex-start;flex-direction:column}.pl-count{padding:0}.pl-grid{grid-template-columns:1fr}.pl-info{padding:12px}.pl-card .cg-thumb{height:140px}.pl-preview-offer{padding:10px 14%}}' +
+      '.pl-status.is-live{background:var(--ok-bg);color:var(--ok)}.pl-status.is-live i{background:var(--ok)}' +
       '</style><main class="pl-page"><header class="pl-head"><div><h1>' + t('Pages') + '</h1><p>' + t('Manage reusable Checkout, Upsell, Downsell and Thank you page assets.') + '</p></div><div class="pl-actions-top"><a class="btn btn-default" href="#/online-store">' + t('Theme settings') + '</a><button type="button" class="btn btn-primary" data-page-create>+ ' + t('Create page') + '</button></div></header>' +
       '<section class="pl-info"><span class="pl-info-mark">✓</span><div><strong>' + t('Build once, use it in multiple purchase flows') + '</strong><p>' + t('Editing a page does not affect live purchase flows. After you confirm the changes, publish the purchase flow for shoppers to see the new version.') + '</p></div></section>' +
       '<div class="pl-filterbar"><div class="pl-filters" role="tablist">' + filterTabs + '</div><span class="pl-count">' + (pages.length === allPages.length ? t('Total') + ' ' + allPages.length + ' ' + t('pages') : t('Showing') + ' ' + pages.length + ' / ' + allPages.length + ' ' + t('pages')) + '</span></div><section class="pl-grid">' + (cards || '<div class="pl-empty">' + t('No pages in this view.') + '</div>') + '</section></main>');
@@ -335,10 +344,11 @@
   // Purchase flows are the merchant's entry points. The list is deliberately
   // concise; each detail view reuses the mature funnel canvas below.
   var FLOW_LIST_KEY = 'bsio_bc_purchase_flows';
-  var FLOW_MOCK_VERSION_KEY = 'bsio_bc_purchase_flow_mock_version';
-  var PAUSED_FLOW_MOCK_VERSION = 'paused-flow-v1';
+  var FLOW_INITIALIZATION_VERSION_KEY = 'bsio_bc_purchase_flow_initialization_version';
+  var FLOW_INITIALIZATION_VERSION = 'default-live-flows-v2';
   var FLOW_ORDER_BUMP_CLEANUP_KEY = 'bsio_bc_remove_order_bump_v1';
-  var activeFlowId = 'first-order-boost';
+  var FLOW_NAME_CLEANUP_KEY = 'bsio_bc_flow_name_v2';
+  var activeFlowId = 'new-customer-offer';
   // The canvas is the primary purchase-flow editor. It keeps the whole route,
   // its branches and the Shopify fallback visible together, which makes the
   // flow easier to understand than a series of isolated configuration cards.
@@ -349,23 +359,39 @@
     { id: 'daily-essentials', name: 'Daily essentials bundle', price: '36.00', compareAt: '48.00' },
     { id: 'hydration', name: 'Electrolyte hydration pack', price: '18.00', compareAt: '24.00' }
   ];
-  var FLOW_LIST_SEED = [
-    { id: 'first-order-boost', name: 'First-order boost', description: 'Give new customers a relevant one-click Upsell after checkout.', audience: 'First-time customers', entry: 'New customers', priority: 10, status: 'Live', traffic: '45%', conversion: '5.2%', aov: '$62.40', updated: 'Today, 10:42', summary: '1 checkout · 1 upsell · 1 Thank you page' },
-    { id: 'returning-customer-offer', name: 'Returning customer offer', description: 'Show returning customers a Downsell after they decline the Upsell.', audience: 'Returning customers', entry: 'Returning customers', priority: 20, status: 'Draft', traffic: '0%', conversion: '—', aov: '—', updated: 'Saved today', summary: '1 checkout · 1 upsell · 1 downsell · 1 Thank you page' },
-    { id: 'smooth-checkout', name: 'Smooth checkout', description: 'A focused checkout for all other customers, followed by the Thank you page.', audience: 'All remaining customers', entry: 'All other customers', priority: 30, status: 'Live', traffic: '55%', conversion: '4.1%', aov: '$54.80', updated: 'Yesterday', summary: '1 checkout · No Upsell or Downsell · 1 Thank you page', isDefault: true },
-    { id: 'seasonal-returning-offer', name: 'Seasonal returning-customer offer', description: 'A limited-time Upsell kept ready for a future returning-customer campaign.', audience: 'Returning customers', entry: 'Returning customers', priority: 15, status: 'Paused', traffic: '0%', conversion: '—', aov: '—', updated: 'Paused today', summary: '1 checkout · 1 upsell · 1 Thank you page', mock: true }
+  // Entry rules use product and SKU entities rather than free-form tags. Product
+  // rules intentionally store the product id, so every variant of that product
+  // matches. SKU rules stay exact and are used when a particular variant matters.
+  var FLOW_CART_CATALOG = [
+    { id: 'product-travel-wellness-kit', name: 'Travel wellness kit', handle: 'travel-wellness-kit', category: 'Wellness', status: 'Active', inventory: 218, price: 29.00, variants: [{ id: 'variant-travel-vanilla', name: 'Vanilla', sku: 'TWK-VAN-001', inventory: 110, price: 29.00 }, { id: 'variant-travel-citrus', name: 'Citrus', sku: 'TWK-CIT-002', inventory: 108, price: 29.00 }] },
+    { id: 'product-sleep-support', name: 'Sleep support capsules', handle: 'sleep-support-capsules', category: 'Supplements', status: 'Active', inventory: 64, price: 24.00, variants: [{ id: 'variant-sleep-60', name: '60 capsules', sku: 'SLP-060', inventory: 46, price: 24.00 }, { id: 'variant-sleep-120', name: '120 capsules', sku: 'SLP-120', inventory: 18, price: 42.00 }] },
+    { id: 'product-sleep-reset-bundle', name: 'Sleep Reset Bundle', handle: 'sleep-reset-bundle', category: 'Bundles', status: 'Active', inventory: 32, price: 48.00, variants: [{ id: 'variant-sleep-reset-blue', name: 'Blue', sku: 'SLEEP-SET-BLUE', inventory: 14, price: 48.00 }, { id: 'variant-sleep-reset-green', name: 'Green', sku: 'SLEEP-SET-GREEN', inventory: 18, price: 48.00 }] },
+    { id: 'product-daily-essentials', name: 'Daily essentials bundle', handle: 'daily-essentials-bundle', category: 'Bundles', status: 'Active', inventory: 142, price: 36.00, variants: [{ id: 'variant-daily-standard', name: 'Standard bundle', sku: 'DEB-STD-01', inventory: 94, price: 36.00 }, { id: 'variant-daily-family', name: 'Family bundle', sku: 'DEB-FAM-02', inventory: 48, price: 54.00 }] },
+    { id: 'product-hydration', name: 'Electrolyte hydration pack', handle: 'electrolyte-hydration-pack', category: 'Hydration', status: 'Draft', inventory: 0, price: 18.00, variants: [{ id: 'variant-hydration-berry', name: 'Berry', sku: 'EHP-BER-12', inventory: 0, price: 18.00 }, { id: 'variant-hydration-lemon', name: 'Lemon', sku: 'EHP-LEM-12', inventory: 0, price: 18.00 }] }
   ];
-  function bcEnsurePausedMock(flows) {
+  var FLOW_LIST_SEED = [
+    { id: 'new-customer-offer', name: 'New customer offer', description: 'Give recognized first-time customers a ready-to-use Upsell and Downsell journey.', audience: 'Recognized customers · first order', entry: 'Recognized customers · first order', entryLabel: 'Recognized customers · first order', entryConditions: [{ field: 'account_status', op: 'equals', value: 'signed_in' }, { field: 'customer_type', op: 'equals', value: 'new' }], priority: 300, status: 'Live', traffic: '—', conversion: '—', aov: '—', updated: 'Default setup', summary: 'Default Checkout → New customer Upsell → New customer Downsell → Default Thank you', isDefault: true },
+    { id: 'returning-customer-cross-sell', name: 'Returning customer cross-sell', description: 'Give recognized returning customers a ready-to-use cross-sell and fallback offer.', audience: 'Recognized customers · returning', entry: 'Recognized customers · returning', entryLabel: 'Recognized customers · returning', entryConditions: [{ field: 'account_status', op: 'equals', value: 'signed_in' }, { field: 'customer_type', op: 'equals', value: 'returning' }], priority: 200, status: 'Live', traffic: '—', conversion: '—', aov: '—', updated: 'Default setup', summary: 'Default Checkout → Returning customer Upsell → Returning customer Downsell → Default Thank you', isDefault: true },
+    { id: 'checkout-ab-test', name: 'Checkout A/B test', description: 'Split all remaining customers 50/50 between Checkout A and Checkout B.', audience: 'All remaining customers', entry: 'All other customers', entryLabel: 'All remaining customers', entryConditions: [], priority: 100, status: 'Live', traffic: '—', conversion: '—', aov: '—', updated: 'Default setup', summary: 'Checkout A 50% / Checkout B 50% → Default Thank you', isDefault: true }
+  ];
+  var FLOW_DEFAULT_IDS = { 'new-customer-offer': true, 'returning-customer-cross-sell': true, 'checkout-ab-test': true };
+  var FLOW_LEGACY_DEFAULT_IDS = { 'first-order-boost': true, 'returning-customer-offer': true, 'smooth-checkout': true, 'seasonal-returning-offer': true };
+  function bcSeedDefaultPurchaseFlows(flows) {
     try {
-      if (localStorage.getItem(FLOW_MOCK_VERSION_KEY) === PAUSED_FLOW_MOCK_VERSION) return flows;
-      var pausedMock = FLOW_LIST_SEED.filter(function (flow) { return flow.id === 'seasonal-returning-offer'; })[0];
-      if (pausedMock && !flows.some(function (flow) { return flow.id === pausedMock.id; })) {
-        flows.push(JSON.parse(JSON.stringify(pausedMock)));
-        bcFlowListSave(flows);
-      }
-      localStorage.setItem(FLOW_MOCK_VERSION_KEY, PAUSED_FLOW_MOCK_VERSION);
-    } catch (e) {}
-    return flows;
+      if (localStorage.getItem(FLOW_INITIALIZATION_VERSION_KEY) === FLOW_INITIALIZATION_VERSION) return flows;
+      // This is a one-time prototype seed refresh. It intentionally clears the
+      // former sample journeys, then future merchant-created flows keep using
+      // the existing create/edit persistence unchanged.
+      var customFlows = [];
+      var defaults = JSON.parse(JSON.stringify(FLOW_LIST_SEED));
+      Object.keys(FLOW_LEGACY_DEFAULT_IDS).concat(Object.keys(FLOW_DEFAULT_IDS)).forEach(function (id) { localStorage.removeItem(bcFunnelKeyFor(id)); });
+      localStorage.removeItem('bsio_bc_funnel');
+      defaults.forEach(function (flow) { bcFunnelSaveFor(flow.id, fnDefault(flow.id)); });
+      var next = defaults.concat(customFlows);
+      bcFlowListSave(next);
+      localStorage.setItem(FLOW_INITIALIZATION_VERSION_KEY, FLOW_INITIALIZATION_VERSION);
+      return next;
+    } catch (e) { return flows; }
   }
   function bcRemoveLegacyOrderBumpData(flows) {
     var legacyNames = {
@@ -396,13 +422,45 @@
     } catch (e) {}
     return flows;
   }
+  function bcApplyFlowNameCleanup(flows) {
+    try {
+      if (localStorage.getItem(FLOW_NAME_CLEANUP_KEY)) return flows;
+      var changed = false;
+      (flows || []).forEach(function (flow) {
+        if (!flow) return;
+        if (flow.name === 'Second-chance offer' || flow.name === 'Second chance offer') {
+          flow.name = 'Recover declined Upsells';
+          changed = true;
+        }
+      });
+      if (changed) bcFlowListSave(flows);
+      localStorage.setItem(FLOW_NAME_CLEANUP_KEY, '1');
+    } catch (e) {}
+    return flows;
+  }
+  // Older prototypes saved product and SKU cart rules as separate fields. Upgrade
+  // them in storage when the list loads, so existing flows keep working while the
+  // editor presents the single, layered product picker.
+  function bcMigrateLegacyCartEntryConditions(flows) {
+    var changed = false;
+    (flows || []).forEach(function (flow) {
+      if (!flow || !Array.isArray(flow.entryConditions)) return;
+      var before = JSON.stringify(flow.entryConditions);
+      var next = flow.entryConditions.map(flowEntryNormalizedEntityCondition);
+      if (JSON.stringify(next) !== before) { flow.entryConditions = next; changed = true; }
+    });
+    if (changed) bcFlowListSave(flows);
+    return flows;
+  }
   function bcFlowList() {
+    var flows;
     try {
       var stored = JSON.parse(localStorage.getItem(FLOW_LIST_KEY) || 'null');
-      if (Array.isArray(stored) && stored.length) return bcApplyOrderBumpCleanup(bcEnsurePausedMock(stored));
+      flows = Array.isArray(stored) && stored.length ? stored : null;
     } catch (e) {}
-    try { localStorage.setItem(FLOW_MOCK_VERSION_KEY, PAUSED_FLOW_MOCK_VERSION); } catch (e) {}
-    return JSON.parse(JSON.stringify(FLOW_LIST_SEED));
+    flows = flows || JSON.parse(JSON.stringify(FLOW_LIST_SEED));
+    flows = bcSeedDefaultPurchaseFlows(flows);
+    return bcMigrateLegacyCartEntryConditions(bcApplyFlowNameCleanup(bcApplyOrderBumpCleanup(flows)));
   }
   function bcFlowListSave(flows) { try { localStorage.setItem(FLOW_LIST_KEY, JSON.stringify(flows)); } catch (e) {} }
   function bcFlowById(id) { return bcFlowList().filter(function (flow) { return flow.id === id; })[0] || null; }
@@ -441,18 +499,18 @@
     toast(t(flow.status === 'Draft' ? 'Purchase flow published' : 'Purchase flow changes published'));
   }
   function deleteFlow(flow, onDeleted) {
-    if (!flow || flowIsLive(flow)) return;
+    if (!flow) return;
     var remove = function () {
       var flows = bcFlowList().filter(function (candidate) { return candidate.id !== flow.id; });
       bcFlowListSave(flows);
       try { localStorage.removeItem(bcFunnelKeyFor(flow.id)); } catch (e) {}
-      if (activeFlowId === flow.id) activeFlowId = (flows[0] || {}).id || 'first-order-boost';
+      if (activeFlowId === flow.id) activeFlowId = (flows[0] || {}).id || 'new-customer-offer';
       toast(t('Purchase flow deleted'));
       if (onDeleted) onDeleted();
     };
     var options = {
       title: t('Delete purchase flow?'),
-      content: t('This permanently deletes the flow and its page configuration. This cannot be undone.'),
+      content: t('This permanently deletes the flow and its page configuration. New customers will continue to the next matching live flow or Shopify Checkout. This cannot be undone.'),
       okText: t('Delete'),
       cancelText: t('Cancel'),
       danger: true,
@@ -488,7 +546,7 @@
       deleteFlow(current, function () { if (onDelete) onDelete(); });
     }; });
   }
-  function bcFunnelKeyFor(flowId) { return flowId === 'first-order-boost' ? 'bsio_bc_funnel' : 'bsio_bc_funnel_' + flowId; }
+  function bcFunnelKeyFor(flowId) { return 'bsio_bc_funnel_' + flowId; }
   function bcFunnelKey() { return bcFunnelKeyFor(activeFlowId); }
   function bcFunnelSaveFor(flowId, state) { try { localStorage.setItem(bcFunnelKeyFor(flowId), JSON.stringify(state)); } catch (e) {} }
   function flowSummaryText(summary) {
@@ -509,7 +567,7 @@
   // rather than a generic count such as "1 offer" or "post-purchase".
   function flowStateForPath(flowId) {
     try {
-      var raw = localStorage.getItem(bcFunnelKeyFor(flowId)) || (flowId === 'first-order-boost' ? localStorage.getItem('bsio_bc_funnel') : null);
+      var raw = localStorage.getItem(bcFunnelKeyFor(flowId));
       var saved = JSON.parse(raw || 'null');
       if (saved && Array.isArray(saved.nodes)) return saved;
     } catch (e) {}
@@ -519,15 +577,30 @@
     var orderedTypes = ['checkout', 'upsell', 'downsell', 'thankyou'];
     var labels = { checkout: 'Checkout', upsell: 'Upsell', downsell: 'Downsell', thankyou: 'Thank you' };
     var nodes = (state && state.nodes) || [];
+    var edges = (state && state.edges) || [];
+    var source = nodes.filter(function (node) { return node.type === 'shopify'; })[0];
+    var arrow = ' ' + String.fromCharCode(8594) + ' ';
+    var namedStages = orderedTypes.map(function (type) {
+      var stageNodes = nodes.filter(function (node) { return node.type === type; });
+      if (!stageNodes.length) return '';
+      return stageNodes.map(function (node) {
+        var label = t(bcPageName(type, node.tpl));
+        if (type !== 'checkout' || !source) return label;
+        var edge = edges.filter(function (item) { return item.from === source.id && item.to === node.id; })[0];
+        var random = edge && fnRuleConds(edge).filter(function (condition) { return condition.field === 'random'; })[0];
+        return label + (random && random.value != null ? ' ' + random.value + '%' : '');
+      }).join(' / ');
+    }).filter(Boolean);
+    if (namedStages.length) return namedStages.join(arrow);
     return orderedTypes.filter(function (type) {
       return nodes.some(function (node) { return node.type === type; });
     }).map(function (type) { return t(labels[type]); }).join(' → ');
   }
   function flowListPagePath(flow) { return flowPagePath(flowStateForPath(flow.id)); }
   var FLOW_PURPOSES = {
-    'first-order-boost': 'Give new customers a relevant one-click Upsell after checkout.',
-    'returning-customer-offer': 'Show returning customers a Downsell after they decline the Upsell.',
-      'smooth-checkout': 'A focused checkout for all other customers, followed by the Thank you page.'
+    'new-customer-offer': 'Give recognized first-time customers a ready-to-use Upsell and Downsell journey.',
+    'returning-customer-cross-sell': 'Give recognized returning customers a ready-to-use cross-sell and fallback offer.',
+    'checkout-ab-test': 'Split all remaining customers 50/50 between Checkout A and Checkout B.'
   };
   function flowPurpose(flow) {
     return flow.description || FLOW_PURPOSES[flow.id] || 'Arrange the pages customers see in this purchase flow.';
@@ -536,6 +609,9 @@
   // attributes; every listed condition must match before the buyer enters it.
   var FLOW_ENTRY_SELECT_OPERATORS = [{ value: 'equals', label: 'is' }, { value: 'not_equals', label: 'is not' }];
   var FLOW_ENTRY_TAG_OPERATORS = [{ value: 'includes_any', label: 'has any of these tags' }, { value: 'includes_all', label: 'has all of these tags' }, { value: 'excludes_all', label: 'has none of these tags' }];
+  // A cart rule can target an entire product or one exact SKU. Keep both levels
+  // in one field so merchants do not have to decide which condition to add first.
+  var FLOW_ENTRY_CART_ITEM_OPERATORS = [{ value: 'contains_any_items', label: 'Contains any selected items' }, { value: 'contains_all_items', label: 'Contains all selected items' }, { value: 'excludes_items', label: 'Does not contain selected items' }];
   var FLOW_ENTRY_NUMBER_OPERATORS = [{ value: 'at_least', label: 'is at least' }, { value: 'at_most', label: 'is at most' }, { value: 'equals', label: 'equals' }, { value: 'not_equals', label: 'does not equal' }, { value: 'between', label: 'is between' }];
   var FLOW_ENTRY_FIELDS = {
     account_status: { group: 'Customer identity', label: 'Account status', kind: 'select', operators: FLOW_ENTRY_SELECT_OPERATORS, options: [{ value: 'signed_in', label: 'Signed in' }, { value: 'guest', label: 'Guest' }] },
@@ -551,11 +627,607 @@
     cart_total: { group: 'Cart', label: 'Cart total', kind: 'number', unit: '$', operators: FLOW_ENTRY_NUMBER_OPERATORS },
     cart_currency: { group: 'Cart', label: 'Cart currency', kind: 'select', operators: FLOW_ENTRY_SELECT_OPERATORS, options: [{ value: 'USD', label: 'USD' }, { value: 'CAD', label: 'CAD' }, { value: 'GBP', label: 'GBP' }] },
     cart_items: { group: 'Cart', label: 'Cart item count', kind: 'number', unit: 'items', operators: FLOW_ENTRY_NUMBER_OPERATORS },
-    cart_product: { group: 'Cart', label: 'Cart products', kind: 'tags', operators: FLOW_ENTRY_TAG_OPERATORS },
-    cart_sku: { group: 'Cart', label: 'Cart contains SKU', kind: 'tags', operators: FLOW_ENTRY_TAG_OPERATORS }
+    cart_item: { group: 'Cart', label: 'Cart contains products', kind: 'entity', entity: 'product_or_sku', operators: FLOW_ENTRY_CART_ITEM_OPERATORS }
   };
+  /* Present entry fields as clear merchant-facing groups rather than one long,
+     visually flat select list. Used by both creation and later entry editing. */
+  var FLOW_ENTRY_FIELD_GROUPS = [
+    { label: 'Customer', keys: ['account_status', 'customer_type', 'customer_tag', 'marketing_consent', 'past_orders', 'lifetime_value', 'last_order'] },
+    { label: 'Storefront context', keys: ['storefront_market', 'storefront_language'] },
+    { label: 'Cart', keys: ['cart_subtotal', 'cart_total', 'cart_currency', 'cart_items', 'cart_item'] }
+  ];
+  function flowEntryEmptyValue(field) {
+    if (field.kind === 'tags' || field.kind === 'entity') return [];
+    if (field.kind === 'select') return field.options[0].value;
+    return '';
+  }
+  function flowEntryOrderedFieldKeys() {
+    return FLOW_ENTRY_FIELD_GROUPS.reduce(function (keys, group) {
+      return keys.concat((group.keys || []).filter(function (key) { return Boolean(FLOW_ENTRY_FIELDS[key]); }));
+    }, []);
+  }
+  function flowEntryNextAvailableFieldKey(conditions) {
+    var used = {};
+    (conditions || []).forEach(function (condition) {
+      if (condition && FLOW_ENTRY_FIELDS[condition.field]) used[condition.field] = true;
+    });
+    var ordered = flowEntryOrderedFieldKeys();
+    return ordered.filter(function (key) { return !used[key]; })[0] || ordered[0] || 'account_status';
+  }
+  function flowEntryNewCondition(fieldKey) {
+    var key = FLOW_ENTRY_FIELDS[fieldKey] ? fieldKey : 'account_status';
+    var field = FLOW_ENTRY_FIELDS[key];
+    return { field: key, op: field.operators[0].value, value: flowEntryEmptyValue(field) };
+  }
+  function flowEntryNormalizeSku(value) { return String(value || '').trim().toUpperCase(); }
+  function flowEntryUnifiedCartItems() {
+    return FLOW_CART_CATALOG.reduce(function (items, product) {
+      items.push({ value: 'product:' + product.id, type: 'product', title: product.name, label: product.name, meta: (product.variants || []).length + ' variants', product: product });
+      return items.concat((product.variants || []).map(function (variant) {
+        var sku = flowEntryNormalizeSku(variant.sku);
+        return { value: 'sku:' + sku, type: 'sku', title: variant.name, label: product.name + ' - ' + variant.name, meta: sku, product: product, variant: variant };
+      }));
+    }, []);
+  }
+  function flowEntryUnifiedCartItemValue(value, level) {
+    var raw = String(value == null ? '' : value).trim();
+    var productIndex = {}, skuIndex = {};
+    FLOW_CART_CATALOG.forEach(function (product) {
+      productIndex[String(product.id).toLowerCase()] = 'product:' + product.id;
+      productIndex[String(product.name).toLowerCase()] = 'product:' + product.id;
+      productIndex[String(product.handle).toLowerCase()] = 'product:' + product.id;
+      (product.variants || []).forEach(function (variant) { skuIndex[flowEntryNormalizeSku(variant.sku)] = 'sku:' + flowEntryNormalizeSku(variant.sku); });
+    });
+    if (level === 'product' || raw.indexOf('product:') === 0) return productIndex[raw.replace(/^product:/i, '').toLowerCase()] || '';
+    if (level === 'sku' || raw.indexOf('sku:') === 0) return skuIndex[flowEntryNormalizeSku(raw.replace(/^sku:/i, ''))] || '';
+    return productIndex[raw.toLowerCase()] || skuIndex[flowEntryNormalizeSku(raw)] || '';
+  }
+  function flowEntryUnifiedSelectedItems(value) {
+    var selected = {};
+    (Array.isArray(value) ? value : []).forEach(function (item) {
+      var normalized = flowEntryUnifiedCartItemValue(item);
+      if (normalized) selected[normalized] = true;
+    });
+    return flowEntryUnifiedCartItems().filter(function (item) { return selected[item.value]; });
+  }
+  function flowEntryUnifiedNormalizedCondition(condition) {
+    if (!condition || ['cart_product', 'cart_sku', 'cart_item'].indexOf(condition.field) === -1) return null;
+    var next = Object.assign({}, condition);
+    var level = next.field === 'cart_product' ? 'product' : next.field === 'cart_sku' ? 'sku' : '';
+    next.value = (Array.isArray(next.value) ? next.value : []).map(function (value) { return flowEntryUnifiedCartItemValue(value, level); }).filter(Boolean);
+    next.field = 'cart_item';
+    next.op = {
+      includes_any: 'contains_any_items', contains_any_products: 'contains_any_items', contains_any_skus: 'contains_any_items',
+      includes_all: 'contains_all_items', contains_all_products: 'contains_all_items', contains_all_skus: 'contains_all_items',
+      excludes_all: 'excludes_items', excludes_products: 'excludes_items', excludes_skus: 'excludes_items'
+    }[next.op] || next.op;
+    if (FLOW_ENTRY_CART_ITEM_OPERATORS.every(function (operator) { return operator.value !== next.op; })) next.op = 'contains_any_items';
+    return next;
+  }
+  function flowEntryUnifiedCartItemLabel(value) {
+    var selected = flowEntryUnifiedSelectedItems(value);
+    if (!selected.length) return t('Select products or SKUs');
+    return selected.slice(0, 2).map(function (item) { return item.label; }).join(', ') + (selected.length > 2 ? ' +' + (selected.length - 2) : '');
+  }
+  function flowEntryEntityItems(field) {
+    if (!field || field.kind !== 'entity') return [];
+    if (field.entity === 'product_or_sku') return flowEntryUnifiedCartItems();
+    if (field.entity === 'product') return FLOW_CART_CATALOG.map(function (product) {
+      return { value: product.id, title: product.name, meta: product.handle, product: product };
+    });
+    return FLOW_CART_CATALOG.reduce(function (items, product) {
+      return items.concat((product.variants || []).map(function (variant) {
+        return { value: flowEntryNormalizeSku(variant.sku), title: flowEntryNormalizeSku(variant.sku), meta: product.name + ' · ' + variant.name, product: product, variant: variant };
+      }));
+    }, []);
+  }
+  function flowEntryEntitySelectedItems(field, value) {
+    if (field && field.entity === 'product_or_sku') return flowEntryUnifiedSelectedItems(value);
+    var values = Array.isArray(value) ? value : [];
+    var selected = {};
+    values.forEach(function (item) { selected[field && field.entity === 'sku' ? flowEntryNormalizeSku(item) : item] = true; });
+    return flowEntryEntityItems(field).filter(function (item) { return selected[item.value]; });
+  }
+  function flowEntryNormalizedEntityCondition(condition) {
+    var unified = flowEntryUnifiedNormalizedCondition(condition);
+    if (unified) return unified;
+    if (!condition || (condition.field !== 'cart_product' && condition.field !== 'cart_sku')) return condition;
+    var next = Object.assign({}, condition);
+    var values = Array.isArray(next.value) ? next.value : [];
+    if (next.field === 'cart_product') {
+      var products = FLOW_CART_CATALOG.reduce(function (index, product) {
+        index[String(product.id).toLowerCase()] = product.id;
+        index[String(product.name).toLowerCase()] = product.id;
+        index[String(product.handle).toLowerCase()] = product.id;
+        return index;
+      }, {});
+      next.value = values.map(function (value) { return products[String(value || '').trim().toLowerCase()]; }).filter(Boolean);
+      next.op = { includes_any: 'contains_any_products', includes_all: 'contains_all_products', excludes_all: 'excludes_products' }[next.op] || next.op;
+    } else {
+      var validSkus = {};
+      flowEntryEntityItems(FLOW_ENTRY_FIELDS.cart_sku).forEach(function (item) { validSkus[item.value] = true; });
+      next.value = values.map(flowEntryNormalizeSku).filter(function (sku) { return validSkus[sku]; });
+      next.op = { includes_any: 'contains_any_skus', includes_all: 'contains_all_skus', excludes_all: 'excludes_skus' }[next.op] || next.op;
+    }
+    return next;
+  }
+  function flowEntryEntityLabel(field, value) {
+    if (field && field.entity === 'product_or_sku') return flowEntryUnifiedCartItemLabel(value);
+    var selected = flowEntryEntitySelectedItems(field, value);
+    if (!selected.length) return t(field.entity === 'sku' ? 'Select SKUs' : 'Select products');
+    var names = selected.slice(0, 2).map(function (item) { return item.title; });
+    return names.join(', ') + (selected.length > 2 ? ' +' + (selected.length - 2) : '');
+  }
+  function flowEntryEntityControl(scope, index, field, value) {
+    var count = flowEntryEntitySelectedItems(field, value).length;
+    var label = flowEntryEntityLabel(field, value);
+    return '<button type="button" class="flow-entity-control" data-' + scope + '-entity-picker="' + index + '" aria-label="' + esc(label) + '"><span><strong>' + esc(label) + '</strong>' + (count ? '<small>' + count + ' ' + t(count === 1 ? 'item selected' : 'items selected') + '</small>' : '') + '</span><em>' + t(count ? 'Change' : 'Select') + '</em></button>';
+  }
+  function openFlowEntryUnifiedItemPicker(field, selectedValues, onApply) {
+    var selected = flowEntryUnifiedSelectedItems(selectedValues).map(function (item) { return item.value; });
+    var expanded = {};
+    FLOW_CART_CATALOG.forEach(function (product) {
+      var hasSelection = selected.some(function (value) {
+        return value === 'product:' + product.id || (product.variants || []).some(function (variant) { return value === 'sku:' + flowEntryNormalizeSku(variant.sku); });
+      });
+      // Start with a compact product list. Keep an already selected product
+      // expanded so its selected SKUs remain visible when the picker reopens.
+      if (hasSelection) expanded[product.id] = true;
+    });
+    var modal = document.createElement('div');
+    var title = t('Select products or SKUs');
+    var pickerFilterDismiss = null;
+    // Keep pagination local to this picker, so filtering never clears the
+    // product/SKU selection a merchant has already made.
+    var pickerPage = 1;
+    var pickerPageSize = 20;
+    var pickerPageSizes = [5, 10, 20, 50];
+    var close = function () { if (pickerFilterDismiss) pickerFilterDismiss(); modal.remove(); };
+    var productValue = function (product) { return 'product:' + product.id; };
+    var skuValue = function (variant) { return 'sku:' + flowEntryNormalizeSku(variant.sku); };
+    var hasValue = function (value) { return selected.indexOf(value) !== -1; };
+    var removeProductSkus = function (product) {
+      selected = selected.filter(function (value) { return !(product.variants || []).some(function (variant) { return value === skuValue(variant); }); });
+    };
+    var setCount = function () {
+      var productCount = selected.filter(function (value) { return value.indexOf('product:') === 0; }).length;
+      var skuCount = selected.filter(function (value) { return value.indexOf('sku:') === 0; }).length;
+      var parts = [];
+      if (productCount) parts.push(productCount + ' ' + t(productCount === 1 ? 'product' : 'products'));
+      if (skuCount) parts.push(skuCount + ' ' + t(skuCount === 1 ? 'SKU' : 'SKUs'));
+      var counter = modal.querySelector('[data-flow-entity-count]');
+      if (counter) counter.textContent = parts.length ? parts.join(' / ') + ' ' + t('selected') : t('No items selected');
+    };
+    var toggleProduct = function (product) {
+      var value = productValue(product);
+      if (hasValue(value)) selected = selected.filter(function (item) { return item !== value; });
+      else { removeProductSkus(product); selected.push(value); }
+    };
+    var toggleSku = function (product, variant) {
+      var value = skuValue(variant);
+      selected = selected.filter(function (item) { return item !== productValue(product); });
+      if (hasValue(value)) selected = selected.filter(function (item) { return item !== value; });
+      else selected.push(value);
+    };
+    var renderList = function () {
+      var list = modal.querySelector('[data-flow-entity-list]');
+      var query = (modal.querySelector('[data-flow-entity-search]').value || '').trim().toLowerCase();
+      var groups = FLOW_CART_CATALOG.filter(function (product) {
+        var productMatch = !query || [product.name, product.handle].join(' ').toLowerCase().indexOf(query) !== -1;
+        var variantMatch = (product.variants || []).some(function (variant) { return [variant.name, variant.sku].join(' ').toLowerCase().indexOf(query) !== -1; });
+        return productMatch || variantMatch;
+      });
+      list.innerHTML = groups.length ? groups.map(function (product) {
+        var productSelected = hasValue(productValue(product));
+        var selectedSkus = (product.variants || []).filter(function (variant) { return hasValue(skuValue(variant)); }).length;
+        var isOpen = !!expanded[product.id] || !!query;
+        var state = productSelected ? ' is-selected' : selectedSkus ? ' is-partial' : '';
+        var productMark = productSelected ? '✓' : selectedSkus ? '-' : '';
+        var variants = isOpen ? (product.variants || []).filter(function (variant) {
+          return !query || [product.name, product.handle, variant.name, variant.sku].join(' ').toLowerCase().indexOf(query) !== -1;
+        }).map(function (variant) {
+          var checked = hasValue(skuValue(variant));
+          return '<div class="flow-entity-variant-row' + (checked ? ' is-selected' : '') + '"><button type="button" class="flow-entity-checkbox" data-flow-entity-sku-product="' + esc(product.id) + '" data-flow-entity-sku="' + esc(variant.sku) + '" role="checkbox" aria-checked="' + checked + '"><span aria-hidden="true">' + (checked ? '✓' : '') + '</span></button><span class="flow-entity-sku-icon">SKU</span><span class="flow-entity-copy"><strong>' + esc(variant.name) + '</strong><small>' + esc(flowEntryNormalizeSku(variant.sku)) + '</small></span></div>';
+        }).join('') : '';
+        return '<section class="flow-entity-product-group' + state + '"><div class="flow-entity-product-row"><button type="button" class="flow-entity-checkbox" data-flow-entity-product="' + esc(product.id) + '" role="checkbox" aria-checked="' + (productSelected ? 'true' : selectedSkus ? 'mixed' : 'false') + '"><span aria-hidden="true">' + productMark + '</span></button><span class="flow-entity-product-icon">' + esc((product.name || '?').charAt(0).toUpperCase()) + '</span><button type="button" class="flow-entity-product-copy" data-flow-entity-toggle="' + esc(product.id) + '" aria-expanded="' + isOpen + '"><strong>' + esc(product.name) + '</strong><small>' + esc((product.variants || []).length + ' ' + t((product.variants || []).length === 1 ? 'variant' : 'variants')) + (selectedSkus ? ' / ' + selectedSkus + ' ' + t('SKU selected') : '') + '</small></button><button type="button" class="flow-entity-toggle" data-flow-entity-toggle="' + esc(product.id) + '" aria-label="' + esc(t(isOpen ? 'Collapse variants' : 'Show variants')) + '" aria-expanded="' + isOpen + '"><i></i></button></div>' + (variants ? '<div class="flow-entity-variants">' + variants + '</div>' : '') + '</section>';
+      }).join('') : '<div class="flow-entity-empty">' + t('No products or SKUs match your search.') + '</div>';
+      list.querySelectorAll('[data-flow-entity-product]').forEach(function (button) {
+        button.onclick = function () {
+          var product = FLOW_CART_CATALOG.filter(function (item) { return item.id === button.getAttribute('data-flow-entity-product'); })[0];
+          if (!product) return;
+          toggleProduct(product); renderList(); setCount();
+        };
+      });
+      list.querySelectorAll('[data-flow-entity-sku]').forEach(function (button) {
+        button.onclick = function () {
+          var product = FLOW_CART_CATALOG.filter(function (item) { return item.id === button.getAttribute('data-flow-entity-sku-product'); })[0];
+          var variant = product && (product.variants || []).filter(function (item) { return item.sku === button.getAttribute('data-flow-entity-sku'); })[0];
+          if (!product || !variant) return;
+          toggleSku(product, variant); renderList(); setCount();
+        };
+      });
+      list.querySelectorAll('[data-flow-entity-toggle]').forEach(function (button) {
+        button.onclick = function () {
+          var id = button.getAttribute('data-flow-entity-toggle');
+          expanded[id] = !expanded[id]; renderList();
+        };
+      });
+    };
+    // The rule picker uses a compact, filterable product table. Product-level
+    // selection still means every SKU; expanding a row keeps the exact-SKU path.
+    renderList = function () {
+      var list = modal.querySelector('[data-flow-entity-list]');
+      var searchInput = modal.querySelector('[data-flow-entity-search]');
+      var query = (searchInput ? searchInput.value : '').trim().toLowerCase();
+      var searchField = (modal.querySelector('[data-flow-entity-search-field]') || {}).value || 'product';
+      var category = (modal.querySelector('[data-flow-entity-category]') || {}).value || 'all';
+      var statusFilter = (modal.querySelector('[data-flow-entity-status]') || {}).value || 'all';
+      var priceRange = (modal.querySelector('[data-flow-entity-price]') || {}).value || 'all';
+      var priceMin = Number((modal.querySelector('[data-flow-entity-price-min]') || {}).value || '');
+      var priceMax = Number((modal.querySelector('[data-flow-entity-price-max]') || {}).value || '');
+      var productText = function (product) { return [product.name, product.handle, product.category].join(' ').toLowerCase(); };
+      var variantText = function (product) { return (product.variants || []).map(function (variant) { return [variant.name, variant.sku].join(' '); }).join(' ').toLowerCase(); };
+      var matchesText = function (product) {
+        if (!query) return true;
+        var inProduct = productText(product).indexOf(query) !== -1;
+        var inVariant = variantText(product).indexOf(query) !== -1;
+        var inSpu = String(product.spu || product.handle || product.id || '').toLowerCase().indexOf(query) !== -1;
+        var inBarcode = String(product.barcode || product.handle || product.id || '').toLowerCase().indexOf(query) !== -1;
+        var inProductId = String(product.id || '').toLowerCase().indexOf(query) !== -1;
+        var inVariantId = (product.variants || []).some(function (variant) { return String(variant.id || '').toLowerCase().indexOf(query) !== -1; });
+        if (searchField === 'spu') return inSpu;
+        if (searchField === 'sku') return inVariant;
+        if (searchField === 'barcode') return inBarcode;
+        if (searchField === 'product_id') return inProductId;
+        if (searchField === 'variant_id') return inVariantId;
+        if (searchField === 'all') return inProduct || inVariant;
+        return inProduct;
+      };
+      var matchesPrice = function (product) {
+        var price = Number(product.price || 0);
+        if (!isNaN(priceMin) && (modal.querySelector('[data-flow-entity-price-min]') || {}).value !== '' && price < priceMin) return false;
+        if (!isNaN(priceMax) && (modal.querySelector('[data-flow-entity-price-max]') || {}).value !== '' && price > priceMax) return false;
+        if (priceRange === 'under-25') return price < 25;
+        if (priceRange === '25-39') return price >= 25 && price < 40;
+        if (priceRange === '40-plus') return price >= 40;
+        return true;
+      };
+      var money = function (value) { return '$' + Number(value || 0).toFixed(2); };
+      var productPriceLabel = function (product) {
+        var prices = (product.variants || []).map(function (variant) { return Number(variant.price == null ? product.price : variant.price); }).filter(function (price) { return isFinite(price); });
+        if (!prices.length) return money(product.price);
+        var lowest = Math.min.apply(Math, prices);
+        var highest = Math.max.apply(Math, prices);
+        return lowest === highest ? money(lowest) : money(lowest) + ' - ' + money(highest);
+      };
+      var groups = FLOW_CART_CATALOG.filter(function (product) {
+        return matchesText(product) && (category === 'all' || product.category === category) && (statusFilter === 'all' || product.status === statusFilter) && matchesPrice(product);
+      });
+      var totalPages = Math.max(1, Math.ceil(groups.length / pickerPageSize));
+      if (pickerPage > totalPages) pickerPage = totalPages;
+      var pageStart = (pickerPage - 1) * pickerPageSize;
+      var visibleGroups = groups.slice(pageStart, pageStart + pickerPageSize);
+      var tableHead = '<div class="flow-entity-table-head"><span></span><span>' + t('Product') + '</span><span>' + t('Inventory') + '</span><span>' + t('Price') + '</span></div>';
+      list.innerHTML = tableHead + (groups.length ? visibleGroups.map(function (product) {
+        var productSelected = hasValue(productValue(product));
+        var variantCount = (product.variants || []).length;
+        var selectedSkus = (product.variants || []).filter(function (variant) { return hasValue(skuValue(variant)); }).length;
+        var productMatchesQuery = !query || productText(product).indexOf(query) !== -1;
+        var canToggleVariants = variantCount > 1;
+        var isOpen = canToggleVariants && (!!expanded[product.id] || !!query);
+        var state = productSelected ? ' is-selected' : selectedSkus ? ' is-partial' : '';
+        var productMark = productSelected ? '&#10003;' : selectedSkus ? '&minus;' : '';
+        var statusClass = String(product.status || 'Active').toLowerCase();
+        var variants = isOpen ? (product.variants || []).filter(function (variant) {
+          if (!query || searchField === 'product' || productMatchesQuery) return true;
+          return [variant.name, variant.sku].join(' ').toLowerCase().indexOf(query) !== -1;
+        }).map(function (variant) {
+          var checked = hasValue(skuValue(variant));
+          return '<div class="flow-entity-variant-row' + (checked ? ' is-selected' : '') + '"><button type="button" class="flow-entity-checkbox" data-flow-entity-sku-product="' + esc(product.id) + '" data-flow-entity-sku="' + esc(variant.sku) + '" role="checkbox" aria-checked="' + checked + '"><span aria-hidden="true">' + (checked ? '&#10003;' : '') + '</span></button><div class="flow-entity-variant-main"><span class="flow-entity-sku-icon">SKU</span><span class="flow-entity-copy"><strong>' + esc(variant.name) + '</strong><small>' + esc(flowEntryNormalizeSku(variant.sku)) + '</small></span></div><span class="flow-entity-cell">' + esc(String(variant.inventory == null ? product.inventory : variant.inventory)) + '</span><span class="flow-entity-cell flow-entity-price">' + money(variant.price == null ? product.price : variant.price) + '</span></div>';
+        }).join('') : '';
+        return '<section class="flow-entity-product-group' + state + '"><div class="flow-entity-product-row"><button type="button" class="flow-entity-checkbox" data-flow-entity-product="' + esc(product.id) + '" role="checkbox" aria-checked="' + (productSelected ? 'true' : selectedSkus ? 'mixed' : 'false') + '"><span aria-hidden="true">' + productMark + '</span></button><div class="flow-entity-product-main">' + (canToggleVariants ? '<button type="button" class="flow-entity-variant-toggle" data-flow-entity-toggle="' + esc(product.id) + '" aria-label="' + esc(t(isOpen ? 'Hide variants' : 'Show variants')) + '" aria-expanded="' + isOpen + '">' + (isOpen ? '&minus;' : '+') + '</button>' : '') + '<span class="flow-entity-product-icon" aria-hidden="true"></span><div class="flow-entity-product-copy is-static"><strong><span>' + esc(product.name) + '</span><em class="flow-entity-status is-' + esc(statusClass) + '">' + esc(product.status || 'Active') + '</em></strong><small>' + esc(variantCount + ' ' + t(variantCount === 1 ? 'variant' : 'variants')) + (selectedSkus ? ' · ' + selectedSkus + ' ' + t('SKU selected') : '') + '</small></div></div><span class="flow-entity-cell">' + esc(String(product.inventory == null ? 0 : product.inventory)) + '</span><span class="flow-entity-cell flow-entity-price">' + productPriceLabel(product) + '</span></div>' + (variants ? '<div class="flow-entity-variants">' + variants + '</div>' : '') + '</section>';
+      }).join('') : '<div class="flow-entity-empty">' + t('No products or SKUs match your search.') + '</div>');
+      list.querySelectorAll('[data-flow-entity-product]').forEach(function (button) {
+        button.onclick = function () {
+          var product = FLOW_CART_CATALOG.filter(function (item) { return item.id === button.getAttribute('data-flow-entity-product'); })[0];
+          if (!product) return;
+          toggleProduct(product); renderList(); setCount();
+        };
+      });
+      list.querySelectorAll('[data-flow-entity-sku]').forEach(function (button) {
+        button.onclick = function () {
+          var product = FLOW_CART_CATALOG.filter(function (item) { return item.id === button.getAttribute('data-flow-entity-sku-product'); })[0];
+          var variant = product && (product.variants || []).filter(function (item) { return item.sku === button.getAttribute('data-flow-entity-sku'); })[0];
+          if (!product || !variant) return;
+          toggleSku(product, variant); renderList(); setCount();
+        };
+      });
+      list.querySelectorAll('[data-flow-entity-toggle]').forEach(function (button) {
+        button.onclick = function () {
+          var id = button.getAttribute('data-flow-entity-toggle');
+          expanded[id] = !expanded[id]; renderList();
+        };
+      });
+      var pagePrev = modal.querySelector('[data-flow-entity-page-prev]');
+      var pageNext = modal.querySelector('[data-flow-entity-page-next]');
+      var pageCurrent = modal.querySelector('[data-flow-entity-page-current]');
+      var pageTotal = modal.querySelector('[data-flow-entity-page-total]');
+      var pageSummary = modal.querySelector('[data-flow-entity-page-summary]');
+      var pageSize = modal.querySelector('[data-flow-entity-page-size]');
+      if (pagePrev) pagePrev.disabled = pickerPage <= 1 || !groups.length;
+      if (pageNext) pageNext.disabled = pickerPage >= totalPages || !groups.length;
+      if (pageCurrent) pageCurrent.textContent = pickerPage;
+      if (pageTotal) pageTotal.textContent = totalPages;
+      if (pageSummary) pageSummary.textContent = groups.length ? (pageStart + 1) + '–' + Math.min(pageStart + pickerPageSize, groups.length) + ' of ' + groups.length : t('0 results');
+      if (pageSize) pageSize.value = String(pickerPageSize);
+      if (renderAppliedFilters) renderAppliedFilters();
+    };
+    modal.className = 'xp-modal flow-entity-picker-layer';
+    modal.innerHTML = XSTYLE + '<style>' +
+      '.flow-entity-picker-layer{z-index:1100;padding:16px}.flow-entity-picker{width:min(660px,calc(100vw - 32px));max-height:calc(100vh - 32px);display:flex;flex-direction:column;overflow:hidden}.flow-entity-picker-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:18px 20px 14px;border-bottom:1px solid var(--hair)}.flow-entity-picker-head h2{margin:0;color:var(--ink);font-size:17px;line-height:1.35}.flow-entity-picker-head p{margin:4px 0 0;color:var(--ink-muted);font-size:12px;line-height:1.45}.flow-entity-picker-close{border:0;background:transparent;color:var(--ink-muted);font-size:22px;line-height:1;padding:1px 3px;cursor:pointer}.flow-entity-picker-close:hover{color:var(--ink)}.flow-entity-picker-search{padding:12px 20px;border-bottom:1px solid var(--hair)}.flow-entity-picker-search input{box-sizing:border-box;width:100%;height:36px;border:1px solid var(--ctl);border-radius:8px;background:#fff;color:var(--ink);font:inherit;font-size:13px;outline:0;padding:0 11px}.flow-entity-picker-search input:focus{border-color:var(--brand);box-shadow:0 0 0 2px rgb(0 102 230 / 8%)}.flow-entity-list{min-height:0;max-height:min(410px,calc(100vh - 270px));overflow:auto;padding:0 20px}.flow-entity-product-group{border-bottom:1px solid var(--hair)}.flow-entity-product-row,.flow-entity-variant-row{display:flex;align-items:center;gap:10px;min-height:54px}.flow-entity-product-row{padding:9px 0}.flow-entity-variants{margin:0 0 7px 31px;border-left:1px solid #e3e9f1;padding-left:14px}.flow-entity-variant-row{min-height:46px;padding:6px 0}.flow-entity-checkbox{display:grid;place-items:center;flex:none;width:18px;height:18px;margin:0;border:1px solid #b8c4d3;border-radius:5px;background:#fff;color:#fff;cursor:pointer}.flow-entity-checkbox span{font-size:12px;font-weight:800;line-height:1}.flow-entity-product-group.is-selected>.flow-entity-product-row .flow-entity-checkbox,.flow-entity-variant-row.is-selected .flow-entity-checkbox{border-color:var(--brand);background:var(--brand)}.flow-entity-product-group.is-partial>.flow-entity-product-row .flow-entity-checkbox{border-color:var(--brand);background:#eaf3ff;color:var(--brand)}.flow-entity-product-icon,.flow-entity-sku-icon{display:grid;place-items:center;flex:none;width:32px;height:32px;border-radius:8px;background:#e8f0ff;color:var(--brand);font-size:12px;font-weight:750}.flow-entity-sku-icon{width:30px;height:30px;border-radius:7px;background:#f3f0ff;color:#6846bd;font-size:9px}.flow-entity-product-copy{display:flex;min-width:0;flex:1;flex-direction:column;gap:3px;border:0;background:transparent;color:var(--ink);padding:0;text-align:left;cursor:pointer}.flow-entity-copy{display:flex;min-width:0;flex:1;flex-direction:column;gap:3px}.flow-entity-product-copy strong,.flow-entity-copy strong{overflow:hidden;color:var(--ink);font-size:13px;line-height:1.3;text-overflow:ellipsis;white-space:nowrap}.flow-entity-product-copy small,.flow-entity-copy small{overflow:hidden;color:var(--ink-muted);font-size:11.5px;text-overflow:ellipsis;white-space:nowrap}.flow-entity-toggle{display:grid;place-items:center;flex:none;width:28px;height:28px;border:0;border-radius:6px;background:transparent;color:var(--ink-muted);cursor:pointer}.flow-entity-toggle:hover{background:#f1f5fa;color:var(--ink)}.flow-entity-toggle i{width:7px;height:7px;margin-top:3px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg)}.flow-entity-toggle[aria-expanded="true"] i{margin-top:7px;transform:rotate(225deg)}.flow-entity-empty{padding:36px 14px;color:var(--ink-muted);font-size:13px;text-align:center}.flow-entity-picker-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;border-top:1px solid var(--hair)}.flow-entity-picker-foot small{color:var(--ink-muted);font-size:12px}.flow-entity-picker-foot span{display:flex;gap:8px}@media(max-width:560px){.flow-entity-picker-layer{padding:8px}.flow-entity-picker{width:calc(100vw - 16px);max-height:calc(100vh - 16px)}.flow-entity-picker-head,.flow-entity-picker-search,.flow-entity-picker-foot{padding-left:15px;padding-right:15px}.flow-entity-list{padding-left:15px;padding-right:15px}.flow-entity-picker-foot{align-items:flex-start;flex-direction:column}.flow-entity-picker-foot span{width:100%}.flow-entity-picker-foot .btn{flex:1}.flow-entity-variants{margin-left:25px;padding-left:10px}}' +
+      '</style><section class="xp-mc flow-entity-picker" role="dialog" aria-modal="true" aria-label="' + esc(title) + '"><header class="flow-entity-picker-head"><div><h2>' + esc(title) + '</h2><p>' + esc(t('Select a product to match all of its variants, or expand a multi-variant product to select exact SKUs.')) + '</p></div><button type="button" class="flow-entity-picker-close" data-flow-entity-cancel aria-label="' + esc(t('Close')) + '">x</button></header><div class="flow-entity-picker-search"><input type="search" autocomplete="off" data-flow-entity-search placeholder="' + esc(t('Search products, variants, or SKUs')) + '" aria-label="' + esc(t('Search products, variants, or SKUs')) + '"></div><div class="flow-entity-list" data-flow-entity-list></div><footer class="flow-entity-picker-foot"><small data-flow-entity-count></small><div class="flow-entity-pagination" aria-label="' + esc(t('Pagination')) + '"><span class="flow-entity-page-summary" data-flow-entity-page-summary></span><button type="button" class="flow-entity-page-button" data-flow-entity-page-prev aria-label="' + esc(t('Previous page')) + '">&lsaquo;</button><span class="flow-entity-page-state"><b data-flow-entity-page-current>1</b><i>/</i><span data-flow-entity-page-total>1</span></span><button type="button" class="flow-entity-page-button" data-flow-entity-page-next aria-label="' + esc(t('Next page')) + '">&rsaquo;</button><select class="flow-entity-page-size" data-flow-entity-page-size aria-label="' + esc(t('Products per page')) + '">' + pickerPageSizes.map(function (size) { return '<option value="' + size + '">' + size + ' / ' + t('page') + '</option>'; }).join('') + '</select></div><span><button type="button" class="btn btn-default" data-flow-entity-cancel>' + t('Cancel') + '</button><button type="button" class="btn btn-primary" data-flow-entity-apply>' + t('Use selected items') + '</button></span></footer></section>';
+    document.body.appendChild(modal); bcI18n(modal);
+    var pickerToolbar = modal.querySelector('.flow-entity-picker-search');
+    var pickerCategories = FLOW_CART_CATALOG.map(function (product) { return product.category; }).filter(function (value, index, values) { return value && values.indexOf(value) === index; });
+    if (pickerToolbar) pickerToolbar.innerHTML = '<div class="flow-entity-filterbar"><select class="input" data-flow-entity-filter data-flow-entity-search-field aria-label="' + esc(t('Search field')) + '"><option value="product">' + t('Product name') + '</option><option value="sku">' + t('Variant name or SKU') + '</option><option value="all">' + t('All fields') + '</option></select><input type="search" autocomplete="off" data-flow-entity-search placeholder="' + esc(t('Search products, variants, or SKUs')) + '" aria-label="' + esc(t('Search products, variants, or SKUs')) + '"><select class="input" data-flow-entity-filter data-flow-entity-category aria-label="' + esc(t('Category')) + '"><option value="all">' + t('All categories') + '</option>' + pickerCategories.map(function (category) { return '<option value="' + esc(category) + '">' + esc(category) + '</option>'; }).join('') + '</select><select class="input" data-flow-entity-filter data-flow-entity-price aria-label="' + esc(t('Price range')) + '"><option value="all">' + t('Any price') + '</option><option value="under-25">' + t('Under $25') + '</option><option value="25-39">$25–$39</option><option value="40-plus">$40+</option></select><select class="input" data-flow-entity-filter data-flow-entity-status aria-label="' + esc(t('Status')) + '"><option value="all">' + t('All statuses') + '</option><option value="Active">' + t('Active') + '</option><option value="Draft">' + t('Draft') + '</option><option value="Archived">' + t('Archived') + '</option></select></div>';
+    var pickerEnhancementStyle = document.createElement('style');
+    var pickerNativeFilterBar = pickerToolbar && pickerToolbar.querySelector('.flow-entity-filterbar');
+    var pickerSearchInput = pickerToolbar && pickerToolbar.querySelector('[data-flow-entity-search]');
+    if (pickerToolbar && pickerNativeFilterBar && pickerSearchInput) {
+      pickerNativeFilterBar.style.display = 'none';
+      var pickerFilterControls = document.createElement('div');
+      pickerFilterControls.className = 'flow-entity-filter-controls';
+      pickerFilterControls.innerHTML = '<button type="button" class="flow-entity-filter-trigger" data-flow-entity-filter-trigger="search" aria-haspopup="listbox"><span data-flow-entity-filter-label="search">' + t('Product name') + '</span><i aria-hidden="true"></i></button><span data-flow-entity-search-slot></span><button type="button" class="flow-entity-filter-trigger" data-flow-entity-filter-trigger="category" aria-haspopup="listbox"><span class="is-muted" data-flow-entity-filter-label="category">' + t('Category') + '</span><i aria-hidden="true"></i></button><button type="button" class="flow-entity-filter-trigger" data-flow-entity-filter-trigger="price" aria-haspopup="dialog"><span class="is-muted" data-flow-entity-filter-label="price">' + t('Price range') + '</span><i aria-hidden="true"></i></button><button type="button" class="flow-entity-filter-trigger" data-flow-entity-filter-trigger="status" aria-haspopup="listbox"><span class="is-muted" data-flow-entity-filter-label="status">' + t('Status') + '</span><i aria-hidden="true"></i></button><input type="hidden" data-flow-entity-price-min><input type="hidden" data-flow-entity-price-max>';
+      pickerSearchInput.className = 'flow-entity-filter-query';
+      var pickerSearchSlot = pickerFilterControls.querySelector('[data-flow-entity-search-slot]');
+      pickerSearchSlot.parentNode.replaceChild(pickerSearchInput, pickerSearchSlot);
+      pickerToolbar.appendChild(pickerFilterControls);
+      var pickerAppliedFilters = document.createElement('div');
+      pickerAppliedFilters.className = 'flow-entity-applied-filters';
+      pickerAppliedFilters.setAttribute('data-flow-entity-applied-filters', '');
+      pickerToolbar.appendChild(pickerAppliedFilters);
+    }
+    var pickerSearchFieldControl = modal.querySelector('[data-flow-entity-search-field]');
+    if (pickerSearchFieldControl) [
+      { value: 'spu', label: t('Product SPU') }, { value: 'barcode', label: t('Product barcode') },
+      { value: 'product_id', label: t('Product ID') }, { value: 'variant_id', label: t('Variant ID') }
+    ].forEach(function (item) {
+      if (pickerSearchFieldControl.querySelector('option[value="' + item.value + '"]')) return;
+      var option = document.createElement('option'); option.value = item.value; option.textContent = item.label; pickerSearchFieldControl.appendChild(option);
+    });
+    pickerEnhancementStyle.textContent = '.flow-entity-picker-layer{padding:20px}.flow-entity-picker{width:min(900px,calc(100vw - 40px));height:min(760px,calc(100vh - 40px));max-height:calc(100vh - 40px)}.flow-entity-picker-search{padding:12px 20px!important}.flow-entity-filterbar{display:grid;grid-template-columns:136px minmax(180px,1fr) 142px 120px 116px;gap:8px}.flow-entity-filterbar .input,.flow-entity-filterbar input{box-sizing:border-box;width:100%;height:36px;min-width:0;border:1px solid var(--ctl);border-radius:8px;background:#fff;color:var(--ink);font:inherit;font-size:12.5px;outline:0;padding:0 10px}.flow-entity-filterbar input:focus,.flow-entity-filterbar .input:focus{border-color:var(--brand);box-shadow:0 0 0 2px rgb(0 102 230 / 8%)}.flow-entity-list{flex:1;max-height:none!important;min-height:220px;padding:0 20px!important}.flow-entity-table-head,.flow-entity-product-row,.flow-entity-variant-row{display:grid!important;grid-template-columns:18px minmax(0,1fr) 96px 86px 112px;align-items:center;column-gap:10px}.flow-entity-table-head{position:sticky;top:0;z-index:2;min-height:40px;border-bottom:1px solid #dfe5ec;background:#fff;color:#64748b;font-size:11px;font-weight:750;letter-spacing:.03em;text-transform:uppercase}.flow-entity-table-head span:nth-child(3),.flow-entity-table-head span:nth-child(4),.flow-entity-cell{text-align:right}.flow-entity-product-group{border-bottom:1px solid var(--hair)}.flow-entity-product-row{min-height:68px;padding:8px 0}.flow-entity-product-main,.flow-entity-variant-main{display:flex;align-items:center;gap:10px;min-width:0}.flow-entity-product-copy{min-width:0}.flow-entity-product-copy.is-static{cursor:default}.flow-entity-product-copy strong{display:flex;align-items:center;gap:6px;min-width:0}.flow-entity-product-copy strong>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.flow-entity-status{display:inline-flex;align-items:center;height:19px;padding:0 6px;border-radius:999px;background:#e7f6ed;color:#1c7b49;font-size:10px;font-style:normal;font-weight:750;line-height:1;white-space:nowrap;flex:none}.flow-entity-status.is-draft{background:#e8f1ff;color:#1f63b9}.flow-entity-status.is-archived{background:#eef0f3;color:#64748b}.flow-entity-cell{color:#3c4b5d;font-size:12.5px;font-variant-numeric:tabular-nums;white-space:nowrap}.flow-entity-price{color:#243142;font-weight:650}.flow-entity-variants{margin:0 0 8px 28px!important;border-left:1px solid #dce6f0;padding-left:16px!important}.flow-entity-variant-row{min-height:44px;padding:5px 0}.flow-entity-variant-main .flow-entity-copy strong{font-size:12.5px}.flow-entity-product-group.is-selected{background:#fbfdff}.flow-entity-product-group.is-partial>.flow-entity-product-row{background:#fbfdff}.flow-entity-empty{grid-column:1 / -1}.flow-entity-picker-foot{flex:none}.flow-entity-toggle{display:inline-flex;align-items:center;justify-content:flex-end;gap:6px;width:112px;height:28px;padding:0 6px;font-size:11.5px;font-weight:650;white-space:nowrap}.flow-entity-toggle span{line-height:1}.flow-entity-toggle i{flex:none}.flow-entity-toggle-spacer{display:block;width:112px;height:28px}.flow-entity-picker-foot span{display:flex;gap:8px}@media(max-width:720px){.flow-entity-picker-layer{padding:8px}.flow-entity-picker{width:calc(100vw - 16px);height:calc(100vh - 16px);max-height:calc(100vh - 16px)}.flow-entity-picker-head,.flow-entity-picker-search,.flow-entity-picker-foot{padding-left:15px!important;padding-right:15px!important}.flow-entity-filterbar{grid-template-columns:1fr 1fr}.flow-entity-filterbar input{grid-column:1 / -1}.flow-entity-list{padding:0 15px!important}.flow-entity-table-head,.flow-entity-product-row,.flow-entity-variant-row{grid-template-columns:18px minmax(0,1fr) 58px 60px 24px;column-gap:7px}.flow-entity-product-icon{width:28px;height:28px}.flow-entity-product-main,.flow-entity-variant-main{gap:7px}.flow-entity-status{height:17px;padding:0 5px;font-size:9px}.flow-entity-variants{margin-left:22px!important;padding-left:9px!important}.flow-entity-table-head{font-size:9.5px}.flow-entity-cell{font-size:11px}.flow-entity-toggle{width:24px;height:24px;padding:0}.flow-entity-toggle span{display:none}.flow-entity-toggle-spacer{width:24px;height:24px}}';
+    modal.appendChild(pickerEnhancementStyle);
+    var pickerPaginationStyle = document.createElement('style');
+    pickerPaginationStyle.textContent = '.flow-entity-picker-foot{display:grid!important;grid-template-columns:minmax(120px,1fr) auto auto;align-items:center;gap:12px}.flow-entity-pagination{display:flex;align-items:center;gap:6px;white-space:nowrap}.flow-entity-page-summary{color:#697789;font-size:12px;font-variant-numeric:tabular-nums}.flow-entity-page-button{display:grid;place-items:center;width:30px;height:30px;border:1px solid var(--ctl);border-radius:7px;background:#fff;color:#66768a;font:inherit;font-size:21px;line-height:1;cursor:pointer}.flow-entity-page-button:hover:not(:disabled){border-color:#a9b9ca;background:#f8fafc;color:var(--ink)}.flow-entity-page-button:disabled{cursor:not-allowed;opacity:.42}.flow-entity-page-state{display:flex!important;align-items:center;gap:4px;width:auto!important;color:#718096;font-size:12px}.flow-entity-page-state b{display:grid;place-items:center;min-width:30px;height:30px;border:1px solid var(--brand);border-radius:7px;background:#f7fbff;color:var(--brand);font-size:12px}.flow-entity-page-state i{color:#a1adbb;font-style:normal}.flow-entity-page-size{height:30px;border:1px solid var(--ctl);border-radius:7px;background:#fff;color:#4d5c70;padding:0 24px 0 9px;font:inherit;font-size:12px;cursor:pointer}@media(max-width:720px){.flow-entity-picker-foot{grid-template-columns:1fr auto!important}.flow-entity-picker-foot>[data-flow-entity-count]{grid-column:1 / -1}.flow-entity-pagination{justify-content:flex-start}.flow-entity-page-summary{display:none}}@media(max-width:480px){.flow-entity-picker-foot{display:flex!important;align-items:stretch!important}.flow-entity-pagination{width:100%;justify-content:space-between}.flow-entity-page-size{flex:1}.flow-entity-picker-foot>span:last-child{width:100%}}';
+    modal.appendChild(pickerPaginationStyle);
+    var pickerProductPlaceholderStyle = document.createElement('style');
+    pickerProductPlaceholderStyle.textContent = '.flow-entity-product-icon{background:#eef1f4;color:transparent!important;font-size:0!important}.flow-entity-product-icon::before,.flow-entity-product-icon::after{content:none!important}';
+    modal.appendChild(pickerProductPlaceholderStyle);
+    var pickerVariantToggleStyle = document.createElement('style');
+    pickerVariantToggleStyle.textContent = '.flow-entity-table-head,.flow-entity-product-row,.flow-entity-variant-row{grid-template-columns:18px minmax(0,1fr) 96px 86px!important}.flow-entity-product-main{gap:7px}.flow-entity-variant-toggle{position:relative;display:grid;place-items:center;flex:none;width:18px;height:18px;margin:0;padding:0;border:0;border-radius:4px;background:transparent;color:#64748b;font-size:0;line-height:0;cursor:pointer}.flow-entity-variant-toggle::before,.flow-entity-variant-toggle::after{position:absolute;top:50%;left:50%;content:"";border-radius:1px;background:currentColor;transform:translate(-50%,-50%)}.flow-entity-variant-toggle::before{width:8px;height:1.5px}.flow-entity-variant-toggle::after{width:1.5px;height:8px}.flow-entity-variant-toggle[aria-expanded="true"]::after{display:none}.flow-entity-variant-toggle:hover{background:#eaf3ff;color:var(--brand)}.flow-entity-variant-toggle[aria-expanded="true"]{color:#42617f}.flow-entity-variant-toggle:focus-visible{outline:2px solid #76adf1;outline-offset:1px}@media(max-width:720px){.flow-entity-table-head,.flow-entity-product-row,.flow-entity-variant-row{grid-template-columns:18px minmax(0,1fr) 58px 60px!important}.flow-entity-variant-toggle{width:18px;height:18px}}';
+    modal.appendChild(pickerVariantToggleStyle);
+    var pickerPriceColumnStyle = document.createElement('style');
+    pickerPriceColumnStyle.textContent = '@media(min-width:721px){.flow-entity-table-head,.flow-entity-product-row,.flow-entity-variant-row{grid-template-columns:18px minmax(0,1fr) 96px 128px!important}.flow-entity-table-head span:nth-child(4),.flow-entity-price{text-align:right;white-space:nowrap;overflow:visible}}';
+    modal.appendChild(pickerPriceColumnStyle);
+    var pickerVariantAlignmentStyle = document.createElement('style');
+    pickerVariantAlignmentStyle.textContent = '.flow-entity-variants{margin:0 0 8px 28px!important;border-left:0!important;padding-left:0!important}@media(max-width:720px){.flow-entity-variants{margin-left:25px!important;padding-left:0!important}}';
+    modal.appendChild(pickerVariantAlignmentStyle);
+    var pickerFilterInteractionStyle = document.createElement('style');
+    pickerFilterInteractionStyle.textContent = '.flow-entity-filter-controls{display:grid;grid-template-columns:136px minmax(180px,1fr) 142px 120px 116px;gap:8px}.flow-entity-applied-filters{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}.flow-entity-applied-filters:empty{display:none}.flow-entity-applied-filter{display:inline-flex;align-items:center;min-height:28px;border:1px solid #c9ddf5;border-radius:999px;background:#f4f8ff;color:#285d99;padding:0 4px 0 9px;font-size:12px;line-height:1.2}.flow-entity-applied-filter button{display:grid;place-items:center;width:20px;height:20px;margin-left:3px;border:0;border-radius:999px;background:transparent;color:#5076a3;font:inherit;font-size:16px;line-height:1;cursor:pointer}.flow-entity-applied-filter button:hover{background:#dcecff;color:#174e8c}.flow-entity-clear-all{min-height:28px;border:0;background:transparent;color:#4d6f98;padding:0 4px;font:inherit;font-size:12px;cursor:pointer}.flow-entity-clear-all:hover{color:var(--brand);text-decoration:underline}.flow-entity-filter-trigger,.flow-entity-filter-query{box-sizing:border-box;width:100%;height:36px;min-width:0;border:1px solid var(--ctl);border-radius:8px;background:#fff;color:var(--ink);font:inherit;font-size:12.5px}.flow-entity-filter-trigger{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 10px;text-align:left;cursor:pointer}.flow-entity-filter-trigger:hover{border-color:#a9b9ca;background:#fbfdff}.flow-entity-filter-trigger.is-applied{border-color:#8eb8eb;background:#f7fbff}.flow-entity-filter-trigger span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.flow-entity-filter-trigger span.is-muted{color:#8b96a5}.flow-entity-filter-trigger i{width:7px;height:7px;margin-top:-3px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg);opacity:.75}.flow-entity-filter-query{padding:0 11px;outline:0}.flow-entity-filter-query:focus{border-color:var(--brand);box-shadow:0 0 0 2px rgb(0 102 230 / 8%)}.flow-entity-filter-popover{position:fixed;z-index:1201;min-width:176px;max-width:min(320px,calc(100vw - 16px));border:1px solid #d7dfe8;border-radius:10px;background:#fff;box-shadow:0 12px 28px rgb(16 24 40 / 14%);padding:6px}.flow-entity-filter-popover.is-match-trigger{box-sizing:border-box;min-width:0}.flow-entity-filter-popover.is-price{min-width:288px;padding:14px}.flow-entity-filter-option,.flow-entity-category-option{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:34px;border:0;border-radius:7px;background:transparent;color:var(--ink-body);padding:0 9px;font:inherit;font-size:12.5px;text-align:left;cursor:pointer}.flow-entity-filter-option:hover,.flow-entity-category-option:hover{background:#f3f7fb;color:var(--ink)}.flow-entity-filter-option.is-selected{background:#edf5ff;color:#1c65b5;font-weight:650}.flow-entity-category-option small{color:#7f8b9b;font-size:11px}.flow-entity-category-option b{color:#8c98a6;font-size:19px;font-weight:400;line-height:1}.flow-entity-category-head{display:flex;align-items:center;gap:6px;min-height:32px;margin:0 2px 5px;padding:0 7px;border-bottom:1px solid var(--hair);color:#536174;font-size:12px;font-weight:650;cursor:pointer}.flow-entity-filter-price-fields{display:grid;grid-template-columns:1fr auto 1fr;gap:7px;align-items:center}.flow-entity-filter-price-fields input{box-sizing:border-box;width:100%;height:34px;border:1px solid var(--ctl);border-radius:7px;padding:0 9px;color:var(--ink);font:inherit;font-size:12px;outline:0}.flow-entity-filter-price-fields input:focus{border-color:var(--brand);box-shadow:0 0 0 2px rgb(0 102 230 / 8%)}.flow-entity-filter-price-fields span{color:#7e8a99}.flow-entity-filter-price-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}.flow-entity-filter-clear{border:0;background:transparent;color:#62708d;font:inherit;font-size:12px;cursor:pointer}.flow-entity-filter-clear:hover{color:var(--brand);text-decoration:underline}.flow-entity-filter-price-foot .btn{height:32px;padding:0 12px}@media(max-width:720px){.flow-entity-filter-controls{grid-template-columns:1fr 1fr}.flow-entity-filter-query{grid-column:1 / -1}.flow-entity-filter-popover{max-width:calc(100vw - 16px)}}';
+    modal.appendChild(pickerFilterInteractionStyle);
+    var pickerFilterMenu = null;
+    var pickerFilterOutside = null;
+    pickerFilterDismiss = function () {
+      if (pickerFilterMenu) pickerFilterMenu.remove();
+      pickerFilterMenu = null;
+      if (pickerFilterOutside) document.removeEventListener('mousedown', pickerFilterOutside, true);
+      pickerFilterOutside = null;
+    };
+    var pickerSetLabel = function (key, label, applied) {
+      var text = modal.querySelector('[data-flow-entity-filter-label="' + key + '"]');
+      var trigger = modal.querySelector('[data-flow-entity-filter-trigger="' + key + '"]');
+      if (text) { text.textContent = label; text.classList.toggle('is-muted', !applied); }
+      if (trigger) trigger.classList.toggle('is-applied', !!applied);
+    };
+    var renderAppliedFilters = function () {
+      var container = modal.querySelector('[data-flow-entity-applied-filters]');
+      if (!container) return;
+      var searchInput = modal.querySelector('[data-flow-entity-search]');
+      var query = (searchInput && searchInput.value || '').trim();
+      var searchField = (modal.querySelector('[data-flow-entity-search-field]') || {}).value || 'product';
+      var category = (modal.querySelector('[data-flow-entity-category]') || {}).value || 'all';
+      var status = (modal.querySelector('[data-flow-entity-status]') || {}).value || 'all';
+      var priceMinControl = modal.querySelector('[data-flow-entity-price-min]');
+      var priceMaxControl = modal.querySelector('[data-flow-entity-price-max]');
+      var priceMin = priceMinControl ? priceMinControl.value : '';
+      var priceMax = priceMaxControl ? priceMaxControl.value : '';
+      var filters = [];
+      var searchOption = searchOptions.filter(function (item) { return item.value === searchField; })[0];
+      if (query) filters.push({ key: 'query', label: (searchOption ? searchOption.label : t('Search')) + ': ' + query });
+      if (category !== 'all') filters.push({ key: 'category', label: t('Category') + ': ' + category });
+      if (priceMin || priceMax) filters.push({ key: 'price', label: t('Price') + ': ' + priceLabel(priceMin, priceMax) });
+      if (status !== 'all') filters.push({ key: 'status', label: t('Status') + ': ' + status });
+      container.innerHTML = filters.map(function (filter) {
+        return '<span class="flow-entity-applied-filter"><span>' + esc(filter.label) + '</span><button type="button" data-flow-entity-remove-filter="' + filter.key + '" aria-label="' + esc(t('Clear') + ' ' + filter.label) + '">&times;</button></span>';
+      }).join('');
+      container.querySelectorAll('[data-flow-entity-remove-filter]').forEach(function (button) {
+        button.onclick = function () {
+          var key = button.getAttribute('data-flow-entity-remove-filter');
+          if (key === 'query' && searchInput) searchInput.value = '';
+          if (key === 'category') { pickerSelect('[data-flow-entity-category]', 'all'); pickerSetLabel('category', t('Category'), false); }
+          if (key === 'price') { if (priceMinControl) priceMinControl.value = ''; if (priceMaxControl) priceMaxControl.value = ''; pickerSelect('[data-flow-entity-price]', 'all'); pickerSetLabel('price', t('Price range'), false); }
+          if (key === 'status') { pickerSelect('[data-flow-entity-status]', 'all'); pickerSetLabel('status', t('Status'), false); }
+          pickerPage = 1;
+          renderList();
+        };
+      });
+    };
+    var pickerOpenMenu = function (trigger, html, className) {
+      pickerFilterDismiss();
+      var menu = document.createElement('div');
+      menu.className = 'flow-entity-filter-popover' + (className ? ' ' + className : '');
+      menu.innerHTML = html;
+      document.body.appendChild(menu);
+      var rect = trigger.getBoundingClientRect();
+      if (className && className.indexOf('is-match-trigger') !== -1) menu.style.width = Math.round(rect.width) + 'px';
+      menu.style.top = Math.min(window.innerHeight - menu.offsetHeight - 8, rect.bottom + 6) + 'px';
+      menu.style.left = Math.max(8, Math.min(window.innerWidth - menu.offsetWidth - 8, rect.left)) + 'px';
+      pickerFilterMenu = menu;
+      pickerFilterOutside = function (event) {
+        if (!menu.contains(event.target) && !trigger.contains(event.target)) pickerFilterDismiss();
+      };
+      setTimeout(function () { if (pickerFilterOutside) document.addEventListener('mousedown', pickerFilterOutside, true); }, 0);
+      return menu;
+    };
+    var pickerSelect = function (selector, value) {
+      var control = modal.querySelector(selector);
+      if (control) control.value = value;
+    };
+    var searchOptions = [
+      { value: 'product', label: t('Product name') }, { value: 'spu', label: t('Product SPU') },
+      { value: 'sku', label: t('Product SKU') }, { value: 'barcode', label: t('Product barcode') },
+      { value: 'product_id', label: t('Product ID') }, { value: 'variant_id', label: t('Variant ID') }
+    ];
+    var categoryGroups = [{ label: t('Health & wellness'), values: ['Wellness', 'Supplements', 'Hydration'] }, { label: t('Bundles'), values: ['Bundles'] }];
+    var categoryTree = categoryGroups.map(function (group) {
+      return { label: group.label, children: group.values.filter(function (value) { return pickerCategories.indexOf(value) !== -1; }).map(function (value) { return { value: value, label: value }; }) };
+    }).filter(function (group) { return group.children.length; });
+    pickerCategories.filter(function (value) { return !categoryGroups.some(function (group) { return group.values.indexOf(value) !== -1; }); }).forEach(function (value) { categoryTree.push({ value: value, label: value }); });
+    var priceLabel = function (min, max) {
+      if (min !== '' && max !== '') return '$' + min + ' – $' + max;
+      if (min !== '') return t('From price') + ' $' + min;
+      if (max !== '') return t('Up to price') + ' $' + max;
+      return t('Price range');
+    };
+    var openCategoryMenu = function (trigger) {
+      var path = [];
+      var menu = pickerOpenMenu(trigger, '', 'is-category');
+      var renderCategoryMenu = function () {
+        var nodes = path.length ? path[path.length - 1].children : categoryTree;
+        var heading = path.length ? '<div class="flow-entity-category-head" data-flow-entity-category-back>‹ <span>' + esc(path[path.length - 1].label) + '</span></div>' : '';
+        var all = !path.length ? '<button type="button" class="flow-entity-category-option" data-flow-entity-category-pick="all"><span>' + t('All categories') + '</span></button>' : '';
+        menu.innerHTML = heading + all + nodes.map(function (node, index) {
+          var hasChildren = node.children && node.children.length;
+          return '<button type="button" class="flow-entity-category-option" data-flow-entity-category-node="' + index + '"><span>' + esc(node.label) + '</span>' + (hasChildren ? '<small>' + node.children.length + '</small><b>›</b>' : '') + '</button>';
+        }).join('');
+        var back = menu.querySelector('[data-flow-entity-category-back]');
+        if (back) back.onclick = function () { path.pop(); renderCategoryMenu(); };
+        var allButton = menu.querySelector('[data-flow-entity-category-pick]');
+        if (allButton) allButton.onclick = function () { pickerSelect('[data-flow-entity-category]', 'all'); pickerSetLabel('category', t('Category'), false); pickerFilterDismiss(); pickerPage = 1; renderList(); };
+        menu.querySelectorAll('[data-flow-entity-category-node]').forEach(function (button) {
+          button.onclick = function () {
+            var node = nodes[Number(button.getAttribute('data-flow-entity-category-node'))];
+            if (node.children && node.children.length) { path.push(node); renderCategoryMenu(); return; }
+            pickerSelect('[data-flow-entity-category]', node.value); pickerSetLabel('category', node.label, true); pickerFilterDismiss(); pickerPage = 1; renderList();
+          };
+        });
+      };
+      renderCategoryMenu();
+    };
+    modal.querySelectorAll('[data-flow-entity-filter-trigger]').forEach(function (trigger) {
+      trigger.onclick = function () {
+        var type = trigger.getAttribute('data-flow-entity-filter-trigger');
+        if (type === 'search') {
+          var selectedField = (modal.querySelector('[data-flow-entity-search-field]') || {}).value || 'product';
+          var searchMenu = pickerOpenMenu(trigger, searchOptions.map(function (item) { return '<button type="button" class="flow-entity-filter-option' + (item.value === selectedField ? ' is-selected' : '') + '" data-flow-entity-search-option="' + esc(item.value) + '">' + esc(item.label) + '</button>'; }).join(''), 'is-match-trigger');
+          searchMenu.querySelectorAll('[data-flow-entity-search-option]').forEach(function (button) { button.onclick = function () { var value = button.getAttribute('data-flow-entity-search-option'); var option = searchOptions.filter(function (item) { return item.value === value; })[0]; pickerSelect('[data-flow-entity-search-field]', value); pickerSetLabel('search', option.label, true); pickerFilterDismiss(); pickerPage = 1; renderList(); pickerSearchInput.focus(); }; });
+        } else if (type === 'category') openCategoryMenu(trigger);
+        else if (type === 'price') {
+          var minControl = modal.querySelector('[data-flow-entity-price-min]'), maxControl = modal.querySelector('[data-flow-entity-price-max]');
+          var priceMenu = pickerOpenMenu(trigger, '<div class="flow-entity-filter-price-fields"><input type="number" min="0" step="0.01" data-flow-entity-price-min-input placeholder="' + esc(t('Minimum price')) + '" value="' + esc(minControl.value || '') + '"><span>–</span><input type="number" min="0" step="0.01" data-flow-entity-price-max-input placeholder="' + esc(t('Maximum price')) + '" value="' + esc(maxControl.value || '') + '"></div><div class="flow-entity-filter-price-foot"><button type="button" class="flow-entity-filter-clear" data-flow-entity-price-clear>' + t('Clear') + '</button><button type="button" class="btn btn-primary" data-flow-entity-price-apply>' + t('Apply') + '</button></div>', 'is-price');
+          priceMenu.querySelector('[data-flow-entity-price-clear]').onclick = function () { minControl.value = ''; maxControl.value = ''; pickerSelect('[data-flow-entity-price]', 'all'); pickerSetLabel('price', t('Price range'), false); pickerFilterDismiss(); pickerPage = 1; renderList(); };
+          priceMenu.querySelector('[data-flow-entity-price-apply]').onclick = function () { var min = priceMenu.querySelector('[data-flow-entity-price-min-input]').value.trim(), max = priceMenu.querySelector('[data-flow-entity-price-max-input]').value.trim(); if ((min && (isNaN(Number(min)) || Number(min) < 0)) || (max && (isNaN(Number(max)) || Number(max) < 0)) || (min && max && Number(min) > Number(max))) return; minControl.value = min; maxControl.value = max; pickerSelect('[data-flow-entity-price]', 'all'); pickerSetLabel('price', priceLabel(min, max), !!(min || max)); pickerFilterDismiss(); pickerPage = 1; renderList(); };
+        } else {
+          var selectedStatus = (modal.querySelector('[data-flow-entity-status]') || {}).value || 'all';
+          var statuses = [{ value: 'all', label: t('All statuses') }, { value: 'Active', label: t('Active') }, { value: 'Draft', label: t('Draft') }, { value: 'Archived', label: t('Archived') }];
+          var statusMenu = pickerOpenMenu(trigger, statuses.map(function (item) { return '<button type="button" class="flow-entity-filter-option' + (item.value === selectedStatus ? ' is-selected' : '') + '" data-flow-entity-status-option="' + esc(item.value) + '">' + esc(item.label) + '</button>'; }).join(''));
+          statusMenu.querySelectorAll('[data-flow-entity-status-option]').forEach(function (button) { button.onclick = function () { var value = button.getAttribute('data-flow-entity-status-option'); var option = statuses.filter(function (item) { return item.value === value; })[0]; pickerSelect('[data-flow-entity-status]', value); pickerSetLabel('status', value === 'all' ? t('Status') : option.label, value !== 'all'); pickerFilterDismiss(); pickerPage = 1; renderList(); }; });
+        }
+      };
+    });
+    modal.querySelectorAll('[data-flow-entity-cancel]').forEach(function (button) { button.onclick = close; });
+    var entitySearch = modal.querySelector('[data-flow-entity-search]');
+    if (entitySearch) entitySearch.oninput = function () { pickerPage = 1; renderList(); };
+    modal.querySelectorAll('[data-flow-entity-filter]').forEach(function (control) { control.onchange = function () { pickerPage = 1; renderList(); }; });
+    modal.querySelector('[data-flow-entity-page-prev]').onclick = function () { if (pickerPage > 1) { pickerPage -= 1; renderList(); } };
+    modal.querySelector('[data-flow-entity-page-next]').onclick = function () { pickerPage += 1; renderList(); };
+    modal.querySelector('[data-flow-entity-page-size]').onchange = function (event) { pickerPageSize = Number(event.target.value) || 20; pickerPage = 1; renderList(); };
+    modal.querySelector('[data-flow-entity-apply]').onclick = function () { if (onApply) onApply(selected.slice()); close(); };
+    setCount(); renderList();
+  }
+  function openFlowEntryEntityPicker(field, selectedValues, onApply) {
+    if (field && field.entity === 'product_or_sku') return openFlowEntryUnifiedItemPicker(field, selectedValues, onApply);
+    var items = flowEntryEntityItems(field);
+    var selected = flowEntryEntitySelectedItems(field, selectedValues).map(function (item) { return item.value; });
+    var modal = document.createElement('div');
+    var isSku = field.entity === 'sku';
+    var title = t(isSku ? 'Select SKUs' : 'Select products');
+    var description = t(isSku ? 'Choose exact SKUs. Each SKU matches one product variant.' : 'Choose products. Any variant of a selected product will match.');
+    var searchLabel = t(isSku ? 'Search SKUs' : 'Search products');
+    var close = function () { modal.remove(); };
+    var hasValue = function (value) { return selected.indexOf(value) !== -1; };
+    var setCount = function () {
+      var counter = modal.querySelector('[data-flow-entity-count]');
+      if (counter) counter.textContent = selected.length + ' ' + t(selected.length === 1 ? 'item selected' : 'items selected');
+    };
+    var renderList = function () {
+      var list = modal.querySelector('[data-flow-entity-list]');
+      var query = (modal.querySelector('[data-flow-entity-search]').value || '').trim().toLowerCase();
+      var filtered = items.filter(function (item) { return !query || item.title.toLowerCase().indexOf(query) !== -1 || item.meta.toLowerCase().indexOf(query) !== -1; });
+      list.innerHTML = filtered.length ? filtered.map(function (item) {
+        var checked = hasValue(item.value);
+        var thumbnail = isSku ? '<span class="flow-entity-sku-icon">SKU</span>' : '<span class="flow-entity-product-icon">' + esc((item.title || '?').charAt(0).toUpperCase()) + '</span>';
+        return '<button type="button" class="flow-entity-row' + (checked ? ' is-selected' : '') + '" data-flow-entity-item="' + esc(item.value) + '" aria-pressed="' + checked + '"><span class="flow-entity-check" aria-hidden="true">' + (checked ? '✓' : '') + '</span>' + thumbnail + '<span class="flow-entity-copy"><strong>' + esc(item.title) + '</strong><small>' + esc(item.meta) + '</small></span></button>';
+      }).join('') : '<div class="flow-entity-empty">' + t(isSku ? 'No SKUs match your search.' : 'No products match your search.') + '</div>';
+      list.querySelectorAll('[data-flow-entity-item]').forEach(function (button) {
+        button.onclick = function () {
+          var value = button.getAttribute('data-flow-entity-item');
+          if (hasValue(value)) selected = selected.filter(function (item) { return item !== value; }); else selected.push(value);
+          renderList(); setCount();
+        };
+      });
+    };
+    modal.className = 'xp-modal flow-entity-picker-layer';
+    modal.innerHTML = XSTYLE + '<style>' +
+      '.flow-entity-picker-layer{z-index:1100;padding:16px}.flow-entity-picker{width:min(620px,calc(100vw - 32px));max-height:calc(100vh - 32px);display:flex;flex-direction:column;overflow:hidden}.flow-entity-picker-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:18px 20px 14px;border-bottom:1px solid var(--hair)}.flow-entity-picker-head h2{margin:0;color:var(--ink);font-size:17px;line-height:1.35}.flow-entity-picker-head p{margin:4px 0 0;color:var(--ink-muted);font-size:12px;line-height:1.45}.flow-entity-picker-close{border:0;background:transparent;color:var(--ink-muted);font-size:22px;line-height:1;padding:1px 3px;cursor:pointer}.flow-entity-picker-close:hover{color:var(--ink)}.flow-entity-picker-search{padding:12px 20px 10px;border-bottom:1px solid var(--hair)}.flow-entity-picker-search input,.flow-entity-paste textarea{box-sizing:border-box;width:100%;border:1px solid var(--ctl);border-radius:8px;background:#fff;color:var(--ink);font:inherit;font-size:13px;outline:0}.flow-entity-picker-search input{height:36px;padding:0 11px}.flow-entity-picker-search input:focus,.flow-entity-paste textarea:focus{border-color:var(--brand);box-shadow:0 0 0 2px rgb(0 102 230 / 8%)}.flow-entity-paste{display:grid;grid-template-columns:1fr auto;gap:7px;margin-top:9px}.flow-entity-paste textarea{height:52px;padding:8px 10px;resize:vertical;line-height:1.35}.flow-entity-paste .btn{align-self:end;height:32px;white-space:nowrap}.flow-entity-paste-note{min-height:16px;margin:5px 1px 0;color:var(--ink-muted);font-size:11px;line-height:1.35}.flow-entity-paste-note.is-error{color:var(--err)}.flow-entity-list{min-height:0;max-height:min(410px,calc(100vh - 300px));overflow:auto;padding:10px 12px}.flow-entity-row{display:flex;align-items:center;gap:10px;width:100%;margin-top:7px;padding:10px;border:1px solid var(--hair);border-radius:9px;background:#fff;color:var(--ink);text-align:left;cursor:pointer}.flow-entity-row:first-child{margin-top:0}.flow-entity-row:hover{border-color:#9fc4f9;background:#fbfdff}.flow-entity-row.is-selected{border-color:var(--brand);background:#f4f8ff}.flow-entity-check{display:grid;place-items:center;width:17px;height:17px;flex:none;border:1px solid #b6c2d2;border-radius:5px;color:#fff;font-size:11px;font-weight:800}.flow-entity-row.is-selected .flow-entity-check{border-color:var(--brand);background:var(--brand)}.flow-entity-product-icon,.flow-entity-sku-icon{display:grid;place-items:center;flex:none;width:32px;height:32px;border-radius:8px;background:#e8f0ff;color:var(--brand);font-size:12px;font-weight:750}.flow-entity-sku-icon{width:36px;background:#f4f1ff;color:#6846bd;font-size:10px}.flow-entity-copy{display:flex;min-width:0;flex:1;flex-direction:column;gap:3px}.flow-entity-copy strong{overflow:hidden;color:var(--ink);font-size:13px;line-height:1.3;text-overflow:ellipsis;white-space:nowrap}.flow-entity-copy small{overflow:hidden;color:var(--ink-muted);font-size:11.5px;text-overflow:ellipsis;white-space:nowrap}.flow-entity-empty{padding:36px 14px;color:var(--ink-muted);font-size:13px;text-align:center}.flow-entity-picker-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;border-top:1px solid var(--hair)}.flow-entity-picker-foot small{color:var(--ink-muted);font-size:12px}@media(max-width:560px){.flow-entity-picker-layer{padding:8px}.flow-entity-picker{width:calc(100vw - 16px);max-height:calc(100vh - 16px)}.flow-entity-picker-head,.flow-entity-picker-search,.flow-entity-picker-foot{padding-left:15px;padding-right:15px}.flow-entity-paste{grid-template-columns:1fr}.flow-entity-paste .btn{width:100%}.flow-entity-list{max-height:calc(100vh - 330px)}}' +
+      '</style><section class="xp-mc flow-entity-picker" role="dialog" aria-modal="true" aria-label="' + esc(title) + '"><header class="flow-entity-picker-head"><div><h2>' + esc(title) + '</h2><p>' + esc(description) + '</p></div><button type="button" class="flow-entity-picker-close" data-flow-entity-cancel aria-label="' + esc(t('Close')) + '">×</button></header><div class="flow-entity-picker-search"><input type="search" autocomplete="off" data-flow-entity-search placeholder="' + esc(searchLabel) + '" aria-label="' + esc(searchLabel) + '">' + (isSku ? '<div class="flow-entity-paste"><textarea data-flow-entity-paste placeholder="' + esc(t('Paste SKUs, separated by commas or new lines')) + '"></textarea><button type="button" class="btn btn-default" data-flow-entity-validate>' + t('Add pasted SKUs') + '</button></div><p class="flow-entity-paste-note" data-flow-entity-paste-note>' + t('Only exact SKUs in your synced catalog will be added.') + '</p>' : '') + '</div><div class="flow-entity-list" data-flow-entity-list></div><footer class="flow-entity-picker-foot"><small data-flow-entity-count></small><span><button type="button" class="btn btn-default" data-flow-entity-cancel>' + t('Cancel') + '</button><button type="button" class="btn btn-primary" data-flow-entity-apply>' + t('Use selected items') + '</button></span></footer></section>';
+    document.body.appendChild(modal); bcI18n(modal);
+    modal.addEventListener('click', function (event) { if (event.target === modal) close(); });
+    modal.querySelectorAll('[data-flow-entity-cancel]').forEach(function (button) { button.onclick = close; });
+    modal.querySelector('[data-flow-entity-search]').oninput = renderList;
+    if (isSku) {
+      modal.querySelector('[data-flow-entity-validate]').onclick = function () {
+        var paste = modal.querySelector('[data-flow-entity-paste]');
+        var note = modal.querySelector('[data-flow-entity-paste-note]');
+        var requested = (paste.value || '').split(/[\n,;]+/).map(flowEntryNormalizeSku).filter(Boolean);
+        var valid = {}, unknown = [];
+        items.forEach(function (item) { valid[item.value] = true; });
+        requested.forEach(function (sku) { if (valid[sku]) { if (!hasValue(sku)) selected.push(sku); } else if (unknown.indexOf(sku) === -1) unknown.push(sku); });
+        note.className = 'flow-entity-paste-note' + (unknown.length ? ' is-error' : '');
+        note.textContent = unknown.length ? t('These SKUs were not found: ') + unknown.join(', ') : (requested.length ? t('Added matching SKUs. Review the selected items, then apply.') : t('Paste at least one SKU to add it.'));
+        renderList(); setCount();
+      };
+    }
+    modal.querySelector('[data-flow-entity-apply]').onclick = function () { if (onApply) onApply(selected.slice()); close(); };
+    setCount(); renderList();
+  }
+  function flowEntryFieldPickerMenuMarkup(scope, index, selected) {
+    return FLOW_ENTRY_FIELD_GROUPS.map(function (group) {
+      var items = group.keys.map(function (key) {
+        var item = FLOW_ENTRY_FIELDS[key];
+        if (!item) return '';
+        return '<button type="button" class="entry-field-choice' + (key === selected ? ' is-selected' : '') + '" role="option" aria-selected="' + (key === selected) + '" data-' + scope + '-field-choice="' + esc(key) + '" data-' + scope + '-condition-index="' + index + '"><span>' + esc(t(item.label)) + '</span></button>';
+      }).join('');
+      return '<section class="entry-field-group"><strong>' + esc(t(group.label)) + '</strong>' + items + '</section>';
+    }).join('');
+  }
+  function flowEntryFieldPickerMarkup(scope, index, selected, openIndex) {
+    var field = FLOW_ENTRY_FIELDS[selected] || FLOW_ENTRY_FIELDS.customer_type;
+    var open = index === openIndex;
+    return '<div class="entry-field-picker' + (open ? ' is-open' : '') + '"><button type="button" class="entry-field-trigger" data-' + scope + '-field-toggle="' + index + '" aria-haspopup="listbox" aria-expanded="' + open + '"><span>' + esc(t(field.label)) + '</span><i class="entry-field-caret" aria-hidden="true"></i></button></div>';
+  }
   function flowLegacyEntryConditions(flow) {
-    if (Array.isArray(flow.entryConditions)) return JSON.parse(JSON.stringify(flow.entryConditions));
+    if (Array.isArray(flow.entryConditions)) return JSON.parse(JSON.stringify(flow.entryConditions)).map(flowEntryNormalizedEntityCondition);
     if (flow.entry === 'New customers') return [{ field: 'customer_type', op: 'equals', value: 'new' }];
     if (flow.entry === 'Returning customers') return [{ field: 'customer_type', op: 'equals', value: 'returning' }];
     return [];
@@ -568,13 +1240,51 @@
       return t(field.label || '') + ' ' + t(operator.label || 'is') + ' ' + t((opt || {}).label || String(value || ''));
     }
     if (field.kind === 'tags') return t(field.label || '') + ' ' + t(operator.label || 'has any of these tags') + ' ' + (Array.isArray(value) ? value.join(', ') : String(value || ''));
+    if (field.kind === 'entity') {
+      var entities = flowEntryEntitySelectedItems(field, value);
+      var labels = entities.length ? entities.map(function (item) { return item.title; }) : (Array.isArray(value) ? value : []);
+      return t(field.label || '') + ' ' + t(operator.label || '') + ' ' + labels.join(', ');
+    }
     var suffix = field.unit === '$' ? '$' : field.unit === 'orders' ? ' ' + t('orders') : field.unit === 'days' ? ' ' + t('days') : field.unit === 'items' ? ' ' + t('items') : '';
     if (condition.op === 'between' && value && typeof value === 'object') return t(field.label || '') + ' ' + t(operator.label || 'is between') + ' ' + (field.unit === '$' ? '$' : '') + String(value.min == null ? '' : value.min) + ' – ' + (field.unit === '$' ? '$' : '') + String(value.max == null ? '' : value.max) + suffix;
     return t(field.label || '') + ' ' + t(operator.label || '') + ' ' + (field.unit === '$' ? '$' : '') + String(value == null ? '' : value) + (field.unit === '$' ? '' : suffix);
   }
+  function flowEntryConditionPreview(condition) {
+    var field = FLOW_ENTRY_FIELDS[condition.field] || {}, value = condition.value;
+    var compactValues = function (values) {
+      var list = (values || []).filter(Boolean);
+      return list.slice(0, 2).join(', ') + (list.length > 2 ? ' +' + (list.length - 2) : '');
+    };
+    if (field.kind === 'select') {
+      var option = (field.options || []).filter(function (item) { return item.value === value; })[0];
+      return t((option || {}).label || field.label || '');
+    }
+    if (field.kind === 'tags') return t(field.label || '') + ': ' + compactValues(Array.isArray(value) ? value : []);
+    if (field.kind === 'entity') {
+      var entities = flowEntryEntitySelectedItems(field, value);
+      var names = entities.length ? entities.map(function (item) { return item.label || item.title; }) : (Array.isArray(value) ? value : []);
+      var prefix = condition.op === 'excludes_items' ? t('Does not contain selected items') : condition.op === 'contains_all_items' ? t('Contains all selected items') : t(field.label || '');
+      return prefix + ': ' + compactValues(names);
+    }
+    var formatValue = function (raw) {
+      var output = String(raw == null ? '' : raw);
+      if (field.unit === '$') return '$' + output;
+      if (field.unit === 'orders') return output + ' ' + t('orders');
+      if (field.unit === 'items') return output + ' ' + t('items');
+      if (field.unit === 'days') return output + ' ' + t(condition.op === 'more_than' ? 'days ago' : 'days');
+      return output;
+    };
+    if (condition.op === 'between' && value && typeof value === 'object') return t(field.label || '') + ' ' + formatValue(value.min) + '–' + formatValue(value.max);
+    var symbol = { at_least: '≥', at_most: '≤', equals: '=', not_equals: '≠' }[condition.op];
+    var operator = (field.operators || []).filter(function (item) { return item.value === condition.op; })[0] || {};
+    return t(field.label || '') + (symbol ? ' ' + symbol + ' ' : ': ') + (symbol ? formatValue(value) : t(operator.label || '') + ' ' + formatValue(value));
+  }
   function flowEntrySummary(flow) {
-    var conditions = flowLegacyEntryConditions(flow);
-    if (conditions.length) return conditions.map(flowEntryConditionText).join(' · ');
+    var conditions = flowLegacyEntryConditions(flow).filter(function (condition) { return condition && FLOW_ENTRY_FIELDS[condition.field]; });
+    if (conditions.length) {
+      var items = conditions.map(flowEntryConditionPreview).filter(Boolean);
+      return items.slice(0, 2).join(' · ') + (items.length > 2 ? ' · +' + (items.length - 2) + ' ' + t('more') : '');
+    }
     var defaultEntries = ['All eligible shoppers', 'All remaining shoppers', 'All other shoppers', 'All shoppers', 'All eligible customers', 'All remaining customers', 'All other customers', 'All customers', ''];
     if (defaultEntries.indexOf(flow.entry || '') !== -1) {
       var hasHigherPriorityFlow = bcFlowList().some(function (candidate) {
@@ -582,7 +1292,7 @@
       });
       return hasHigherPriorityFlow ? t('Customers not matched by higher-priority purchase flows') : t('All customers');
     }
-    return t(flow.entry);
+    return t(flow.entry || flow.entryLabel || 'All customers');
   }
   function flowPill(status) {
     var cls = status === 'Live' ? 'green' : status === 'Paused' ? 'orange' : 'gray';
@@ -637,6 +1347,8 @@
       '</style><div class="fl-page"><div class="fl-head"><div><h1>' + t('Purchase flows') + '</h1><p>' + t('Create purchase flows, then open one to arrange Checkout pages, Upsells, Downsells, and Thank you pages.') + '</p></div><button class="btn btn-primary" data-create-flow>+ ' + t('Create purchase flow') + '</button></div>' +
       '<section class="fl-priority"><div class="fl-priority-head"><div><h2>' + t('Which purchase flow does a cart enter?') + '</h2><p>' + t('Only live purchase flows participate in matching. When several live purchase flows match, the flow with the higher priority value is used. Carts that do not match continue to Shopify Checkout.') + '</p></div><button type="button" class="btn btn-default" data-flow-priorities>' + t('Manage priorities') + '</button></div><div class="fl-priority-grid">' + priorityCards + '</div><div class="fl-fallback"><span class="fl-fallback-ico">S</span><div><small>' + t('Default fallback') + '</small><b>Shopify Checkout</b><span>' + t('Used when no purchase flow matches.') + '</span></div></div></section>' +
       '<section class="fl-list"><div class="fl-list-top"><div class="fl-tabs">' + tabs + '</div></div><div class="fl-table-wrap"><table class="fl-table"><thead><tr><th>' + t('Purchase flow') + '</th><th>' + t('Status') + '</th><th>' + t('Traffic') + '</th><th>' + t('Conversion') + '</th><th>' + t('AOV') + '</th><th class="fl-action-head">' + t('Action') + '</th></tr></thead><tbody>' + (tableRows || '<tr><td colspan="6"><div class="placeholder" style="min-height:180px">' + t('No purchase flows in this view.') + '</div></td></tr>') + '</tbody></table></div><div class="fl-pagination"><span class="fl-pagination-summary">' + t('Total') + ' ' + totalRecords + ' ' + t('purchase flows') + '</span>' + flowListPager(flowListState.page, pages) + '</div></section></div>');
+    var fallbackShopifyIcon = root.querySelector('.fl-fallback-ico');
+    if (fallbackShopifyIcon) fallbackShopifyIcon.innerHTML = '<img src="assets/shopify-bag.svg" alt="Shopify" width="20" height="20" style="display:block;width:20px;height:20px">';
     root.querySelectorAll('[data-flow-filter]').forEach(function (button) { button.onclick = function () { flowListState.page = 1; renderFlowList(button.getAttribute('data-flow-filter')); }; });
     var pageSize = root.querySelector('[data-flow-list-size]');
     if (pageSize) pageSize.onchange = function () { flowListState.size = Number(pageSize.value); flowListState.page = 1; renderFlowList(activeFilter); };
@@ -651,10 +1363,76 @@
     var managePriorities = root.querySelector('[data-flow-priorities]'); if (managePriorities) managePriorities.onclick = function () { openFlowPriorityManager(function () { renderFlowList(activeFilter); }); };
     bcI18n(root);
   }
+  var FLOW_TAG_COMPOSER_STYLE =
+    '.fcw-tags,.fe-tags{box-sizing:border-box;display:flex;align-items:center;flex-wrap:wrap;gap:4px;min-height:33px;width:100%;padding:4px 6px;border:1px solid var(--ctl);border-radius:6px;background:#fff;cursor:text;transition:border-color .15s,box-shadow .15s}' +
+    '.fcw-tags:focus-within,.fe-tags:focus-within{border-color:#8fb8ed;box-shadow:0 0 0 2px rgba(43,98,214,.11)}' +
+    '.fcw-tag-list,.fe-tag-list{display:contents}' +
+    '.fcw-tag-list span,.fe-tag-list span{display:inline-flex;align-items:center;gap:4px;min-height:21px;padding:0 6px;border:1px solid #d4e4ff;border-radius:4px;background:#f1f6ff;color:#1d5eb9;font-size:11px;line-height:1.2;white-space:nowrap}' +
+    '.fcw-tag-list button,.fe-tag-list button{display:inline-grid;place-items:center;width:13px;height:13px;border:0;border-radius:3px;background:transparent;color:inherit;padding:0;font-size:14px;line-height:1;cursor:pointer}' +
+    '.fcw-tag-list button:hover,.fe-tag-list button:hover{background:#dceaff;color:#0b5fca}' +
+    '.fcw-tags .input,.fe-tags .input{flex:1 1 80px!important;min-width:80px!important;width:auto!important;height:22px!important;border:0!important;outline:0!important;box-shadow:none!important;background:transparent!important;padding:0 2px!important;color:var(--ink);font-size:12px}' +
+    '.fcw-tags.has-tags .input,.fe-tags.has-tags .input{flex:0 1 0!important;min-width:0!important;width:0!important;padding:0!important}' +
+    '.fcw-tags.has-tags:focus-within .input,.fe-tags.has-tags:focus-within .input{flex:0 1 18px!important;min-width:18px!important;width:18px!important;padding:0 2px!important}' +
+    '.fcw-tags.has-tags.is-editing .input,.fe-tags.has-tags.is-editing .input{flex:1 1 80px!important;min-width:80px!important;width:auto!important;padding:0 2px!important}' +
+    '.fcw-tags .input::placeholder,.fe-tags .input::placeholder{color:#9aa4b3;opacity:1}' +
+    '.flow-entity-control{display:flex;align-items:center;justify-content:space-between;gap:8px;box-sizing:border-box;width:100%;min-height:33px;border:1px solid var(--ctl);border-radius:6px;background:#fff;color:var(--ink);padding:4px 8px;font:inherit;text-align:left;cursor:pointer}.flow-entity-control:hover{border-color:#8fb8ed;background:#fbfdff}.flow-entity-control>span{display:flex;min-width:0;flex:1;flex-direction:column;gap:1px}.flow-entity-control strong{overflow:hidden;color:var(--ink);font-size:11.5px;font-weight:600;text-overflow:ellipsis;white-space:nowrap}.flow-entity-control small{color:var(--ink-muted);font-size:10px;line-height:1.15}.flow-entity-control em{flex:none;color:var(--brand);font-size:10.5px;font-style:normal;font-weight:650}';
+  function flowTagComposerMarkup(scope, index, tags, removeAttr, inputAttr) {
+    var values = Array.isArray(tags) ? tags : [];
+    var placeholder = values.length ? '' : t('Type a tag and press Enter');
+    return '<div class="' + scope + '-tags' + (values.length ? ' has-tags' : '') + '" data-tag-composer><div class="' + scope + '-tag-list">' +
+      values.map(function (tag) { return '<span>' + esc(tag) + '<button type="button" ' + removeAttr + '="' + index + '" data-tag="' + esc(tag) + '" aria-label="' + esc(t('Remove tag')) + '">×</button></span>'; }).join('') +
+      '</div><input class="input" ' + inputAttr + '="' + index + '" placeholder="' + esc(placeholder) + '" aria-label="' + esc(t('Add a customer tag')) + '"></div>';
+  }
+  function mountFlowTagComposerStyle(modal) {
+    var style = document.createElement('style');
+    style.textContent = FLOW_TAG_COMPOSER_STYLE;
+    modal.appendChild(style);
+  }
+  function bindFlowTagComposer(modal, inputSelector, indexAttribute, conditions, rerender) {
+    var rerenderAndRefocus = function (index) {
+      rerender();
+      // Rendering replaces the input node. Restore focus on its replacement so
+      // merchants can keep entering tags without returning to the mouse.
+      window.setTimeout(function () {
+        var nextInput = modal.querySelector(inputSelector + '[' + indexAttribute + '="' + index + '"]');
+        if (nextInput) nextInput.focus();
+      }, 0);
+    };
+    modal.querySelectorAll(inputSelector).forEach(function (input) {
+      var composer = input.closest('.fcw-tags, .fe-tags');
+      if (composer) composer.onclick = function (event) {
+        if (event.target.closest && event.target.closest('button')) return;
+        input.focus();
+      };
+      input.oninput = function () { if (composer) composer.classList.toggle('is-editing', !!input.value); };
+      input.onkeydown = function (event) {
+        if (event.isComposing) return;
+        var index = Number(input.getAttribute(indexAttribute));
+        var tags = Array.isArray(conditions[index].value) ? conditions[index].value : [];
+        if (event.key === 'Backspace' && !input.value && tags.length) {
+          event.preventDefault();
+          conditions[index].value = tags.slice(0, -1);
+          rerenderAndRefocus(index);
+          return;
+        }
+        if (event.key !== 'Enter' && event.key !== ',') return;
+        event.preventDefault();
+        var next = tags.slice();
+        input.value.split(',').forEach(function (rawTag) {
+          var tag = rawTag.trim();
+          if (tag && next.indexOf(tag) < 0) next.push(tag);
+        });
+        if (input.value.trim()) {
+          conditions[index].value = next;
+          rerenderAndRefocus(index);
+        }
+      };
+    });
+  }
   function openCreateFlow() {
     var goals = [
       { id: 'aov', label: 'Increase average order value', desc: 'Show a relevant Upsell after payment.', flowDescription: 'Give new customers a relevant one-click Upsell after checkout.', path: 'Checkout → Upsell → Thank you', name: 'Order value booster', summary: '1 checkout · 1 upsell · 1 Thank you page', recommended: true },
-      { id: 'recover', label: 'Recover a declined Upsell', desc: 'Show a Downsell when an Upsell is declined.', flowDescription: 'Show returning customers a Downsell after they decline the Upsell.', path: 'Checkout → Upsell → Downsell → Thank you', name: 'Second-chance offer', summary: '1 checkout · 1 upsell · 1 downsell · 1 Thank you page' },
+      { id: 'recover', label: 'Recover a declined Upsell', desc: 'Show a Downsell when an Upsell is declined.', flowDescription: 'Show returning customers a Downsell after they decline the Upsell.', path: 'Checkout → Upsell → Downsell → Thank you', name: 'Recover declined Upsells', summary: '1 checkout · 1 upsell · 1 downsell · 1 Thank you page' },
       { id: 'completion', label: 'Improve checkout completion', desc: 'Start with a focused Checkout and add Upsells or Downsells later.', flowDescription: 'A focused checkout for all other customers, followed by the Thank you page.', path: 'Checkout → Thank you', name: 'Smooth checkout', summary: '1 checkout · No Upsell or Downsell · 1 Thank you page' }
     ];
     var selected = goals[0], modal = document.createElement('div'); modal.className = 'xp-modal';
@@ -693,7 +1471,7 @@
   function openCreateFlowWizard() {
     var goals = [
       { id: 'aov', label: 'Increase average order value', desc: 'Show a relevant Upsell after payment.', path: 'Checkout → Upsell → Thank you', name: 'Order value booster', nameZh: '客单价提升', summary: '1 checkout · 1 upsell · 1 Thank you page', recommended: true },
-      { id: 'recover', label: 'Recover a declined Upsell', desc: 'Show a Downsell when an Upsell is declined.', path: 'Checkout → Upsell → Downsell → Thank you', name: 'Second-chance offer', nameZh: '优惠挽回', summary: '1 checkout · 1 upsell · 1 downsell · 1 Thank you page' },
+      { id: 'recover', label: 'Recover a declined Upsell', desc: 'Show a Downsell when an Upsell is declined.', path: 'Checkout → Upsell → Downsell → Thank you', name: 'Recover declined Upsells', nameZh: '挽回被拒绝的加购', summary: '1 checkout · 1 upsell · 1 downsell · 1 Thank you page' },
       { id: 'completion', label: 'Improve checkout completion', desc: 'Start with a focused Checkout and add Upsells or Downsells later.', path: 'Checkout → Thank you', name: 'Smooth checkout', nameZh: '顺畅结账', summary: '1 checkout · No Upsell or Downsell · 1 Thank you page' }
     ];
     var defaultName = function (goal) { return window.I18N && window.I18N.lang === 'zh' ? goal.nameZh : goal.name; };
@@ -706,10 +1484,7 @@
       if (modal._createWizardStyle) modal._createWizardStyle.remove();
       if (style) { document.head.appendChild(style); modal._createWizardStyle = style; }
     };
-    var newCondition = function (fieldKey) {
-      var field = FLOW_ENTRY_FIELDS[fieldKey] || FLOW_ENTRY_FIELDS.customer_type;
-      return { field: fieldKey || 'customer_type', op: field.operators[0].value, value: field.kind === 'tags' ? [] : field.kind === 'select' ? field.options[0].value : '' };
-    };
+    var newCondition = function (fieldKey) { return flowEntryNewCondition(fieldKey || 'customer_type'); };
     var fieldOptions = function (selected) {
       var groups = {};
       Object.keys(FLOW_ENTRY_FIELDS).forEach(function (key) {
@@ -730,8 +1505,9 @@
       if (field.kind === 'select') return '<select class="input fcw-condition-value" data-fcw-condition-value="' + index + '">' + field.options.map(function (option) { return '<option value="' + esc(option.value) + '"' + (option.value === condition.value ? ' selected' : '') + '>' + t(option.label) + '</option>'; }).join('') + '</select>';
       if (field.kind === 'tags') {
         var tags = Array.isArray(condition.value) ? condition.value : [];
-        return '<div class="fcw-tags"><div class="fcw-tag-list">' + tags.map(function (tag) { return '<span>' + esc(tag) + '<button type="button" data-fcw-remove-tag="' + index + '" data-tag="' + esc(tag) + '">×</button></span>'; }).join('') + '</div><input class="input" data-fcw-tag-input="' + index + '" placeholder="' + t('Type a tag and press Enter') + '"></div>';
+        return flowTagComposerMarkup('fcw', index, tags, 'data-fcw-remove-tag', 'data-fcw-tag-input');
       }
+      if (field.kind === 'entity') return flowEntryEntityControl('fcw', index, field, condition.value);
       var prefix = field.unit === '$' ? '<span>$</span>' : '';
       var suffix = field.unit === 'orders' ? '<span>' + t('orders') + '</span>' : field.unit === 'days' ? '<span>' + t(condition.op === 'more_than' ? 'days ago' : 'days') + '</span>' : field.unit === 'items' ? '<span>' + t('items') + '</span>' : '';
       if (condition.op === 'between') {
@@ -746,7 +1522,7 @@
     };
     var invalidCondition = function (condition) {
       var field = FLOW_ENTRY_FIELDS[condition.field] || {};
-      if (field.kind === 'tags') return !Array.isArray(condition.value) || !condition.value.length;
+      if (field.kind === 'tags' || field.kind === 'entity') return !Array.isArray(condition.value) || !condition.value.length;
       if (condition.op === 'between') return !condition.value || condition.value.min === '' || condition.value.min == null || condition.value.max === '' || condition.value.max == null;
       return condition.value === '' || condition.value == null;
     };
@@ -766,14 +1542,14 @@
       modal.innerHTML = XSTYLE + FSTYLE + '<style>' +
         nameErrorStyle +
         '.fcw{width:min(760px,calc(100vw - 32px));background:#fff;border-radius:12px;overflow:hidden;box-shadow:var(--float-shadow);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}.fcw-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:18px 20px 14px;border-bottom:1px solid var(--hair)}.fcw-head h2{font-size:18px;line-height:1.35;margin:0;color:var(--ink)}.fcw-head p{margin:4px 0 0;font-size:12.5px;line-height:1.5;color:var(--ink-muted)}.fcw-close{border:0;background:transparent;color:var(--ink-muted);font-size:22px;line-height:1;padding:0 2px;cursor:pointer}.fcw-body{padding:18px 20px;max-height:min(70vh,690px);overflow:auto}.fcw-steps{display:flex;align-items:center;gap:9px;margin-bottom:18px}.fcw-steps span{display:flex;align-items:center;gap:6px;color:var(--ink-muted);font-size:12px;font-weight:600}.fcw-steps span b{display:grid;place-items:center;width:21px;height:21px;border-radius:50%;background:#edf0f5;color:var(--ink-muted);font-size:11px}.fcw-steps span.is-current{color:var(--ink)}.fcw-steps span.is-current b{background:var(--brand);color:#fff}.fcw-steps span.is-done b{background:#e0f2ec;color:var(--ok)}.fcw-steps i{height:1px;width:38px;background:var(--hair)}.fcw-lead{margin:0 0 11px;color:var(--ink);font-size:14px;font-weight:600}.fcw-goals{display:grid;gap:8px}.fcw-goal,.fcw-audience{display:flex;align-items:flex-start;gap:11px;border:1px solid var(--hair);border-radius:8px;background:#fff;color:var(--ink);padding:12px;text-align:left;cursor:pointer}.fcw-goal:hover,.fcw-audience:hover{border-color:#9ec4fa;background:#fbfdff}.fcw-goal.is-selected,.fcw-audience.is-selected{border-color:var(--brand);box-shadow:inset 0 0 0 1px #dceaff;background:#f8fbff}.fcw-radio{width:13px;height:13px;border:1.5px solid #9aa4b3;border-radius:50%;margin-top:5px;flex:none}.fcw-goal.is-selected .fcw-radio{border-color:var(--brand);box-shadow:inset 0 0 0 3px #fff;background:var(--brand)}.fcw-goal>span:last-child,.fcw-audience>span{min-width:0;display:block}.fcw-goal strong,.fcw-audience strong{display:flex;align-items:center;gap:6px;font-size:13.5px;line-height:1.35}.fcw-goal small,.fcw-audience small{display:block;margin-top:3px;color:var(--ink-body);font-size:12px;line-height:1.45}.fcw-path,.fcw-rule{display:block;margin-top:5px;color:var(--ink-muted);font-family:inherit;font-size:11px;font-weight:400;line-height:1.4;letter-spacing:normal}.fcw-goal em,.fcw-audience em{border-radius:999px;background:#e0f2ec;color:var(--ok);font-size:10px;font-style:normal;padding:2px 6px}.fcw-safe,.fcw-data-note{display:flex;flex-direction:column;gap:3px;margin-top:14px;border:1px solid #cce6dd;border-radius:8px;background:#f2fbf6;padding:10px 12px;color:#256342}.fcw-safe b,.fcw-data-note b{font-size:12.5px}.fcw-safe span,.fcw-data-note span{font-size:12px;line-height:1.45}.fcw-field{display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:var(--ink)}.fcw-field .input{height:36px;background:#fff}.fcw-journey{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:center;margin:14px 0;padding:10px 12px;border:1px solid #dbe8fb;border-radius:8px;background:#f7faff}.fcw-journey small{grid-row:span 2;color:var(--ink-muted);font-size:11px}.fcw-journey strong{font-size:13px}.fcw-journey .fcw-path{margin:0}.fcw-audience-head{display:flex;flex-direction:column;gap:3px;margin:0 0 8px}.fcw-audience-head strong{font-size:14px}.fcw-audience-head span{font-size:12px;color:var(--ink-muted)}.fcw-audiences{display:grid;grid-template-columns:1fr 1fr;gap:8px}.fcw-audience{padding:10px}.fcw-audience>i{display:grid;place-items:center;width:25px;height:25px;flex:none;border-radius:7px;background:#edf3fd;color:var(--brand);font-style:normal;font-size:13px}.fcw-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 20px;border-top:1px solid var(--hair)}.fcw-foot-right{display:flex;gap:8px}@media(max-width:620px){.fcw{width:calc(100vw - 20px)}.fcw-head,.fcw-body,.fcw-foot{padding-left:16px;padding-right:16px}.fcw-audiences{grid-template-columns:1fr}.fcw-steps i{width:18px}}' +
-        '.fcw-conditions{margin-top:14px;border:1px solid var(--hair);border-radius:9px;background:#fff;padding:11px}.fcw-conditions>header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}.fcw-conditions>header strong{display:block;color:var(--ink);font-size:13px}.fcw-conditions>header p{margin:3px 0 0;color:var(--ink-muted);font-size:11.5px;line-height:1.45}.fcw-conditions>header span{border-radius:999px;background:#f1f3f5;color:#6b7280;padding:3px 7px;font-size:10px;white-space:nowrap}.fcw-condition-list{display:flex;flex-direction:column;gap:7px}.fcw-condition-row{display:grid;grid-template-columns:minmax(172px,1.2fr) minmax(126px,.85fr) minmax(164px,1fr) 26px;gap:6px;align-items:center;border:1px solid var(--ctl);border-radius:7px;background:#fff;padding:6px}.fcw-condition-row .input{height:33px;min-width:0;background:#fff}.fcw-condition-value{min-width:0}.fcw-number{display:flex;align-items:center;gap:5px;min-width:0}.fcw-number>span{color:var(--ink-muted);font-size:11px;white-space:nowrap}.fcw-number .input{flex:1;width:100%;min-width:0}.fcw-between{gap:4px}.fcw-between .input{min-width:45px}.fcw-tags{display:flex;align-items:center;gap:5px;min-width:0}.fcw-tag-list{display:flex;align-items:center;flex-wrap:wrap;gap:4px}.fcw-tag-list span{display:inline-flex;align-items:center;gap:4px;padding:3px 6px;border-radius:5px;background:#e6f0ff;color:#225ec0;font-size:11px;white-space:nowrap}.fcw-tag-list button{border:0;background:transparent;color:inherit;padding:0;line-height:1;cursor:pointer;font-size:14px}.fcw-tags .input{flex:1;width:100%;min-width:82px}.fcw-condition-remove{width:26px;height:26px;border:0;border-radius:6px;background:transparent;color:#9aa4b3;font-size:17px;cursor:pointer}.fcw-condition-remove:hover{background:#fdeaea;color:var(--err)}.fcw-condition-add{width:100%;height:31px;margin-top:8px;border:1px dashed #9cbbe9;border-radius:7px;background:#fbfdff;color:var(--brand);font-size:12px;font-weight:600;cursor:pointer}.fcw-condition-add:hover{border-color:var(--brand);background:#f3f8ff}.fcw-condition-help{margin:9px 1px 0;color:var(--ink-muted);font-size:10.5px;line-height:1.45}.fcw-condition-empty{border:1px dashed var(--ctl);border-radius:7px;padding:13px;color:var(--ink-muted);font-size:12px}.fcw-msg{min-height:18px;margin:9px 0 0;color:var(--err);font-size:12px}.fcw-msg:empty{display:none}@media(max-width:650px){.fcw-conditions>header{flex-direction:column}.fcw-condition-row{grid-template-columns:1fr 1fr 26px}.fcw-condition-value{grid-column:1 / 3}.fcw-tags{flex-wrap:wrap}.fcw-tags .input{min-width:100%}}' +
+        '.fcw-conditions{margin-top:14px;border:1px solid var(--hair);border-radius:9px;background:#fff;padding:11px}.fcw-conditions>header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}.fcw-conditions>header strong{display:block;color:var(--ink);font-size:13px}.fcw-conditions>header p{margin:3px 0 0;color:var(--ink-muted);font-size:11.5px;line-height:1.45}.fcw-conditions>header span{border-radius:999px;background:#f1f3f5;color:#6b7280;padding:3px 7px;font-size:10px;white-space:nowrap}.fcw-condition-list{display:flex;flex-direction:column;gap:7px}.fcw-condition-row{display:grid;grid-template-columns:minmax(164px,.82fr) minmax(148px,.92fr) minmax(206px,1.26fr) 26px;gap:6px;align-items:center;border:1px solid var(--ctl);border-radius:7px;background:#fff;padding:6px}.fcw-condition-row .input{height:33px;min-width:0;background:#fff}.fcw-condition-value{min-width:0}.fcw-number{display:flex;align-items:center;gap:5px;min-width:0}.fcw-number>span{color:var(--ink-muted);font-size:11px;white-space:nowrap}.fcw-number .input{flex:1;width:100%;min-width:0}.fcw-between{gap:4px}.fcw-between .input{min-width:45px}.fcw-tags{display:flex;align-items:center;gap:5px;min-width:0}.fcw-tag-list{display:flex;align-items:center;flex-wrap:wrap;gap:4px}.fcw-tag-list span{display:inline-flex;align-items:center;gap:4px;padding:3px 6px;border-radius:5px;background:#e6f0ff;color:#225ec0;font-size:11px;white-space:nowrap}.fcw-tag-list button{border:0;background:transparent;color:inherit;padding:0;line-height:1;cursor:pointer;font-size:14px}.fcw-tags .input{flex:1;width:100%;min-width:82px}.fcw-condition-remove{width:26px;height:26px;border:0;border-radius:6px;background:transparent;color:#9aa4b3;font-size:17px;cursor:pointer}.fcw-condition-remove:hover{background:#fdeaea;color:var(--err)}.fcw-condition-add{width:100%;height:31px;margin-top:8px;border:1px dashed #9cbbe9;border-radius:7px;background:#fbfdff;color:var(--brand);font-size:12px;font-weight:600;cursor:pointer}.fcw-condition-add:hover{border-color:var(--brand);background:#f3f8ff}.fcw-condition-help{margin:9px 1px 0;color:var(--ink-muted);font-size:10.5px;line-height:1.45}.fcw-condition-empty{border:1px dashed var(--ctl);border-radius:7px;padding:13px;color:var(--ink-muted);font-size:12px}.fcw-msg{min-height:18px;margin:9px 0 0;color:var(--err);font-size:12px}.fcw-msg:empty{display:none}@media(max-width:650px){.fcw-conditions>header{flex-direction:column}.fcw-condition-row{grid-template-columns:1fr 1fr 26px}.fcw-condition-value{grid-column:1 / 3}.fcw-tags{flex-wrap:wrap}.fcw-tags .input{min-width:100%}}' +
         '</style><section class="fcw"><header class="fcw-head"><div><h2>' + t('Create a purchase flow') + '</h2><p>' + (step === 'goal' ? t('Choose the business result first. We will prepare a starter flow for you.') : t('Name the draft and set customer conditions directly.')) + '</p></div><button type="button" class="fcw-close" data-fcw-close aria-label="' + t('Close') + '">×</button></header><div class="fcw-body">' + steps + body + '</div><footer class="fcw-foot"><button type="button" class="btn btn-default" data-fcw-' + (step === 'goal' ? 'close' : 'back') + '>' + t(step === 'goal' ? 'Cancel' : 'Back') + '</button><div class="fcw-foot-right"><button type="button" class="btn btn-primary" data-fcw-next>' + t(step === 'goal' ? 'Continue' : 'Create draft purchase flow') + '</button></div></footer></section>';
-      mountStyle(); bcI18n(modal);
+      mountStyle(); bcI18n(modal); mountFlowTagComposerStyle(modal);
       modal.querySelectorAll('[data-fcw-close]').forEach(function (button) { button.onclick = close; });
       var back = modal.querySelector('[data-fcw-back]'); if (back) back.onclick = function () { step = 'goal'; render(); };
       modal.querySelectorAll('[data-fcw-goal]').forEach(function (button) { button.onclick = function () { selectedGoal = goals.filter(function (goal) { return goal.id === button.getAttribute('data-fcw-goal'); })[0] || selectedGoal; flowName = defaultName(selectedGoal); render(); }; });
       var wizardName = modal.querySelector('#fcw-name'); if (wizardName) wizardName.oninput = function () { flowName = wizardName.value; wizardName.classList.remove('is-error'); wizardName.removeAttribute('aria-invalid'); var nameError = modal.querySelector('[data-fcw-name-error]'); if (nameError) { nameError.textContent = ''; nameError.classList.remove('is-visible'); } };
-      var addCondition = modal.querySelector('[data-fcw-condition-add]'); if (addCondition) addCondition.onclick = function () { entryConditions.push(newCondition('customer_type')); render(); };
+      var addCondition = modal.querySelector('[data-fcw-condition-add]'); if (addCondition) addCondition.onclick = function () { entryConditions.push(newCondition(flowEntryNextAvailableFieldKey(entryConditions))); render(); };
       modal.querySelectorAll('[data-fcw-condition-remove]').forEach(function (button) { button.onclick = function () { entryConditions.splice(Number(button.getAttribute('data-fcw-condition-remove')), 1); render(); }; });
       modal.querySelectorAll('[data-fcw-condition-field]').forEach(function (select) { select.onchange = function () { entryConditions[Number(select.getAttribute('data-fcw-condition-field'))] = newCondition(select.value); render(); }; });
       modal.querySelectorAll('[data-fcw-condition-op]').forEach(function (select) { select.onchange = function () { var condition = entryConditions[Number(select.getAttribute('data-fcw-condition-op'))]; condition.op = select.value; condition.value = select.value === 'between' ? { min: '', max: '' } : (condition.value && typeof condition.value === 'object' && !Array.isArray(condition.value) ? '' : condition.value); render(); }; });
@@ -781,7 +1557,8 @@
       modal.querySelectorAll('[data-fcw-condition-min]').forEach(function (input) { input.oninput = function () { var condition = entryConditions[Number(input.getAttribute('data-fcw-condition-min'))]; if (!condition.value || typeof condition.value !== 'object') condition.value = { min: '', max: '' }; condition.value.min = input.value === '' ? '' : Number(input.value); }; });
       modal.querySelectorAll('[data-fcw-condition-max]').forEach(function (input) { input.oninput = function () { var condition = entryConditions[Number(input.getAttribute('data-fcw-condition-max'))]; if (!condition.value || typeof condition.value !== 'object') condition.value = { min: '', max: '' }; condition.value.max = input.value === '' ? '' : Number(input.value); }; });
       modal.querySelectorAll('[data-fcw-remove-tag]').forEach(function (button) { button.onclick = function () { var index = Number(button.getAttribute('data-fcw-remove-tag')), tag = button.getAttribute('data-tag'); entryConditions[index].value = (entryConditions[index].value || []).filter(function (item) { return item !== tag; }); render(); }; });
-      modal.querySelectorAll('[data-fcw-tag-input]').forEach(function (input) { input.onkeydown = function (event) { if (event.key !== 'Enter') return; event.preventDefault(); var index = Number(input.getAttribute('data-fcw-tag-input')), tag = input.value.trim(); if (tag && (entryConditions[index].value || []).indexOf(tag) < 0) entryConditions[index].value = (entryConditions[index].value || []).concat([tag]); render(); }; });
+      bindFlowTagComposer(modal, '[data-fcw-tag-input]', 'data-fcw-tag-input', entryConditions, render);
+      modal.querySelectorAll('[data-fcw-entity-picker]').forEach(function (button) { button.onclick = function () { var index = Number(button.getAttribute('data-fcw-entity-picker')), field = FLOW_ENTRY_FIELDS[entryConditions[index].field]; openFlowEntryEntityPicker(field, entryConditions[index].value, function (value) { entryConditions[index].value = value; render(); }); }; });
       modal.querySelector('[data-fcw-next]').onclick = function () {
         if (step === 'goal') { step = 'details'; render(); return; }
         var input = modal.querySelector('#fcw-name'); flowName = input ? input.value.trim() : '';
@@ -823,11 +1600,9 @@
     };
   }
   function fnDefault(flowId) {
-    // Each default flow must start from the journey promised in its list entry.
-    // Merchants can still add an A/B checkout branch or further pages from the canvas.
-    if (flowId === 'smooth-checkout') return fnStarter('completion');
-    if (flowId === 'first-order-boost') return fnStarter('aov');
-    if (flowId === 'seasonal-returning-offer') return fnStarter('aov');
+    if (flowId === 'new-customer-offer') return fnStarter('new-customer');
+    if (flowId === 'returning-customer-cross-sell') return fnStarter('returning-customer');
+    if (flowId === 'checkout-ab-test') return fnStarter('checkout-ab');
     return fnStarter('recover');
   }
   function fnIsLegacySharedDefault(state) {
@@ -839,19 +1614,30 @@
   // New flows start from a short, goal-specific journey. The Shopify native checkout
   // remains a system fallback for shoppers who do not enter this flow; it is not a
   // destination in the Checkout-page split.
+  function fnSeedOffer(productId) { return { productId: productId, type: 'percentage', value: '20' }; }
   function fnStarter(goal) {
+    var isAbTest = goal === 'checkout-ab';
+    var offerTemplates = goal === 'new-customer'
+      ? { upsell: 'new-customer-upsell', downsell: 'new-customer-downsell', upsellProduct: 'daily-essentials', downsellProduct: 'hydration' }
+      : goal === 'returning-customer'
+        ? { upsell: 'returning-customer-upsell', downsell: 'returning-customer-downsell', upsellProduct: 'sleep-support', downsellProduct: 'starter-kit' }
+        : { upsell: 'default', downsell: 'default' };
     var s = {
-      nodes: [{ id: 'src', type: 'shopify' }, { id: 'co', type: 'checkout', tpl: 'standard' }, { id: 'ctrl', type: 'control' }, { id: 'ty', type: 'thankyou', tpl: 'default' }],
+      nodes: [{ id: 'src', type: 'shopify' }, { id: 'co', type: 'checkout', tpl: isAbTest ? 'checkout-a' : 'standard' }, { id: 'ctrl', type: 'control' }, { id: 'ty', type: 'thankyou', tpl: 'default' }],
       edges: [
-        { from: 'src', to: 'co', rule: { type: 'expression', conditions: [] } },
+        { from: 'src', to: 'co', rule: { type: 'expression', conditions: isAbTest ? [{ field: 'random', op: 'pct', value: 50 }] : [] } },
         { from: 'src', to: 'ctrl', rule: { type: 'expression', conditions: [], fallback: true } }
       ]
     };
-    if (goal === 'aov' || goal === 'recover') {
-      s.nodes.push({ id: 'up', type: 'upsell', tpl: 'default' });
+    if (isAbTest) {
+      s.nodes.push({ id: 'co2', type: 'checkout', tpl: 'checkout-b' });
+      s.edges.push({ from: 'src', to: 'co2', rule: { type: 'expression', conditions: [{ field: 'random', op: 'pct', value: 50 }] } });
+      s.edges.push({ from: 'co', to: 'ty' }, { from: 'co2', to: 'ty' });
+    } else if (goal === 'aov' || goal === 'recover' || goal === 'new-customer' || goal === 'returning-customer') {
+      s.nodes.push({ id: 'up', type: 'upsell', tpl: offerTemplates.upsell, offer: offerTemplates.upsellProduct ? fnSeedOffer(offerTemplates.upsellProduct) : undefined });
       s.edges.push({ from: 'co', to: 'up' });
-      if (goal === 'recover') {
-        s.nodes.push({ id: 'down', type: 'downsell', tpl: 'default' });
+      if (goal === 'recover' || goal === 'new-customer' || goal === 'returning-customer') {
+        s.nodes.push({ id: 'down', type: 'downsell', tpl: offerTemplates.downsell, offer: offerTemplates.downsellProduct ? fnSeedOffer(offerTemplates.downsellProduct) : undefined });
         s.edges.push({ from: 'up', to: 'ty', fromY: 0.34, rule: { type: 'expression', conditions: [{ field: 'action.upsell', op: 'eq', value: 'accept' }] } });
         s.edges.push({ from: 'up', to: 'down', fromY: 0.72, rule: { type: 'expression', conditions: [{ field: 'action.upsell', op: 'eq', value: 'decline' }], fallback: true } });
         s.edges.push({ from: 'down', to: 'ty' });
@@ -944,8 +1730,7 @@
   function bcFunnel() {
     try {
       var key = bcFunnelKey();
-      var legacy = activeFlowId === 'first-order-boost' ? localStorage.getItem('bsio_bc_funnel') : null;
-      var s = JSON.parse(localStorage.getItem(key) || legacy || 'null');
+      var s = JSON.parse(localStorage.getItem(key) || 'null');
       if (s && s.nodes) {
         // Before flow-specific starters existed, every new flow loaded the same
         // checkout + Upsell + Downsell graph. Migrate only that untouched seed.
@@ -1144,17 +1929,23 @@
   }
   function fnCheckoutTrafficName(st, edge) {
     var checkout = fnNode(st, edge.to) || {};
-    return t('Checkout') + ' · ' + esc(bcTplName('checkout', checkout.tpl));
+    return esc(t(bcPageName('checkout', checkout.tpl)));
   }
   function fnJourneyTargetName(st, id) {
     var node = fnNode(st, id) || {};
     if (fnIsControl(node.type)) return t('Shopify checkout');
-    if (node.type === 'thankyou') return t('Thank you page');
-    return t(fnLabel(node.type || 'page'));
+    return t(bcPageName(node.type, node.tpl) || fnLabel(node.type || 'page'));
   }
   function flowJourneyOutcomes(st, node) {
     var routes = fnForkEdges(st, node.id).filter(function (edge) { return fnRuleKind(edge) === 'accept' || fnRuleKind(edge) === 'decline'; });
     var outgoing = fnForkEdges(st, node.id);
+    var routeTargets = routes.map(function (edge) { return edge.to; }).filter(function (target, index, targets) { return targets.indexOf(target) === index; });
+    var outgoingTargets = outgoing.map(function (edge) { return edge.to; }).filter(function (target, index, targets) { return targets.indexOf(target) === index; });
+    // Two Downsell responses can end at one page. Do not render the terminal twice.
+    if (node.type === 'downsell' && (routeTargets.length === 1 || (!routes.length && outgoingTargets.length === 1))) {
+      var sharedTarget = esc(fnJourneyTargetName(st, routeTargets[0] || outgoingTargets[0]));
+      return '<div class="fj-outcomes fj-outcomes-shared"><span class="fj-outcome complete"><b>' + t('Any response') + '</b><i>→</i>' + sharedTarget + '</span></div>';
+    }
     // Older, valid flows may use one unqualified edge when both answers proceed
     // to the same page. Show that decision explicitly, rather than making a
     // merchant read a connection line to infer what "No thanks" does.
@@ -1176,21 +1967,22 @@
     var cards = nodes.map(function (node, index) {
       var checkoutNumber = type === 'checkout' ? index + 1 : null;
       var nodeIcon = checkoutNumber || copy.icon || '•';
-      var nodeName = checkoutNumber ? t('Checkout') + ' ' + checkoutNumber : t(fnLabel(type));
+      var nodeName = t(bcPageName(type, node.tpl) || fnLabel(type));
       var meta = isOffer
         ? '<span class="fj-node-meta fj-offer-meta">' + esc(fnOfferSummary(node)) + '</span>'
-        : '<span class="fj-node-meta">' + t('Template') + ': ' + esc(bcTplName(node.type, node.tpl)) + '</span>';
+        : '';
       var buttons = '';
       if (!isOffer) {
-        buttons += '<button type="button" class="btn btn-default" data-flow-template="' + esc(node.id) + '">' + t('Change template') + '</button>';
+        buttons += '<button type="button" class="btn btn-default" data-flow-template="' + esc(node.id) + '">' + t('Change page') + '</button>';
       }
       buttons += '<a class="btn btn-default" href="' + esc(bcEditHash(node.type, node.tpl, '#/flows/' + activeFlowId)) + '">' + t('Edit design') + '</a>';
       if (type === 'checkout' && index > 0) buttons += '<button type="button" class="btn btn-default fj-delete-checkout" data-flow-delete-checkout="' + esc(node.id) + '">' + t('Delete') + '</button>';
       return '<article class="fj-node fj-node-' + esc(type) + '"><div class="fj-node-head"><span class="fj-stage-icon">' + esc(nodeIcon) + '</span><div><strong>' + esc(nodeName) + '</strong>' + meta + '</div></div><div class="fj-node-actions">' + buttons + '</div>' + (isOffer ? flowJourneyOutcomes(st, node) : '') + '</article>';
     }).join('');
+    var cardList = type === 'checkout' && nodes.length > 1 ? '<div class="fj-checkout-branches">' + cards + '</div>' : cards;
     var empty = '<div class="fj-empty"><span>' + t(copy.empty || 'No page yet') + '</span></div>';
     var addButton = copy.addCheckout ? '<button type="button" class="fj-add" data-flow-add-checkout>+ ' + t('Add Checkout page') + '</button>' : '';
-    return '<section class="fj-stage fj-stage-' + esc(type) + '"><header><div>' + eyebrow + '<h3>' + t(copy.title || fnStageName(type)) + '</h3><p>' + t(copy.description || '') + '</p></div></header><div class="fj-stage-nodes">' + (copy.beforeNodes || '') + (cards || empty) + addButton + '</div></section>';
+    return '<section class="fj-stage fj-stage-' + esc(type) + '"><header><div>' + eyebrow + '<h3>' + t(copy.title || fnStageName(type)) + '</h3><p>' + t(copy.description || '') + '</p></div></header><div class="fj-stage-nodes">' + (copy.beforeNodes || '') + (cardList || empty) + addButton + '</div></section>';
   }
   function flowTrafficCard(st) {
     var branches = fnCheckoutTrafficEdges(st);
@@ -1211,7 +2003,7 @@
       var traffic = fnRuleConds(edge).filter(function (condition) { return condition.field === 'random'; })[0];
       var percent = traffic && traffic.value != null ? Number(traffic.value) : (hasExplicitWeights ? 0 : (index === 0 ? 100 : 0));
       if (!isFinite(percent)) percent = 0;
-      return '<span class="fj-traffic-chip">' + fnCheckoutTrafficName(st, edge) + ' <b>' + esc(String(percent)) + '%</b></span>';
+      return '<span class="fj-traffic-chip"><span class="fj-traffic-chip-name">' + fnCheckoutTrafficName(st, edge) + '</span><b>' + esc(String(percent)) + '%</b></span>';
     }).join('');
     return '<section class="fj-traffic-mini"><header><div><small>' + t('Traffic rules') + '</small><strong>' + t('Checkout traffic') + '</strong></div><button type="button" class="btn btn-default" data-flow-traffic>' + t('Set traffic rules') + '</button></header><div>' + labels + '</div><p>' + t('Different audience → separate Funnel. Same audience → split traffic here.') + '</p></section>';
   }
@@ -1267,9 +2059,12 @@
   }
   function flowJourneyCanvasStyle() {
     return '<style>' +
-      '.fj-canvas-journey{margin:0 0 12px;padding:0;overflow:hidden}.fj-canvas-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid var(--hair);background:#fff}.fj-canvas-head>div:first-child{display:flex;align-items:baseline;gap:7px}.fj-canvas-head strong{font-size:12px;color:var(--ink-body);font-weight:500}.fj-canvas-tools{display:flex;align-items:center;gap:6px;color:var(--ink-muted);font-size:11px}.fj-canvas-tools .btn{height:27px;padding:0 8px;font-size:11px}.fj-canvas{min-height:440px;overflow:auto;padding:16px;background-color:#fbfcfd;background-image:radial-gradient(#dbe1e8 1px,transparent 1px);background-size:12px 12px}.fj-canvas-row{display:grid;grid-template-columns:minmax(190px,1fr) 22px minmax(220px,1.15fr) 22px minmax(220px,1.15fr) 22px minmax(190px,1fr);align-items:start;column-gap:12px;width:100%;min-width:980px}.fj-canvas-row>.fj-stage{width:auto;min-width:0;min-height:0;padding:10px;background:rgba(255,255,255,.96);box-shadow:0 1px 2px rgb(16 24 40 / 4%)}.fj-canvas-row>.fj-stage header,.fj-offer-stack .fj-stage header{padding-bottom:8px}.fj-canvas-row>.fj-stage h3,.fj-offer-stack .fj-stage h3{font-size:12px}.fj-canvas-row>.fj-stage p,.fj-offer-stack .fj-stage p{font-size:10.5px}.fj-canvas-row .fj-stage-nodes{margin-top:9px}.fj-canvas-row .fj-node{padding:9px}.fj-canvas-row .fj-node-actions{margin-top:7px}.fj-canvas-row .fj-node-actions .btn{height:25px;font-size:10px;padding:0 7px}.fj-canvas-row .fj-stage-hint{font-size:10.5px}.fj-canvas-row .fj-store-link{border:0;background:none;padding:0;text-align:left;cursor:pointer}.fj-canvas-arrow{position:relative;display:grid;place-items:center;align-self:stretch;margin:0;color:transparent;font-size:0}.fj-canvas-arrow:before{position:absolute;top:118px;left:0;width:100%;border-top:1px solid #9aa7b6;content:""}.fj-canvas-arrow:after{position:absolute;top:111px;right:-1px;color:#7e8a98;font-size:18px;font-weight:700;content:"›"}.fj-offer-stack{position:relative;width:auto;min-width:0;display:grid;gap:0}.fj-offer-stack .fj-stage{min-width:0;min-height:0;padding:10px;background:rgba(255,255,255,.96);border:1px solid var(--hair);border-radius:10px;box-shadow:0 1px 2px rgb(16 24 40 / 4%)}.fj-offer-stack .fj-stage-downsell{margin-top:0}.fj-offer-branch{position:relative;height:34px;margin:0 18px}.fj-offer-branch:before{position:absolute;top:17px;left:0;width:100%;border-top:1px dashed #c6932f;content:""}.fj-decline-marker{position:absolute;top:8px;left:50%;z-index:1;transform:translateX(-50%);padding:1px 6px;color:#a9701a;background:#fff8eb;border:1px solid #efd6a1;border-radius:999px;font-size:9px;font-weight:700;white-space:nowrap}.fj-traffic-mini{display:grid;gap:6px;margin:0 0 8px;padding:8px;border:1px solid #cfe1ff;border-radius:7px;background:#f7faff}.fj-traffic-mini header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:6px!important;padding:0!important;border:0!important}.fj-traffic-mini header small{display:block;color:var(--ink-muted);font-size:9.5px}.fj-traffic-mini header strong{display:block;color:var(--ink);font-size:10.5px}.fj-traffic-mini header .btn{height:23px;padding:0 6px;font-size:9.5px}.fj-traffic-mini>div{display:flex;flex-wrap:wrap;gap:4px}.fj-traffic-chip{display:inline-flex;align-items:center;padding:3px 5px;color:#2b62d6;background:#e8f0fe;border-radius:5px;font-size:9.5px;font-weight:650}.fj-traffic-chip b{margin-left:1px;font-weight:800;font-variant-numeric:tabular-nums}.fj-traffic-chip.is-control{color:#5f6c7b;background:#eef1f4}.fj-traffic-mini p{margin:0!important;font-size:9.5px!important;line-height:1.35!important}.fj-selected{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 12px;padding:12px 14px;border:1px solid var(--hair);border-radius:9px;background:#fff}.fj-selected strong{display:block;margin-top:2px;font-size:13px;color:var(--ink)}.fj-selected p{margin:3px 0 0;color:var(--ink-muted);font-size:11.5px;line-height:1.45}.fj-selected .btn{flex:none}@media(max-width:760px){.fj-canvas{min-height:0;padding:12px}.fj-canvas-row{min-width:980px}.fj-canvas-head{align-items:flex-start;flex-direction:column}.fj-canvas-tools{width:100%;justify-content:flex-end}.fj-selected{align-items:flex-start;flex-direction:column}.fj-selected .btn{width:100%}}' +
-      '.fj-canvas-row-3{grid-template-columns:minmax(190px,1fr) 22px minmax(220px,1.15fr) 22px minmax(190px,1fr);min-width:720px}.fj-canvas-arrow:after{top:110px;right:-2px;padding:0 2px;color:#7e8a98;background:#fbfcfd;font-size:18px;font-weight:700;line-height:1;content:"→"}.fj-offer-branch{height:56px}.fj-offer-branch:after{position:absolute;top:29px;bottom:0;left:50%;border-left:1px dashed #c6932f;content:""}.fj-branch-arrow{position:absolute;z-index:2;top:37px;left:50%;transform:translateX(-50%);padding:0 2px;color:#b97917;background:#fbfcfd;font-size:13px;font-weight:700;line-height:13px}' +
-      '.fj-canvas-row .fj-node-actions .btn{transition:border-color .16s ease,background-color .16s ease,color .16s ease,box-shadow .16s ease,transform .16s ease}.fj-canvas-row .fj-node-actions .btn:hover{border-color:#78a9df;background:#eaf4ff;color:#1768b3;box-shadow:0 2px 6px rgba(33,102,173,.18);transform:translateY(-1px)}.fj-canvas-row .fj-node-actions .fj-delete-checkout{color:#c23b35}.fj-canvas-row .fj-node-actions .fj-delete-checkout:hover{border-color:#e0a29e;background:#fff4f3;color:#b12924;box-shadow:0 2px 6px rgba(181,58,50,.14)}.fj-canvas-row .fj-node-actions .btn:active{transform:translateY(0);box-shadow:none}.fj-canvas-row .fj-node-actions .btn:focus-visible{outline:2px solid #76adf1;outline-offset:2px;border-color:#4b8fd8}' +
+'.fj-canvas-journey{margin:0 0 12px;padding:0;overflow:hidden}.fj-canvas-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid var(--hair);background:#fff}.fj-canvas-head>div:first-child{display:flex;align-items:baseline;gap:7px}.fj-canvas-head strong{font-size:12px;color:var(--ink-body);font-weight:500}.fj-canvas-tools{display:flex;align-items:center;gap:6px;color:var(--ink-muted);font-size:11px}.fj-canvas-tools .btn{height:27px;padding:0 8px;font-size:11px}.fj-canvas{min-height:440px;overflow:auto;padding:16px;background-color:#fbfcfd;background-image:radial-gradient(#dbe1e8 1px,transparent 1px);background-size:12px 12px}.fj-canvas-row{display:grid;grid-template-columns:minmax(190px,1fr) 22px minmax(220px,1.15fr) 22px minmax(220px,1.15fr) 22px minmax(190px,1fr);align-items:start;column-gap:12px;width:100%;min-width:980px}.fj-canvas-row>.fj-stage{width:auto;min-width:0;min-height:0;padding:10px;background:rgba(255,255,255,.96);box-shadow:0 1px 2px rgb(16 24 40 / 4%)}.fj-canvas-row>.fj-stage header,.fj-offer-stack .fj-stage header{padding-bottom:8px}.fj-canvas-row>.fj-stage h3,.fj-offer-stack .fj-stage h3{font-size:12px}.fj-canvas-row>.fj-stage p,.fj-offer-stack .fj-stage p{font-size:10.5px}.fj-canvas-row .fj-stage-nodes{margin-top:9px}.fj-canvas-row .fj-node{padding:9px}.fj-canvas-row .fj-node-actions{margin-top:7px}.fj-canvas-row .fj-node-actions .btn{height:25px;font-size:10px;padding:0 7px}.fj-canvas-row .fj-stage-hint{font-size:10.5px}.fj-canvas-row .fj-store-link{border:0;background:none;padding:0;text-align:left;cursor:pointer}.fj-canvas-arrow{position:relative;display:grid;place-items:center;align-self:stretch;margin:0;color:transparent;font-size:0}.fj-canvas-arrow:before{position:absolute;top:118px;left:0;width:100%;border-top:1px solid #9aa7b6;content:""}.fj-canvas-arrow:after{position:absolute;top:111px;right:-1px;color:#7e8a98;font-size:18px;font-weight:700;content:"›"}.fj-offer-stack{position:relative;width:auto;min-width:0;display:grid;gap:0}.fj-offer-stack .fj-stage{min-width:0;min-height:0;padding:10px;background:rgba(255,255,255,.96);border:1px solid var(--hair);border-radius:10px;box-shadow:0 1px 2px rgb(16 24 40 / 4%)}.fj-offer-stack .fj-stage-downsell{margin-top:0}.fj-offer-branch{position:relative;height:34px;margin:0 18px}.fj-offer-branch:before{position:absolute;top:17px;left:0;width:100%;border-top:1px dashed #c6932f;content:""}.fj-decline-marker{position:absolute;top:8px;left:50%;z-index:1;transform:translateX(-50%);padding:1px 6px;color:#a9701a;background:#fff8eb;border:1px solid #efd6a1;border-radius:999px;font-size:9px;font-weight:700;white-space:nowrap}.fj-traffic-mini{display:grid;gap:6px;margin:0 0 8px;padding:8px;border:1px solid #cfe1ff;border-radius:7px;background:#f7faff}.fj-traffic-mini header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:6px!important;padding:0!important;border:0!important}.fj-traffic-mini header small{display:block;color:var(--ink-muted);font-size:9.5px}.fj-traffic-mini header strong{display:block;color:var(--ink);font-size:10.5px}.fj-traffic-mini header .btn{height:23px;padding:0 6px;font-size:9.5px}.fj-traffic-mini>div{display:flex;flex-wrap:wrap;gap:5px}.fj-traffic-chip{display:inline-flex;align-items:center;gap:4px;padding:2px 3px 2px 6px;color:#2b62d6;background:#e8f0fe;border-radius:5px;font-size:9.5px;font-weight:650;white-space:nowrap}.fj-traffic-chip-name{min-width:0}.fj-traffic-chip b{display:inline-flex;align-items:center;justify-content:center;min-width:25px;height:16px;padding:0 4px;color:#1d58c3;background:#fff;border-radius:4px;font-size:9px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}.fj-traffic-chip.is-control{color:#5f6c7b;background:#eef1f4}.fj-traffic-mini p{margin:0!important;font-size:9.5px!important;line-height:1.35!important}.fj-selected{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 12px;padding:12px 14px;border:1px solid var(--hair);border-radius:9px;background:#fff}.fj-selected strong{display:block;margin-top:2px;font-size:13px;color:var(--ink)}.fj-selected p{margin:3px 0 0;color:var(--ink-muted);font-size:11.5px;line-height:1.45}.fj-selected .btn{flex:none}@media(max-width:760px){.fj-canvas{min-height:0;padding:12px}.fj-canvas-row{min-width:980px}.fj-canvas-head{align-items:flex-start;flex-direction:column}.fj-canvas-tools{width:100%;justify-content:flex-end}.fj-selected{align-items:flex-start;flex-direction:column}.fj-selected .btn{width:100%}}' +
+      '.fj-canvas-row-3{grid-template-columns:minmax(190px,1fr) minmax(220px,1.15fr) minmax(190px,1fr);min-width:720px}.fj-offer-branch{height:56px}.fj-offer-branch:after{position:absolute;top:29px;bottom:0;left:50%;border-left:1px dashed #c6932f;content:""}.fj-branch-arrow{position:absolute;z-index:2;top:37px;left:50%;transform:translateX(-50%);padding:0 2px;color:#b97917;background:#fbfcfd;font-size:13px;font-weight:700;line-height:13px}' +
+      '.fj-canvas-row .fj-node-actions .btn{border-color:#b8d3f1;background:#f5f9ff;color:#1768b3;font-weight:650;transition:border-color .16s ease,background-color .16s ease,color .16s ease,box-shadow .16s ease,transform .16s ease}.fj-canvas-row .fj-node-actions a.btn{border-color:#1473bb;background:#1473bb;color:#fff;box-shadow:0 1px 2px rgb(20 115 187 / 18%)}.fj-canvas-row .fj-node-actions .btn:hover{border-color:#78a9df;background:#eaf4ff;color:#1768b3;box-shadow:0 2px 6px rgba(33,102,173,.18);transform:translateY(-1px)}.fj-canvas-row .fj-node-actions a.btn:hover{border-color:#0d64a5;background:#0d64a5;color:#fff}.fj-canvas-row .fj-node-actions .fj-delete-checkout{border-color:#f2c3bf;background:#fff8f7;color:#c23b35}.fj-canvas-row .fj-node-actions .fj-delete-checkout:hover{border-color:#e0a29e;background:#fff4f3;color:#b12924;box-shadow:0 2px 6px rgba(181,58,50,.14)}.fj-canvas-row .fj-node-actions .btn:active{transform:translateY(0);box-shadow:none}.fj-canvas-row .fj-node-actions .btn:focus-visible{outline:2px solid #76adf1;outline-offset:2px;border-color:#4b8fd8}' +
+      '.fj-canvas{min-height:400px;padding:18px}.fj-canvas-row{grid-template-columns:minmax(180px,.9fr) 34px minmax(252px,1.15fr) 34px minmax(224px,1fr) 34px minmax(180px,.85fr);align-items:stretch;column-gap:10px;min-width:980px}.fj-canvas-row-3{grid-template-columns:minmax(180px,.9fr) 34px minmax(252px,1.15fr) 34px minmax(180px,.85fr);min-width:780px}.fj-canvas-row>.fj-stage{align-self:center}.fj-journey-connector{position:relative;align-self:stretch;min-width:0;pointer-events:none}.fj-journey-connector:before{position:absolute;top:50%;right:7px;left:0;border-top:1.5px solid #93a4b8;content:""}.fj-journey-connector:after{position:absolute;top:calc(50% - 4px);right:1px;width:7px;height:7px;border-top:1.5px solid #72849a;border-right:1.5px solid #72849a;transform:rotate(45deg);content:""}.fj-stage-checkout .fj-stage-nodes{display:flex;flex-direction:column;gap:9px}.fj-checkout-branches{position:relative;display:grid;gap:9px;padding-left:18px}.fj-checkout-branches:before{position:absolute;top:27px;bottom:27px;left:6px;border-left:1px solid #b8c5d3;content:""}.fj-checkout-branches .fj-node{position:relative}.fj-checkout-branches .fj-node:before{position:absolute;top:27px;left:-12px;width:12px;border-top:1px solid #b8c5d3;content:""}.fj-checkout-branches .fj-node:after{position:absolute;top:23px;left:-15px;width:7px;height:7px;border:1px solid #8aa0b6;border-radius:50%;background:#fff;content:""}.fj-offer-stack{align-self:center;gap:0}.fj-offer-branch{height:26px;margin:0}.fj-offer-branch:before,.fj-offer-branch:after,.fj-branch-arrow{display:none}.fj-decline-marker{top:4px;left:0;transform:none;padding:2px 7px;color:#9f6512;background:#fff8eb;border-color:#efd6a1}.fj-offer-stack .fj-stage{box-shadow:none}.fj-stage-thankyou{align-self:center}' +
+'.fj-stage-checkout .fj-stage-nodes{display:flex;flex-direction:column;gap:9px}.fj-checkout-branches{position:relative;display:grid;gap:12px;padding:0 20px}.fj-checkout-branches:before,.fj-checkout-branches:after{position:absolute;top:28px;bottom:28px;width:1px;border:0;background:#b8c5d3;content:""}.fj-checkout-branches:before{left:6px}.fj-checkout-branches:after{right:6px}.fj-checkout-branches .fj-node{position:relative}.fj-checkout-branches .fj-node:before,.fj-checkout-branches .fj-node:after{position:absolute;top:50%;width:14px;height:1px;border:0;border-radius:0;background:#b8c5d3;content:""}.fj-checkout-branches .fj-node:before{left:-14px}.fj-checkout-branches .fj-node:after{right:-14px;left:auto}.fj-offer-branch{display:flex;align-items:center;gap:5px;height:30px;margin:0;padding:0 12px}.fj-offer-branch:before,.fj-offer-branch:after{display:none}.fj-decline-marker{position:static;transform:none;padding:2px 7px;color:#9f6512;background:#fff8eb;border:1px solid #efd6a1;border-radius:999px;font-size:9px;font-weight:700}.fj-branch-arrow{position:static;transform:none;padding:0;color:transparent;background:transparent;font-size:0;font-weight:700;line-height:1}.fj-branch-arrow:after{color:#b97917;font-size:14px;content:"\\2193"}.fj-outcome.complete b{color:#56677a}.fj-outcomes-shared{margin-top:8px}' +
+      '.fj-checkout-branches{--fj-checkout-branch-gap:12px;gap:var(--fj-checkout-branch-gap)}.fj-checkout-branches:before,.fj-checkout-branches:after{display:none}.fj-checkout-branches .fj-node:not(:last-child):before,.fj-checkout-branches .fj-node:not(:last-child):after{height:calc(100% + var(--fj-checkout-branch-gap) + 2px);background:linear-gradient(#b8c5d3,#b8c5d3) 0 0/14px 1px no-repeat,linear-gradient(#b8c5d3,#b8c5d3) 0 0/1px 100% no-repeat}.fj-checkout-branches .fj-node:not(:last-child):after{background:linear-gradient(#b8c5d3,#b8c5d3) 0 0/14px 1px no-repeat,linear-gradient(#b8c5d3,#b8c5d3) 100% 0/1px 100% no-repeat}' +
       '</style>';
   }
   function renderFlowJourney(flow, st, dirty) {
@@ -1295,14 +2090,18 @@
     }
     var journeyStages = [
       flowJourneyStoreStage(flow, entryText),
-      flowJourneyStage(st, 'checkout', { title: 'Checkout', description: 'Collect payment and confirm the order.', icon: '1', beforeNodes: flowJourneyTrafficMini(st), addCheckout: true })
+      flowJourneyStage(st, 'checkout', {
+        title: fnNodesOf(st, 'checkout').length > 1 ? 'Checkout variants' : 'Checkout',
+        description: fnNodesOf(st, 'checkout').length > 1 ? 'Parallel checkout routes selected by traffic rules.' : 'Collect payment and confirm the order.',
+        icon: '1', beforeNodes: flowJourneyTrafficMini(st), addCheckout: true
+      })
     ];
     if (offerStack) journeyStages.push(offerStack);
     journeyStages.push(flowJourneyStage(st, 'thankyou', { title: 'Thank you', description: 'Confirm the order and guide the next action.', icon: '✓' }));
-    var journeyRow = journeyStages.join('<span class="fj-canvas-arrow">→</span>');
+    var journeyRow = journeyStages.join('<span class="fj-journey-connector" aria-hidden="true"></span>');
     var journeyMarkup = '<section class="fj-journey panel fj-canvas-journey"><header class="fj-canvas-head"><div><span class="fj-eyebrow">' + t('Purchase journey') + '</span><strong>' + esc(flowPagePath(st)) + '</strong></div><div class="fj-canvas-tools"><button type="button" class="btn btn-default" data-fj-zoom="fit">' + t('Fit') + '</button><button type="button" class="btn btn-default" data-fj-zoom="out">−</button><output data-fj-zoom-output>' + Math.round(fjCanvasZoom * 100) + '%</output><button type="button" class="btn btn-default" data-fj-zoom="in">+</button></div></header><div class="fj-canvas"><div class="fj-canvas-row fj-canvas-row-' + journeyStages.length + '">' + journeyRow + '</div></div></section>';
     root.innerHTML = (window.UI && window.UI.unsavedBar ? window.UI.unsavedBar({ show: dirty, saveLabel: 'Publish', saveAct: 'funnel-publish', discardAct: 'funnel-discard' }) : '') + wrap(GSTYLE + FSTYLE + XSTYLE + FLOW_SYSTEM_STYLE + flowDetailHeader(flow) +
-      '<style>.fj-priority-edit{display:inline-flex;align-items:center;gap:4px;border:0;background:none;color:var(--brand);font:inherit;font-size:12px;font-weight:500;padding:0;cursor:pointer;margin-left:6px}.fj-priority-edit:hover{text-decoration:underline}</style><section class="fj-summary panel card-pad"><div class="fj-card-head"><div><h2>' + t('Customer entry') + '</h2><p>' + t('Set customer eligibility rules and priority for this flow. Customers who do not match continue to Shopify Checkout.') + '</p></div><div class="fj-summary-actions"><button type="button" class="btn btn-default" data-flow-entry>' + t('Configure entry') + '</button>' + trafficAction + '</div></div><div class="fj-summary-grid"><div><small>' + t('Eligible customers') + '</small><strong>' + esc(entryText) + '</strong></div><div><small>' + t('Priority') + '</small><strong>#' + esc(flow.priority) + '<button type="button" class="fj-priority-edit" data-flow-priority>' + t('Edit') + '</button></strong></div><div><small>' + t('System fallback') + '</small><strong>' + t('Shopify checkout') + '</strong></div></div></section>' +
+      '<style>.fj-priority-edit{display:inline-flex;align-items:center;gap:4px;border:0;background:none;color:var(--brand);font:inherit;font-size:12px;font-weight:500;padding:0;cursor:pointer;margin-left:6px}.fj-priority-edit:hover{text-decoration:underline}.fj-summary .fj-card-head p{max-width:none;white-space:nowrap}@media(max-width:680px){.fj-summary .fj-card-head p{white-space:normal}}</style><section class="fj-summary panel card-pad"><div class="fj-card-head"><div><h2>' + t('Customer entry') + '</h2><p>' + t('Set customer eligibility rules and priority for this flow. Customers who do not match continue to Shopify Checkout.') + '</p></div><div class="fj-summary-actions"><button type="button" class="btn btn-default" data-flow-entry>' + t('Configure entry') + '</button>' + trafficAction + '</div></div><div class="fj-summary-grid"><div><small>' + t('Eligible customers') + '</small><strong>' + esc(entryText) + '</strong></div><div><small>' + t('Priority') + '</small><strong>#' + esc(flow.priority) + '<button type="button" class="fj-priority-edit" data-flow-priority>' + t('Edit') + '</button></strong></div><div><small>' + t('System fallback') + '</small><strong>' + t('Shopify checkout') + '</strong></div></div></section>' +
       '<section class="fj-journey panel"><div class="fj-journey-head"><div><span class="fj-eyebrow">' + t('Pages and offers') + '</span><h2>' + t('Purchase journey') + '</h2><p>' + t('This funnel path was selected when the purchase flow was created. Configure its pages and offers here.') + '</p></div></div><div class="fj-stages">' +
         journeyStages.join('') +
       '</div>' + flowJourneyFallback() + '</section>');
@@ -1432,7 +2231,8 @@
     var thankyou = fnNodesOf(state, 'thankyou')[0];
     var steps = [];
     checkoutNodes.forEach(function (node, index) {
-      steps.push({ id: node.id, type: 'checkout', node: node, label: t('Checkout') + (checkoutNodes.length > 1 ? ' ' + (index + 1) : '') });
+      var variant = checkoutNodes.length > 1 ? String.fromCharCode(65 + index) : '';
+      steps.push({ id: node.id, type: 'checkout', node: node, variant: variant, label: t('Checkout') + (variant ? ' ' + variant : '') });
     });
     if (upsell) steps.push({ id: upsell.id, type: 'upsell', node: upsell, label: t('Upsell') });
     if (downsell) steps.push({ id: downsell.id, type: 'downsell', node: downsell, label: t('Downsell') });
@@ -1480,13 +2280,40 @@
       if (step.type === 'upsell' && !accepted && downsell) return downsell.id;
       return thankyou ? thankyou.id : steps[0].id;
     }
+    function previewDeviceIcon(kind) {
+      if (kind === 'mobile') return '<svg class="fp-live-device-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="7" y="2.75" width="10" height="18.5" rx="2.2"></rect><path d="M10.25 5.5h3.5"></path><circle cx="12" cy="18.25" r=".7" fill="currentColor" stroke="none"></circle></svg>';
+      return '<svg class="fp-live-device-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="3.5" width="18" height="12.5" rx="2"></rect><path d="M8.5 20.5h7M12 16v4.5"></path></svg>';
+    }
+    function previewRouteBadge(step) {
+      var glyph = step.type === 'checkout' ? (step.variant || '1') : step.type === 'upsell' ? '+' : step.type === 'downsell' ? '&darr;' : '&#10003;';
+      return '<span class="fp-live-route-badge">' + glyph + '</span>';
+    }
+    function previewRouteButton(step, extraClass) {
+      if (!step) return '';
+      return '<button type="button" class="fp-live-route-node fp-live-route-' + esc(step.type) + (extraClass ? ' ' + extraClass : '') + (step.id === activeId ? ' is-active' : '') + '" data-preview-step="' + esc(step.id) + '"' + (step.id === activeId ? ' aria-current="step"' : '') + '>' + previewRouteBadge(step) + '<span>' + esc(step.label) + '</span></button>';
+    }
+    function previewRouteArrow() { return '<i class="fp-live-route-arrow" aria-hidden="true">&rarr;</i>'; }
+    function previewRouteLabel(kind, label) { return '<span class="fp-live-route-label is-' + kind + '">' + esc(label) + '</span>'; }
+    function previewRouteLaneConnector() { return '<span class="fp-live-route-lane-connector" aria-hidden="true"></span>'; }
+    function previewRouteMarkup() {
+      var checkoutSteps = steps.filter(function (item) { return item.type === 'checkout'; });
+      var checkoutGroup = checkoutSteps.length ? '<section class="fp-live-route-group fp-live-route-checkout-group"><small>' + t(checkoutSteps.length > 1 ? 'Checkout variants' : 'Checkout') + '</small><div class="fp-live-route-checkouts">' + checkoutSteps.map(function (item) { return previewRouteButton(item); }).join('') + '</div></section>' : '';
+      var thankyouStep = steps.filter(function (item) { return item.type === 'thankyou'; })[0];
+      var downsellStep = steps.filter(function (item) { return item.type === 'downsell'; })[0];
+      var upsellStep = steps.filter(function (item) { return item.type === 'upsell'; })[0];
+      if (!upsellStep && !downsellStep) return '<div class="fp-live-route-map">' + checkoutGroup + (checkoutGroup && thankyouStep ? previewRouteArrow() : '') + previewRouteButton(thankyouStep, 'is-terminal') + '</div>';
+      if (!upsellStep) return '<div class="fp-live-route-map">' + checkoutGroup + (checkoutGroup ? previewRouteArrow() : '') + previewRouteButton(downsellStep) + (thankyouStep ? previewRouteArrow() + previewRouteButton(thankyouStep, 'is-terminal') : '') + '</div>';
+      var acceptedLane = '<div class="fp-live-route-decision-row is-accepted">' + previewRouteLabel('accepted', t('Accepted')) + (thankyouStep ? previewRouteLaneConnector() : '') + '</div>';
+      var declinedLane = '<div class="fp-live-route-decision-row is-declined">' + previewRouteLabel('declined', t('Declined')) + (downsellStep ? previewRouteArrow() + previewRouteButton(downsellStep) : '') + (thankyouStep ? previewRouteLaneConnector() : '') + '</div>';
+      // All buyer outcomes join once before the shared confirmation page.
+      var terminal = thankyouStep ? '<span class="fp-live-route-decision-merge" aria-hidden="true"></span>' + previewRouteArrow() + previewRouteButton(thankyouStep, 'is-terminal') : '';
+      return '<div class="fp-live-route-map">' + checkoutGroup + (checkoutGroup ? previewRouteArrow() : '') + '<section class="fp-live-route-offer"><small>' + t('Upsell') + '</small><div class="fp-live-route-offer-content">' + previewRouteButton(upsellStep) + '<div class="fp-live-route-decision"><div class="fp-live-route-decision-lanes">' + acceptedLane + declinedLane + '</div>' + terminal + '</div></div></section></div>';
+    }
     function render() {
       var step = currentStep();
       var rail = modal.querySelector('[data-preview-steps]');
       var stage = modal.querySelector('[data-preview-stage]');
-      rail.innerHTML = steps.map(function (item, index) {
-        return '<button type="button" class="fp-live-step' + (item.id === step.id ? ' is-active' : '') + '" data-preview-step="' + esc(item.id) + '"><span>' + (item.type === 'checkout' ? '1' : item.type === 'upsell' ? '+' : item.type === 'downsell' ? '↓' : '✓') + '</span>' + esc(item.label) + '</button>' + (index < steps.length - 1 ? '<i class="fp-live-arrow">›</i>' : '');
-      }).join('');
+      rail.innerHTML = previewRouteMarkup();
       stage.innerHTML = '<div class="fp-live-frame' + (device === 'mobile' ? ' is-mobile' : '') + '">' + screenFor(step) + '</div>';
       modal.querySelectorAll('[data-preview-step]').forEach(function (button) { button.onclick = function () { activeId = button.getAttribute('data-preview-step'); render(); }; });
       var accept = modal.querySelector('[data-preview-accept]');
@@ -1495,7 +2322,12 @@
       if (decline) decline.onclick = function () { activeId = nextAfterOffer(step, false); render(); };
       var restart = modal.querySelector('[data-preview-restart]');
       if (restart) restart.onclick = function () { activeId = steps[0].id; render(); };
-      modal.querySelectorAll('[data-preview-device]').forEach(function (button) { button.onclick = function () { device = button.getAttribute('data-preview-device'); render(); }; });
+      modal.querySelectorAll('[data-preview-device]').forEach(function (button) {
+        var selectedDevice = button.getAttribute('data-preview-device') === device;
+        button.classList.toggle('is-active', selectedDevice);
+        button.setAttribute('aria-pressed', String(selectedDevice));
+        button.onclick = function () { device = button.getAttribute('data-preview-device'); render(); };
+      });
     }
 
     modal.innerHTML = XSTYLE + '<style>' +
@@ -1503,6 +2335,23 @@
       '</style><section class="xp-mc fp-live-modal" role="dialog" aria-modal="true" aria-label="' + esc(t('Preview purchase flow')) + '"><header class="fp-live-head"><div><small>' + t('Preview as shopper') + '</small><h2>' + esc(t(flow.name || 'Purchase flow')) + '</h2></div><button type="button" class="fp-live-close" data-preview-close aria-label="' + esc(t('Close')) + '">×</button></header><div class="fp-live-rail"><div class="fp-live-steps" data-preview-steps></div><div class="fp-live-devices"><button type="button" data-preview-device="desktop" title="Desktop">▣</button><button type="button" data-preview-device="mobile" title="Mobile">▯</button></div></div><div class="fp-live-body" data-preview-stage></div><footer class="fp-live-foot"><button type="button" class="btn btn-default" data-preview-restart>' + t('Restart preview') + '</button><button type="button" class="btn btn-primary" data-preview-close>' + t('Close') + '</button></footer></section>';
     document.body.appendChild(modal);
     bcI18n(modal);
+    var previewDeviceControls = modal.querySelector('.fp-live-devices');
+    if (previewDeviceControls) previewDeviceControls.innerHTML = '<button type="button" data-preview-device="desktop" title="Desktop" aria-label="Desktop">' + previewDeviceIcon('desktop') + '</button><button type="button" data-preview-device="mobile" title="Mobile" aria-label="Mobile">' + previewDeviceIcon('mobile') + '</button>';
+    var previewRouteStyle = document.createElement('style');
+    previewRouteStyle.textContent = '.fp-live-rail.fp-live-rail{align-items:flex-start;gap:14px;padding:10px 16px}.fp-live-route-map{display:flex;align-items:center;gap:12px;min-width:max-content}.fp-live-route-group,.fp-live-route-offer{display:flex;flex-direction:column;gap:5px;min-width:0}.fp-live-route-group>small,.fp-live-route-offer>small{color:#7a8797;font-size:10px;font-weight:750;letter-spacing:.04em;line-height:1;text-transform:uppercase}.fp-live-route-checkouts{display:flex;flex-wrap:wrap;gap:5px;max-width:350px}.fp-live-route-arrow{display:grid;place-items:center;width:16px;height:24px;color:#97a5b5;font-size:18px;font-style:normal}.fp-live-route-node{display:inline-flex;align-items:center;gap:6px;min-width:0;height:32px;padding:0 10px;border:1px solid #cfd8e3;border-radius:7px;background:#fff;color:#344256;font:600 12px/1 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;white-space:nowrap;cursor:pointer}.fp-live-route-node:hover{border-color:#86b6ee;background:#f8fbff;color:#155eb5}.fp-live-route-node.is-active{border-color:#243243;background:#243243;color:#fff;box-shadow:0 0 0 2px rgb(36 50 67 / 12%)}.fp-live-route-badge{display:grid;place-items:center;width:15px;height:15px;border-radius:50%;background:#e8eef5;color:#526275;font-size:9px;font-weight:800;flex:none}.fp-live-route-node.is-active .fp-live-route-badge{background:#fff;color:#243243}.fp-live-route-upsell .fp-live-route-badge{background:#e2f5ea;color:#188654}.fp-live-route-downsell .fp-live-route-badge{background:#fff0dd;color:#b56e0d}.fp-live-route-thankyou .fp-live-route-badge{background:#e5f4eb;color:#25804a}.fp-live-route-offer-content{display:flex;align-items:center;gap:10px}.fp-live-route-branches{position:relative;display:grid;gap:5px;padding-left:18px}.fp-live-route-branches:before{position:absolute;top:-8px;bottom:14px;left:7px;border-left:2px solid #d7dee7;content:""}.fp-live-route-branch{position:relative;display:flex;align-items:center;gap:5px}.fp-live-route-branch:before{position:absolute;left:-11px;width:11px;border-top:2px solid #d7dee7;content:""}.fp-live-route-branch .fp-live-route-arrow{width:13px;font-size:16px}.fp-live-route-label{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:999px;font-size:10.5px;font-weight:700;white-space:nowrap}.fp-live-route-label.is-accepted{background:#dcf7e7;color:#157446}.fp-live-route-label.is-declined{background:#ffe4e0;color:#b43a2a}.fp-live-devices button{padding:0}.fp-live-device-icon{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}@media(max-width:720px){.fp-live-rail.fp-live-rail{padding:9px 12px}.fp-live-route-checkouts{max-width:260px}.fp-live-route-offer-content{align-items:flex-start}.fp-live-route-map{align-items:flex-start}}';
+    modal.appendChild(previewRouteStyle);
+    var previewRouteCleanupStyle = document.createElement('style');
+    previewRouteCleanupStyle.textContent = '.fp-live-rail.fp-live-rail{align-items:center;padding:10px 16px}.fp-live-route-map{gap:14px;align-items:center}.fp-live-route-group,.fp-live-route-offer{gap:6px}.fp-live-route-checkouts{flex-direction:column;align-items:stretch;flex-wrap:nowrap;gap:6px;max-width:none}.fp-live-route-checkout-group{min-width:164px}.fp-live-route-checkouts .fp-live-route-node{justify-content:flex-start}.fp-live-route-offer-content{align-items:center;gap:12px}.fp-live-route-decision{display:flex;align-items:center;gap:0}.fp-live-route-decision-lanes{display:grid;gap:6px}.fp-live-route-decision-row{position:relative;display:flex;align-items:center;min-height:30px;padding-right:12px}.fp-live-route-decision-row:after{position:absolute;top:50%;right:0;width:12px;border-top:1px solid #c7d1dc;content:""}.fp-live-route-decision-merge{position:relative;display:block;width:18px;height:66px;margin-left:0}.fp-live-route-decision-merge:before{position:absolute;top:15px;bottom:15px;left:0;border-left:1px solid #c7d1dc;content:""}.fp-live-route-decision-merge:after{position:absolute;top:33px;left:0;width:18px;border-top:1px solid #c7d1dc;content:""}.fp-live-route-decision>.fp-live-route-arrow{margin-left:3px}.fp-live-route-decision-row .fp-live-route-arrow{width:14px;font-size:15px}.fp-live-route-decision-row .fp-live-route-node{height:30px;padding:0 8px}.fp-live-route-label{height:20px}.fp-live-route-node.is-terminal{align-self:center}.fp-live-route-branches{display:none}@media(max-width:720px){.fp-live-rail.fp-live-rail{align-items:flex-start}.fp-live-route-map{align-items:flex-start}.fp-live-route-checkout-group{min-width:148px}.fp-live-route-decision{align-items:flex-start}}';
+    modal.appendChild(previewRouteCleanupStyle);
+    var previewRouteMapStyle = document.createElement('style');
+    previewRouteMapStyle.textContent = '.fp-live-rail.fp-live-rail{align-items:center;padding:12px 16px}.fp-live-route-map{gap:14px;align-items:center}.fp-live-route-group,.fp-live-route-offer{gap:7px}.fp-live-route-checkout-group{min-width:178px}.fp-live-route-checkouts{position:relative;display:grid;gap:8px;max-width:none;padding:0 20px}.fp-live-route-checkouts:before,.fp-live-route-checkouts:after{position:absolute;top:16px;bottom:16px;border-left:1px solid #c7d1dc;content:""}.fp-live-route-checkouts:before{left:6px}.fp-live-route-checkouts:after{right:6px}.fp-live-route-checkouts .fp-live-route-node{position:relative;justify-content:flex-start}.fp-live-route-checkouts .fp-live-route-node:before,.fp-live-route-checkouts .fp-live-route-node:after{position:absolute;top:50%;width:14px;border-top:1px solid #c7d1dc;content:""}.fp-live-route-checkouts .fp-live-route-node:before{left:-14px}.fp-live-route-checkouts .fp-live-route-node:after{right:-14px}.fp-live-route-offer-content{align-items:center;gap:12px}.fp-live-route-decision{display:grid;grid-template-columns:170px 24px 24px max-content;align-items:center;column-gap:0}.fp-live-route-decision-lanes{display:grid;grid-column:1;gap:8px;min-width:0}.fp-live-route-decision-row{display:flex;align-items:center;min-width:0;min-height:32px;padding-right:0}.fp-live-route-decision-row:after{display:none}.fp-live-route-lane-connector{display:block;flex:1;min-width:12px;border-top:1px solid #c7d1dc}.fp-live-route-decision-merge{position:relative;display:block;grid-column:2;width:24px;height:72px}.fp-live-route-decision-merge:before{position:absolute;top:16px;bottom:16px;left:0;border-left:1px solid #c7d1dc;content:""}.fp-live-route-decision-merge:after{position:absolute;top:50%;left:0;width:24px;border-top:1px solid #c7d1dc;content:""}.fp-live-route-decision>.fp-live-route-arrow{grid-column:3;margin-left:2px}.fp-live-route-decision>.fp-live-route-node.is-terminal{grid-column:4;grid-row:1;align-self:center}.fp-live-route-decision-row .fp-live-route-arrow{width:14px;font-size:15px}.fp-live-route-decision-row .fp-live-route-node{height:30px;padding:0 8px}.fp-live-route-label{height:20px}.fp-live-route-branches{display:none}@media(max-width:720px){.fp-live-rail.fp-live-rail{align-items:flex-start}.fp-live-route-map{align-items:flex-start}.fp-live-route-checkout-group{min-width:160px}.fp-live-route-decision{align-items:flex-start}}';
+    modal.appendChild(previewRouteMapStyle);
+    var previewMobileFrameStyle = document.createElement('style');
+    previewMobileFrameStyle.textContent = '.fp-live-frame.is-mobile .fp-live-checkout-grid,.fp-live-frame.is-mobile .fp-live-product-grid{grid-template-columns:1fr}.fp-live-frame.is-mobile .fp-live-checkout-grid>section{padding:22px}.fp-live-frame.is-mobile .fp-live-summary-card{min-height:auto;border-top:1px solid #e7ebef;border-left:0;padding:20px 22px}.fp-live-frame.is-mobile .fp-live-summary-card>span{margin-bottom:12px}.fp-live-frame.is-mobile .fp-live-offer-main{padding:22px 18px 28px}.fp-live-frame.is-mobile .fp-live-product-grid{gap:18px}.fp-live-frame.is-mobile .fp-live-product-art{min-height:190px}.fp-live-frame.is-mobile .fp-live-product-art span{width:92px;height:92px;border-radius:24px;font-size:46px}.fp-live-frame.is-mobile .fp-live-confirm{padding:16px 18px}.fp-live-frame.is-mobile .fp-live-confirm-link{display:none}.fp-live-frame.is-mobile .fp-live-thankyou-page{padding:36px 20px}.fp-live-frame.is-mobile .fp-live-storebar{padding:15px 18px}.fp-live-frame.is-mobile .fp-live-page{min-height:0}.fp-live-frame.is-mobile .fp-live-thankyou-page{min-height:540px}';
+    modal.appendChild(previewMobileFrameStyle);
+    var previewRouteHeightStyle = document.createElement('style');
+    previewRouteHeightStyle.textContent = '.fp-live-rail.fp-live-rail{flex:0 0 auto;min-height:104px;overflow-x:auto;overflow-y:hidden}';
+    modal.appendChild(previewRouteHeightStyle);
     var close = function () { document.removeEventListener('keydown', onKey); modal.remove(); };
     var onKey = function (event) { if (event.key === 'Escape') close(); };
     document.addEventListener('keydown', onKey);
@@ -1530,8 +2379,9 @@
       }
       if (field.kind === 'tags') {
         var tags = Array.isArray(condition.value) ? condition.value : [];
-        return '<div class="fe-tags" data-entry-tags="' + index + '"><div class="fe-tag-list">' + tags.map(function (tag) { return '<span>' + esc(tag) + '<button type="button" data-entry-rm-tag="' + index + '" data-tag="' + esc(tag) + '">×</button></span>'; }).join('') + '</div><input class="input" data-entry-tag-input="' + index + '" placeholder="' + t('Type a tag and press Enter') + '"></div>';
+        return flowTagComposerMarkup('fe', index, tags, 'data-entry-rm-tag', 'data-entry-tag-input');
       }
+      if (field.kind === 'entity') return flowEntryEntityControl('entry', index, field, condition.value);
       var prefix = field.unit === '$' ? '<span>$</span>' : '';
       var suffix = field.unit === 'orders' ? '<span>' + t('orders') + '</span>' : field.unit === 'days' ? '<span>' + t('days') + '</span>' : '';
       return '<div class="fe-number">' + prefix + '<input class="input" type="number" min="0" step="1" data-entry-value="' + index + '" value="' + esc(condition.value == null ? '' : condition.value) + '">' + suffix + '</div>';
@@ -1539,7 +2389,7 @@
     function row(index, condition) {
       var field = FLOW_ENTRY_FIELDS[condition.field] || FLOW_ENTRY_FIELDS.customer_tag;
       return '<div class="fe-row" data-entry-row="' + index + '"><select class="input fe-field" data-entry-field="' + index + '">' + fieldOptions(condition.field) + '</select>' +
-        (field.kind === 'number' ? '<select class="input fe-op" data-entry-op="' + index + '">' + operatorOptions(field, condition.op) + '</select>' : '') +
+        ((field.kind === 'number' || field.kind === 'entity') ? '<select class="input fe-op" data-entry-op="' + index + '">' + operatorOptions(field, condition.op) + '</select>' : '') +
         '<div class="fe-value-wrap">' + valueControl(index, condition) + '</div><button type="button" class="fe-remove" data-entry-remove="' + index + '" aria-label="' + t('Remove condition') + '">×</button></div>';
     }
     function render() {
@@ -1547,20 +2397,21 @@
       modal.innerHTML = XSTYLE + FSTYLE + '<style>' +
         '.fe-modal{width:min(720px,calc(100vw - 32px))}.fe-intro{margin:0 0 14px;color:var(--ink-muted);font-size:13px;line-height:1.55}.fe-list{display:flex;flex-direction:column;gap:8px}.fe-row{display:grid;grid-template-columns:152px 118px minmax(0,1fr) 28px;gap:8px;align-items:center;border:1px solid var(--hair);border-radius:9px;background:var(--panel);padding:8px}.fe-row .input{height:34px;min-width:0;background:#fff}.fe-value-wrap{min-width:0}.fe-number{display:flex;align-items:center;gap:5px}.fe-number>span{color:var(--ink-muted);font-size:12px;white-space:nowrap}.fe-number .input{flex:1;width:100%}.fe-tags{display:flex;align-items:center;gap:6px;min-width:0}.fe-tag-list{display:flex;align-items:center;flex-wrap:wrap;gap:4px}.fe-tag-list span{display:inline-flex;align-items:center;gap:4px;padding:3px 6px;border-radius:5px;background:#e6f0ff;color:#225ec0;font-size:12px;white-space:nowrap}.fe-tag-list button{border:0;background:transparent;color:inherit;padding:0;line-height:1;cursor:pointer;font-size:15px}.fe-tags .input{flex:1;width:100%;min-width:110px}.fe-remove{width:28px;height:28px;border:0;border-radius:6px;background:transparent;color:#9aa4b3;font-size:18px;cursor:pointer}.fe-remove:hover{background:#fdeaea;color:var(--err)}.fe-add{margin-top:10px}.fe-recognized{margin-top:14px;border-radius:8px;background:#fff8e8;color:#805d15;padding:10px 12px;font-size:12px;line-height:1.5}.fe-empty{border:1px dashed var(--ctl);border-radius:8px;padding:14px;color:var(--ink-muted);font-size:12.5px}.fe-msg{min-height:18px;margin:10px 0 0;color:var(--err);font-size:12px}.fe-msg:empty{display:none}@media(max-width:650px){.fe-row{grid-template-columns:1fr 1fr 28px}.fe-value-wrap{grid-column:1 / 3}.fe-tags{flex-wrap:wrap}.fe-tags .input{min-width:100%}}' +
         '</style><div class="xp-mc fe-modal"><div class="xp-mh">' + t('Configure customer entry') + '</div><div class="xp-mb"><p class="fe-intro"><strong>' + t('Who can enter this purchase flow?') + '</strong><br>' + t('Add cart, storefront, or customer conditions. Every condition must match before a customer enters this flow.') + '</p><div class="fe-list" data-entry-list>' + conditions + '</div><button type="button" class="btn btn-default fe-add" data-entry-add>+ ' + t('Add condition') + '</button><div class="fe-recognized">' + t('Customer attributes apply only to recognized Shopify customers. Customers who are not recognized or do not match continue to Shopify Checkout.') + '</div><p class="fe-msg" data-entry-msg></p></div><div class="xp-mf"><button type="button" class="btn btn-default" data-entry-cancel>' + t('Cancel') + '</button><button type="button" class="btn btn-primary" data-entry-save>' + t('Apply') + '</button></div></div>';
-      bcI18n(modal);
+      bcI18n(modal); mountFlowTagComposerStyle(modal);
       modal.querySelector('[data-entry-cancel]').onclick = close;
-      modal.querySelector('[data-entry-add]').onclick = function () { buf.push({ field: 'cart_total', op: 'at_least', value: '' }); render(); };
+      modal.querySelector('[data-entry-add]').onclick = function () { buf.push(flowEntryNewCondition(flowEntryNextAvailableFieldKey(buf))); render(); };
       modal.querySelectorAll('[data-entry-remove]').forEach(function (button) { button.onclick = function () { buf.splice(Number(button.getAttribute('data-entry-remove')), 1); render(); }; });
       modal.querySelectorAll('[data-entry-field]').forEach(function (select) { select.onchange = function () {
         var index = Number(select.getAttribute('data-entry-field')), field = FLOW_ENTRY_FIELDS[select.value];
-        buf[index] = { field: select.value, op: field.kind === 'number' ? field.operators[0].value : field.kind === 'tags' ? 'includes_any' : 'equals', value: field.kind === 'tags' ? [] : field.kind === 'select' ? field.options[0].value : '' }; render();
+        buf[index] = { field: select.value, op: field.operators[0].value, value: flowEntryEmptyValue(field) }; render();
       }; });
       modal.querySelectorAll('[data-entry-op]').forEach(function (select) { select.onchange = function () { buf[Number(select.getAttribute('data-entry-op'))].op = select.value; }; });
       modal.querySelectorAll('[data-entry-value]').forEach(function (input) { input.oninput = function () { var index = Number(input.getAttribute('data-entry-value')); buf[index].value = input.type === 'number' ? (input.value === '' ? '' : Number(input.value)) : input.value; }; });
       modal.querySelectorAll('[data-entry-rm-tag]').forEach(function (button) { button.onclick = function () { var index = Number(button.getAttribute('data-entry-rm-tag')), tag = button.getAttribute('data-tag'); buf[index].value = (buf[index].value || []).filter(function (item) { return item !== tag; }); render(); }; });
-      modal.querySelectorAll('[data-entry-tag-input]').forEach(function (input) { input.onkeydown = function (event) { if (event.key !== 'Enter') return; event.preventDefault(); var index = Number(input.getAttribute('data-entry-tag-input')), tag = input.value.trim(); if (tag && (buf[index].value || []).indexOf(tag) < 0) buf[index].value = (buf[index].value || []).concat([tag]); render(); }; });
+      bindFlowTagComposer(modal, '[data-entry-tag-input]', 'data-entry-tag-input', buf, render);
+      modal.querySelectorAll('[data-entry-entity-picker]').forEach(function (button) { button.onclick = function () { var index = Number(button.getAttribute('data-entry-entity-picker')), field = FLOW_ENTRY_FIELDS[buf[index].field]; openFlowEntryEntityPicker(field, buf[index].value, function (value) { buf[index].value = value; render(); }); }; });
       modal.querySelector('[data-entry-save]').onclick = function () {
-        var invalid = buf.some(function (condition) { var field = FLOW_ENTRY_FIELDS[condition.field] || {}; return field.kind === 'tags' ? !Array.isArray(condition.value) || !condition.value.length : condition.value === '' || condition.value == null; });
+        var invalid = buf.some(function (condition) { var field = FLOW_ENTRY_FIELDS[condition.field] || {}; return field.kind === 'tags' || field.kind === 'entity' ? !Array.isArray(condition.value) || !condition.value.length : condition.value === '' || condition.value == null; });
         if (invalid) { modal.querySelector('[data-entry-msg]').textContent = t('Complete or remove every condition before applying.'); return; }
         bcFlowUpdate(flow.id, { entryConditions: buf, entry: buf.length ? 'Custom audience' : 'All eligible customers', audience: buf.length ? 'Custom audience' : 'All eligible customers', updated: t('Just now') });
         close(); toast(t('Customer entry saved')); renderFunnel(flow.id);
@@ -1569,8 +2420,16 @@
     document.body.appendChild(modal); modal.addEventListener('click', function (event) { if (event.target === modal) close(); }); render();
   }
   function openFlowEntryEditor(flow) {
-    var buf = flowLegacyEntryConditions(flow), modal = document.createElement('div'); modal.className = 'xp-modal';
-    var close = function () { modal.remove(); };
+    var buf = flowLegacyEntryConditions(flow), modal = document.createElement('div'), openEntryFieldPicker = null; modal.className = 'xp-modal';
+    var close = function () { window.removeEventListener('resize', onEntryPickerViewportChange); modal.remove(); };
+    var onEntryPickerViewportChange = function () { if (openEntryFieldPicker !== null) { openEntryFieldPicker = null; render(); } };
+    var closeEntryFieldPicker = function () {
+      if (openEntryFieldPicker === null) return;
+      openEntryFieldPicker = null;
+      modal.querySelectorAll('.entry-field-menu-floating').forEach(function (menu) { menu.remove(); });
+      modal.querySelectorAll('.entry-field-picker.is-open').forEach(function (picker) { picker.classList.remove('is-open'); });
+      modal.querySelectorAll('[data-entry-field-toggle][aria-expanded="true"]').forEach(function (trigger) { trigger.setAttribute('aria-expanded', 'false'); });
+    };
     function fieldOptions(selected) {
       return ['Customer identity', 'Storefront context', 'Cart'].map(function (group) {
         var choices = Object.keys(FLOW_ENTRY_FIELDS).filter(function (key) { return FLOW_ENTRY_FIELDS[key].group === group; });
@@ -1585,8 +2444,9 @@
       if (field.kind === 'select') return '<select class="input fe-value" data-entry-value="' + index + '">' + field.options.map(function (option) { return '<option value="' + esc(option.value) + '"' + (option.value === condition.value ? ' selected' : '') + '>' + t(option.label) + '</option>'; }).join('') + '</select>';
       if (field.kind === 'tags') {
         var tags = Array.isArray(condition.value) ? condition.value : [];
-        return '<div class="fe-tags" data-entry-tags="' + index + '"><div class="fe-tag-list">' + tags.map(function (tag) { return '<span>' + esc(tag) + '<button type="button" data-entry-rm-tag="' + index + '" data-tag="' + esc(tag) + '">×</button></span>'; }).join('') + '</div><input class="input" data-entry-tag-input="' + index + '" placeholder="' + t('Type a tag and press Enter') + '"></div>';
+        return flowTagComposerMarkup('fe', index, tags, 'data-entry-rm-tag', 'data-entry-tag-input');
       }
+      if (field.kind === 'entity') return flowEntryEntityControl('entry', index, field, condition.value);
       var prefix = field.unit === '$' ? '<span>$</span>' : '';
       var suffix = field.unit === 'orders' ? '<span>' + t('orders') + '</span>' : field.unit === 'days' ? '<span>' + t(condition.op === 'more_than' ? 'days ago' : 'days') + '</span>' : field.unit === 'items' ? '<span>' + t('items') + '</span>' : '';
       if (condition.op === 'between') {
@@ -1601,26 +2461,72 @@
     }
     function invalidCondition(condition) {
       var field = FLOW_ENTRY_FIELDS[condition.field] || {};
-      if (field.kind === 'tags') return !Array.isArray(condition.value) || !condition.value.length;
+      if (field.kind === 'tags' || field.kind === 'entity') return !Array.isArray(condition.value) || !condition.value.length;
       if (condition.op === 'between') return !condition.value || condition.value.min === '' || condition.value.min == null || condition.value.max === '' || condition.value.max == null;
       return condition.value === '' || condition.value == null;
     }
     function render() {
       var conditions = buf.length ? buf.map(function (condition, index) { return row(index, condition); }).join('') : '<div class="fe-empty">' + t('No conditions added. All eligible customers can enter this purchase flow.') + '</div>';
       modal.innerHTML = XSTYLE + FSTYLE + '<style>' +
-        '.fe-modal{width:min(760px,calc(100vw - 32px))}.fe-modal .xp-mh{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.fe-modal-title{display:flex;flex-direction:column;gap:3px}.fe-modal-title strong{font-size:18px;line-height:1.3;color:var(--ink)}.fe-modal-title small{color:var(--ink-muted);font-size:12px}.fe-close{border:0;background:transparent;color:var(--ink-muted);font-size:22px;line-height:1;padding:0;cursor:pointer}.fe-layer{display:flex;gap:10px;border:1px solid #cfe1ff;border-radius:8px;background:#f5f9ff;padding:11px 12px}.fe-layer-icon{display:grid;place-items:center;width:24px;height:24px;border-radius:7px;background:#e6f0ff;color:var(--brand);font-size:13px;font-weight:750;flex:none}.fe-layer b{display:block;color:#294f89;font-size:11.5px;line-height:1.35}.fe-layer strong{display:block;margin-top:2px;color:var(--ink);font-size:13px}.fe-layer p{margin:3px 0 0;color:var(--ink-muted);font-size:11.5px;line-height:1.45}.fe-routing{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}.fe-control label{display:block;margin-bottom:5px;color:var(--ink-body);font-size:12px;font-weight:650}.fe-control .input,.fe-readonly{box-sizing:border-box;width:100%;height:35px}.fe-readonly{display:flex;align-items:center;border:1px solid var(--ctl);border-radius:7px;background:var(--panel);padding:0 10px;color:var(--ink-body);font-size:12.5px;font-weight:600}.fe-routing-hint{grid-column:1 / -1;margin:-4px 0 0;color:var(--ink-muted);font-size:10.5px;line-height:1.4}.fe-conditions{margin-top:14px;border:1px solid var(--hair);border-radius:9px;background:#fff;padding:10px}.fe-conditions-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:9px}.fe-conditions-head strong{display:block;color:var(--ink);font-size:12.5px}.fe-conditions-head p{margin:3px 0 0;color:var(--ink-muted);font-size:10.5px;line-height:1.4}.fe-fallback{display:inline-flex;align-items:center;border-radius:999px;background:#f1f3f5;color:#6b7280;padding:3px 7px;font-size:10px;white-space:nowrap}.fe-list{display:flex;flex-direction:column;gap:8px}.fe-row{display:grid;grid-template-columns:minmax(190px,1.18fr) minmax(130px,.8fr) minmax(180px,1fr) 26px;gap:6px;align-items:center;border:1px solid var(--ctl);border-radius:7px;background:#fff;padding:6px}.fe-row .input{height:33px;min-width:0;background:#fff}.fe-value-wrap{min-width:0}.fe-number{display:flex;align-items:center;gap:5px;min-width:0}.fe-number>span{color:var(--ink-muted);font-size:11px;white-space:nowrap}.fe-number .input{flex:1;width:100%;min-width:0}.fe-between{gap:4px}.fe-between .input{min-width:48px}.fe-tags{display:flex;align-items:center;gap:5px;min-width:0}.fe-tag-list{display:flex;align-items:center;flex-wrap:wrap;gap:4px}.fe-tag-list span{display:inline-flex;align-items:center;gap:4px;padding:3px 6px;border-radius:5px;background:#e6f0ff;color:#225ec0;font-size:11px;white-space:nowrap}.fe-tag-list button{border:0;background:transparent;color:inherit;padding:0;line-height:1;cursor:pointer;font-size:14px}.fe-tags .input{flex:1;width:100%;min-width:88px}.fe-remove{width:26px;height:26px;border:0;border-radius:6px;background:transparent;color:#9aa4b3;font-size:17px;cursor:pointer}.fe-remove:hover{background:#fdeaea;color:var(--err)}.fe-add{width:100%;height:31px;margin-top:8px;border:1px dashed #9cbbe9;border-radius:7px;background:#fbfdff;color:var(--brand);font-size:12px;font-weight:600;cursor:pointer}.fe-add:hover{border-color:var(--brand);background:#f3f8ff}.fe-helper{margin:9px 1px 0;color:var(--ink-muted);font-size:10px;line-height:1.4}.fe-empty{border:1px dashed var(--ctl);border-radius:7px;padding:13px;color:var(--ink-muted);font-size:12px}.fe-msg{min-height:18px;margin:9px 0 0;color:var(--err);font-size:12px}.fe-msg:empty{display:none}@media(max-width:650px){.fe-routing{grid-template-columns:1fr}.fe-routing-hint{grid-column:auto}.fe-conditions-head{flex-direction:column}.fe-row{grid-template-columns:1fr 1fr 26px}.fe-value-wrap{grid-column:1 / 3}.fe-tags{flex-wrap:wrap}.fe-tags .input{min-width:100%}}' +
-        '</style><div class="xp-mc fe-modal"><div class="xp-mh"><div class="fe-modal-title"><strong>' + t('Configure customer entry') + '</strong><small>' + esc(t(flow.name)) + '</small></div><button type="button" class="fe-close" data-entry-cancel aria-label="' + t('Close') + '">×</button></div><div class="xp-mb"><section class="fe-layer"><span class="fe-layer-icon">1</span><div><b>' + t('Layer 1: Purchase flow routing') + '</b><strong>' + t('Choose the purchase flow first, then its Checkout page.') + '</strong><p>' + t('Customers who do not match this flow continue to Shopify Checkout.') + '</p></div></section><section class="fe-routing"><div class="fe-control"><label>' + t('Purchase flow priority') + '</label><input class="input" type="number" min="1" step="1" data-entry-priority value="' + esc(flow.priority) + '"></div><div class="fe-control"><label>' + t('Conflict handling') + '</label><div class="fe-readonly">' + t('Highest priority match') + '</div></div><p class="fe-routing-hint">' + t('Higher values win. If several purchase flows match, customers enter only the highest-priority flow.') + '</p></section><section class="fe-conditions"><header class="fe-conditions-head"><div><strong>' + t('Who enters this purchase flow? (AND)') + '</strong><p>' + t('A customer enters only when every condition below matches.') + '</p></div><span class="fe-fallback">' + t('No match → Shopify Checkout') + '</span></header><div class="fe-list" data-entry-list>' + conditions + '</div><button type="button" class="fe-add" data-entry-add>+ ' + t('Add condition') + '</button><p class="fe-helper">' + t('Combine customer identity, storefront context, and cart conditions. Customer order and tag conditions apply only to signed-in customers.') + '</p></section><p class="fe-msg" data-entry-msg></p></div><div class="xp-mf"><button type="button" class="btn btn-default" data-entry-cancel>' + t('Cancel') + '</button><button type="button" class="btn btn-primary" data-entry-save>' + t('Save customer entry') + '</button></div></div>';
-      bcI18n(modal);
+        '.fe-modal{width:min(760px,calc(100vw - 32px))}.fe-modal .xp-mh{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.fe-modal-title strong{font-size:18px;line-height:1.3;color:var(--ink)}.fe-close{border:0;background:transparent;color:var(--ink-muted);font-size:22px;line-height:1;padding:0;cursor:pointer}.fe-layer{display:flex;gap:10px;border:1px solid #cfe1ff;border-radius:8px;background:#f5f9ff;padding:11px 12px}.fe-layer-icon{display:grid;place-items:center;width:24px;height:24px;border-radius:7px;background:#e6f0ff;color:var(--brand);font-size:13px;font-weight:750;flex:none}.fe-layer b{display:block;color:#294f89;font-size:11.5px;line-height:1.35}.fe-layer strong{display:block;margin-top:2px;color:var(--ink);font-size:13px}.fe-layer p{margin:3px 0 0;color:var(--ink-muted);font-size:11.5px;line-height:1.45}.fe-routing{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}.fe-control label{display:block;margin-bottom:5px;color:var(--ink-body);font-size:12px;font-weight:650}.fe-control .input,.fe-readonly{box-sizing:border-box;width:100%;height:35px}.fe-readonly{display:flex;align-items:center;border:1px solid var(--ctl);border-radius:7px;background:var(--panel);padding:0 10px;color:var(--ink-body);font-size:12.5px;font-weight:600}.fe-routing-hint{grid-column:1 / -1;margin:-4px 0 0;color:var(--ink-muted);font-size:10.5px;line-height:1.4}.fe-conditions{margin-top:14px;border:1px solid var(--hair);border-radius:9px;background:#fff;padding:10px}.fe-conditions-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:9px}.fe-conditions-head strong{display:block;color:var(--ink);font-size:12.5px}.fe-conditions-head p{margin:3px 0 0;color:var(--ink-muted);font-size:10.5px;line-height:1.4}.fe-fallback{display:inline-flex;align-items:center;border-radius:999px;background:#f1f3f5;color:#6b7280;padding:3px 7px;font-size:10px;white-space:nowrap}.fe-list{display:flex;flex-direction:column;gap:8px}.fe-row{display:grid;grid-template-columns:minmax(164px,.82fr) minmax(148px,.92fr) minmax(206px,1.26fr) 26px;gap:6px;align-items:center;border:1px solid var(--ctl);border-radius:7px;background:#fff;padding:6px}.fe-row .input{height:33px;min-width:0;background:#fff}.fe-value-wrap{min-width:0}.fe-number{display:flex;align-items:center;gap:5px;min-width:0}.fe-number>span{color:var(--ink-muted);font-size:11px;white-space:nowrap}.fe-number .input{flex:1;width:100%;min-width:0}.fe-between{gap:4px}.fe-between .input{min-width:48px}.fe-tags{display:flex;align-items:center;gap:5px;min-width:0}.fe-tag-list{display:flex;align-items:center;flex-wrap:wrap;gap:4px}.fe-tag-list span{display:inline-flex;align-items:center;gap:4px;padding:3px 6px;border-radius:5px;background:#e6f0ff;color:#225ec0;font-size:11px;white-space:nowrap}.fe-tag-list button{border:0;background:transparent;color:inherit;padding:0;line-height:1;cursor:pointer;font-size:14px}.fe-tags .input{flex:1;width:100%;min-width:88px}.fe-remove{width:26px;height:26px;border:0;border-radius:6px;background:transparent;color:#9aa4b3;font-size:17px;cursor:pointer}.fe-remove:hover{background:#fdeaea;color:var(--err)}.fe-add{width:100%;height:31px;margin-top:8px;border:1px dashed #9cbbe9;border-radius:7px;background:#fbfdff;color:var(--brand);font-size:12px;font-weight:600;cursor:pointer}.fe-add:hover{border-color:var(--brand);background:#f3f8ff}.fe-helper{margin:9px 1px 0;color:var(--ink-muted);font-size:10px;line-height:1.4}.fe-empty{border:1px dashed var(--ctl);border-radius:7px;padding:13px;color:var(--ink-muted);font-size:12px}.fe-msg{min-height:18px;margin:9px 0 0;color:var(--err);font-size:12px}.fe-msg:empty{display:none}@media(max-width:650px){.fe-routing{grid-template-columns:1fr}.fe-routing-hint{grid-column:auto}.fe-conditions-head{flex-direction:column}.fe-row{grid-template-columns:1fr 1fr 26px}.fe-value-wrap{grid-column:1 / 3}.fe-tags{flex-wrap:wrap}.fe-tags .input{min-width:100%}}' +
+        '</style><div class="xp-mc fe-modal"><div class="xp-mh"><div class="fe-modal-title"><strong>' + t('Configure customer entry') + '</strong></div><button type="button" class="fe-close" data-entry-cancel aria-label="' + t('Close') + '">×</button></div><div class="xp-mb"><section class="fe-layer"><span class="fe-layer-icon">1</span><div><b>' + t('Layer 1: Purchase flow routing') + '</b><strong>' + t('Choose the purchase flow first, then its Checkout page.') + '</strong><p>' + t('Customers who do not match this flow continue to Shopify Checkout.') + '</p></div></section><section class="fe-routing"><div class="fe-control"><label>' + t('Purchase flow priority') + '</label><input class="input" type="number" min="1" step="1" data-entry-priority value="' + esc(flow.priority) + '"></div><div class="fe-control"><label>' + t('Conflict handling') + '</label><div class="fe-readonly">' + t('Highest priority match') + '</div></div><p class="fe-routing-hint">' + t('Higher values win. If several purchase flows match, customers enter only the highest-priority flow.') + '</p></section><section class="fe-conditions"><header class="fe-conditions-head"><div><strong>' + t('Who enters this purchase flow? (AND)') + '</strong><p>' + t('A customer enters only when every condition below matches.') + '</p></div><span class="fe-fallback">' + t('No match → Shopify Checkout') + '</span></header><div class="fe-list" data-entry-list>' + conditions + '</div><button type="button" class="fe-add" data-entry-add>+ ' + t('Add condition') + '</button><p class="fe-helper">' + t('Combine customer identity, storefront context, and cart conditions. Customer order and tag conditions apply only to signed-in customers.') + '</p></section><p class="fe-msg" data-entry-msg></p></div><div class="xp-mf"><button type="button" class="btn btn-default" data-entry-cancel>' + t('Cancel') + '</button><button type="button" class="btn btn-primary" data-entry-save>' + t('Save customer entry') + '</button></div></div>';
+      bcI18n(modal); mountFlowTagComposerStyle(modal);
+      var routingSummary = modal.querySelector('.fe-layer');
+      if (routingSummary) {
+        routingSummary.className = 'fe-routing-summary';
+        routingSummary.innerHTML = '<div class="fe-routing-summary-head"><span class="fe-routing-step">1</span><strong>' + t('Purchase flow routing') + '</strong><em>' + t('No match → Shopify Checkout') + '</em></div><div class="fe-routing-summary-path"><span>Shopify cart</span><i aria-hidden="true">→</i><b>' + t('Matches entry conditions') + '</b><i aria-hidden="true">→</i><span>' + t('Checkout page') + '</span></div>';
+      }
+      var routingSummaryStyle = document.createElement('style');
+      routingSummaryStyle.textContent = '.fe-routing-summary{display:grid;gap:9px;margin:0;border:1px solid #cfe1ff;border-radius:8px;background:#f8fbff;padding:10px 12px}.fe-routing-summary-head{display:flex;align-items:center;gap:8px;min-width:0}.fe-routing-step{display:grid;place-items:center;flex:0 0 auto;width:22px;height:22px;border-radius:7px;background:#e6f0ff;color:var(--brand);font-size:11px;font-weight:750}.fe-routing-summary-head strong{color:#315b9c;font-size:12px;line-height:1.3}.fe-routing-summary-head em{margin-left:auto;padding:3px 7px;border-radius:999px;background:#fff;color:#697991;font-size:10px;font-style:normal;font-weight:600;white-space:nowrap}.fe-routing-summary-path{display:flex;align-items:center;gap:7px;min-width:0;padding-left:30px;color:#65748a;font-size:11.5px;line-height:1.35}.fe-routing-summary-path span{white-space:nowrap}.fe-routing-summary-path i{color:#92a2b7;font-style:normal}.fe-routing-summary-path b{overflow:hidden;min-width:0;padding:3px 7px;border:1px solid #c9ddfb;border-radius:5px;background:#edf5ff;color:#1d5eb9;font-size:11px;text-overflow:ellipsis;white-space:nowrap}@media(max-width:560px){.fe-routing-summary-head{flex-wrap:wrap}.fe-routing-summary-head em{margin-left:30px}.fe-routing-summary-path{flex-wrap:wrap;padding-left:30px}}';
+      modal.appendChild(routingSummaryStyle);
+      var entryPickerStyle = document.createElement('style');
+      entryPickerStyle.textContent = '.entry-field-picker{position:relative;min-width:0}.entry-field-trigger{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;height:33px;padding:0 9px;color:var(--ink);border:1px solid var(--ctl);border-radius:6px;background:#fff;font:inherit;font-size:12px;text-align:left;cursor:pointer}.entry-field-trigger:hover,.entry-field-picker.is-open .entry-field-trigger{border-color:#8fb8ed;box-shadow:0 0 0 2px rgba(43,98,214,.11)}.entry-field-trigger span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.entry-field-caret{box-sizing:border-box;display:block;flex:none;width:6px;height:6px;margin:0 2px 3px 0;border-right:1.5px solid var(--ink-muted);border-bottom:1.5px solid var(--ink-muted);transform:rotate(45deg)}.entry-field-menu{box-sizing:border-box;overflow:auto;border:1px solid #cbd6e5;border-radius:8px;background:#fff;box-shadow:0 14px 28px rgba(24,42,70,.18);padding:6px}.entry-field-menu-floating{position:fixed;z-index:1000}.entry-field-group+.entry-field-group{margin-top:5px;padding-top:6px;border-top:1px solid #e7edf5}.entry-field-group strong{display:block;padding:4px 7px 5px;color:#66768c;font-size:10px;font-weight:750;letter-spacing:.05em;text-transform:uppercase}.entry-field-choice{display:flex;align-items:center;width:100%;min-height:29px;padding:5px 8px;color:#344258;border:0;border-radius:5px;background:transparent;font:inherit;font-size:12px;text-align:left;cursor:pointer}.entry-field-choice:hover{background:#f1f6fd;color:#1d5eb9}.entry-field-choice.is-selected{background:#eaf2ff;color:#0b5fca;font-weight:650}';
+      entryPickerStyle.textContent += '.fe-conditions{margin-top:12px;border:0;background:transparent;padding:0}.fe-conditions-head{margin-bottom:7px}.fe-helper{margin-top:7px}.fe-row .input,.fe-row .entry-field-trigger,.fe-row .flow-entity-control{font-size:12px}.fe-row .flow-entity-control strong{font-size:12px}';
+      modal.appendChild(entryPickerStyle);
+      modal.querySelectorAll('[data-entry-field]').forEach(function (select) {
+        var index = Number(select.getAttribute('data-entry-field'));
+        var host = document.createElement('div');
+        host.innerHTML = flowEntryFieldPickerMarkup('entry', index, select.value, openEntryFieldPicker);
+        select.replaceWith(host.firstChild);
+      });
+      if (openEntryFieldPicker !== null) {
+        var fieldTrigger = modal.querySelector('[data-entry-field-toggle="' + openEntryFieldPicker + '"]');
+        var activeCondition = buf[openEntryFieldPicker];
+        if (fieldTrigger && activeCondition) {
+          var rect = fieldTrigger.getBoundingClientRect(), viewportPadding = 12, desiredMenuHeight = 330;
+          var availableBelow = window.innerHeight - rect.bottom - viewportPadding, availableAbove = rect.top - viewportPadding;
+          var openAbove = availableBelow < 220 && availableAbove > availableBelow;
+          var availableHeight = openAbove ? availableAbove : availableBelow;
+          // Keep the field menu compact, while leaving enough room for the longest
+          // customer, storefront, and cart attribute labels without truncation.
+          var menuWidth = Math.min(Math.max(196, rect.width), window.innerWidth - viewportPadding * 2);
+          var menuLeft = Math.max(viewportPadding, Math.min(rect.left, window.innerWidth - menuWidth - viewportPadding));
+          var fieldMenu = document.createElement('div');
+          fieldMenu.className = 'entry-field-menu entry-field-menu-floating';
+          fieldMenu.setAttribute('role', 'listbox');
+          fieldMenu.style.width = menuWidth + 'px';
+          fieldMenu.style.left = menuLeft + 'px';
+          fieldMenu.style.maxHeight = Math.max(120, Math.min(desiredMenuHeight, availableHeight - 5)) + 'px';
+          if (openAbove) fieldMenu.style.bottom = (window.innerHeight - rect.top + 5) + 'px';
+          else fieldMenu.style.top = (rect.bottom + 5) + 'px';
+          fieldMenu.innerHTML = flowEntryFieldPickerMenuMarkup('entry', openEntryFieldPicker, activeCondition.field);
+          modal.appendChild(fieldMenu);
+        }
+      }
+      var dialogScrollHost = modal.querySelector('.fe-modal');
+      if (dialogScrollHost) dialogScrollHost.onscroll = onEntryPickerViewportChange;
       modal.querySelectorAll('[data-entry-cancel]').forEach(function (button) { button.onclick = close; });
-      modal.querySelector('[data-entry-add]').onclick = function () { buf.push({ field: 'cart_total', op: 'at_least', value: '' }); render(); };
+      modal.querySelector('[data-entry-add]').onclick = function () { buf.push(flowEntryNewCondition(flowEntryNextAvailableFieldKey(buf))); render(); };
       modal.querySelectorAll('[data-entry-remove]').forEach(function (button) { button.onclick = function () { buf.splice(Number(button.getAttribute('data-entry-remove')), 1); render(); }; });
-      modal.querySelectorAll('[data-entry-field]').forEach(function (select) { select.onchange = function () { var index = Number(select.getAttribute('data-entry-field')), field = FLOW_ENTRY_FIELDS[select.value]; buf[index] = { field: select.value, op: field.operators[0].value, value: field.kind === 'tags' ? [] : field.kind === 'select' ? field.options[0].value : '' }; render(); }; });
+      modal.querySelectorAll('[data-entry-field-toggle]').forEach(function (button) { button.onclick = function () { var index = Number(button.getAttribute('data-entry-field-toggle')); openEntryFieldPicker = openEntryFieldPicker === index ? null : index; render(); }; });
+      modal.querySelectorAll('[data-entry-field-choice]').forEach(function (button) { button.onclick = function () { var index = Number(button.getAttribute('data-entry-condition-index')), fieldKey = button.getAttribute('data-entry-field-choice'), field = FLOW_ENTRY_FIELDS[fieldKey]; openEntryFieldPicker = null; buf[index] = { field: fieldKey, op: field.operators[0].value, value: flowEntryEmptyValue(field) }; render(); }; });
       modal.querySelectorAll('[data-entry-op]').forEach(function (select) { select.onchange = function () { var index = Number(select.getAttribute('data-entry-op')); buf[index].op = select.value; if (select.value === 'between') buf[index].value = { min: '', max: '' }; else if (buf[index].value && typeof buf[index].value === 'object' && !Array.isArray(buf[index].value)) buf[index].value = ''; render(); }; });
       modal.querySelectorAll('[data-entry-value]').forEach(function (input) { var update = function () { var index = Number(input.getAttribute('data-entry-value')); buf[index].value = input.type === 'number' ? (input.value === '' ? '' : Number(input.value)) : input.value; }; input.oninput = update; input.onchange = update; });
       modal.querySelectorAll('[data-entry-min]').forEach(function (input) { input.oninput = function () { var index = Number(input.getAttribute('data-entry-min')); if (!buf[index].value || typeof buf[index].value !== 'object') buf[index].value = { min: '', max: '' }; buf[index].value.min = input.value === '' ? '' : Number(input.value); }; });
       modal.querySelectorAll('[data-entry-max]').forEach(function (input) { input.oninput = function () { var index = Number(input.getAttribute('data-entry-max')); if (!buf[index].value || typeof buf[index].value !== 'object') buf[index].value = { min: '', max: '' }; buf[index].value.max = input.value === '' ? '' : Number(input.value); }; });
       modal.querySelectorAll('[data-entry-rm-tag]').forEach(function (button) { button.onclick = function () { var index = Number(button.getAttribute('data-entry-rm-tag')), tag = button.getAttribute('data-tag'); buf[index].value = (buf[index].value || []).filter(function (item) { return item !== tag; }); render(); }; });
-      modal.querySelectorAll('[data-entry-tag-input]').forEach(function (input) { input.onkeydown = function (event) { if (event.key !== 'Enter') return; event.preventDefault(); var index = Number(input.getAttribute('data-entry-tag-input')), tag = input.value.trim(); if (tag && (buf[index].value || []).indexOf(tag) < 0) buf[index].value = (buf[index].value || []).concat([tag]); render(); }; });
+      bindFlowTagComposer(modal, '[data-entry-tag-input]', 'data-entry-tag-input', buf, render);
+      modal.querySelectorAll('[data-entry-entity-picker]').forEach(function (button) { button.onclick = function () { var index = Number(button.getAttribute('data-entry-entity-picker')), field = FLOW_ENTRY_FIELDS[buf[index].field]; openFlowEntryEntityPicker(field, buf[index].value, function (value) { buf[index].value = value; render(); }); }; });
       modal.querySelector('[data-entry-save]').onclick = function () {
         var priority = Math.round(Number(modal.querySelector('[data-entry-priority]').value));
         if (!priority || priority < 1) { modal.querySelector('[data-entry-msg]').textContent = t('Priority must be a positive whole number.'); return; }
@@ -1630,12 +2536,12 @@
         close(); toast(t('Customer entry saved')); renderFunnel(flow.id);
       };
     }
-    document.body.appendChild(modal); modal.addEventListener('click', function (event) { if (event.target === modal) close(); }); render();
+    document.body.appendChild(modal); window.addEventListener('resize', onEntryPickerViewportChange); modal.addEventListener('pointerdown', function (event) { var target = event.target; if (openEntryFieldPicker !== null && (!target.closest || !target.closest('.entry-field-picker, .entry-field-menu-floating'))) closeEntryFieldPicker(); }); modal.addEventListener('click', function (event) { var target = event.target; if (openEntryFieldPicker !== null && (!target.closest || !target.closest('.entry-field-picker, .entry-field-menu-floating'))) closeEntryFieldPicker(); }); render();
   }
   function flowDetailHeader(flow) {
     return '<div class="fd-head"><style>' +
-      '.fd-head{margin-bottom:18px}.fd-main{display:flex;align-items:center;justify-content:space-between;gap:18px}.fd-title{display:flex;align-items:center;gap:12px;min-width:0}.fd-title h1{margin:0;font-size:20px;font-weight:600;letter-spacing:normal;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fd-title .back-btn{text-decoration:none;font-size:21px;line-height:1}.fd-actions{display:flex;gap:8px;flex:none;flex-wrap:wrap;justify-content:flex-end}.fd-delete{color:var(--err)!important;border-color:#f0c9bf!important}.fd-delete:hover{background:#fff4f2!important;border-color:var(--err)!important}.fd-purpose{max-width:860px;margin:8px 0 0;color:var(--ink-muted);font-size:13px;line-height:1.6}@media(max-width:760px){.fd-main{align-items:flex-start;flex-direction:column}.fd-actions{justify-content:flex-start}}' +
-      '</style><div class="fd-main"><div class="fd-title"><a class="back-btn" href="#/flows" aria-label="' + t('Back to purchase flows') + '" title="' + t('Back to purchase flows') + '">←</a><h1>' + esc(t(flow.name)) + '</h1>' + flowPill(flow.status) + '</div><div class="fd-actions"><button class="btn btn-default" data-flow-preview>' + t('Preview journey') + '</button>' + flowPrimaryButton(flow) + (flowIsLive(flow) ? '' : '<button type="button" class="btn btn-default fd-delete" data-flow-delete="' + esc(flow.id) + '">' + t('Delete purchase flow') + '</button>') + '</div></div><p class="fd-purpose">' + t(flowPurpose(flow)) + '</p></div>';
+      '.fd-head{margin-bottom:18px}.fd-main{display:flex;align-items:center;justify-content:space-between;gap:18px}.fd-title{display:flex;align-items:center;gap:12px;min-width:0}.fd-title h1{margin:0;font-size:20px;font-weight:600;letter-spacing:normal;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fd-title .back-btn{text-decoration:none;font-size:21px;line-height:1}.fd-actions{display:flex;gap:8px;flex:none;flex-wrap:wrap;justify-content:flex-end}.fd-delete{color:var(--err)!important;border-color:#f0c9bf!important}.fd-delete:hover{background:#fff4f2!important;border-color:var(--err)!important}.fd-purpose{display:none}@media(max-width:760px){.fd-main{align-items:flex-start;flex-direction:column}.fd-actions{justify-content:flex-start}}' +
+      '</style><div class="fd-main"><div class="fd-title"><a class="back-btn" href="#/flows" aria-label="' + t('Back to purchase flows') + '" title="' + t('Back to purchase flows') + '">←</a><h1>' + esc(t(flow.name)) + '</h1>' + flowPill(flow.status) + '</div><div class="fd-actions"><button class="btn btn-default" data-flow-preview>' + t('Preview journey') + '</button>' + flowPrimaryButton(flow) + '<button type="button" class="btn btn-default fd-delete" data-flow-delete="' + esc(flow.id) + '">' + t('Delete purchase flow') + '</button></div></div><p class="fd-purpose">' + t(flowPurpose(flow)) + '</p></div>';
   }
   function flowCanvasNode(nd) {
     var pos = nd.pos || { x: 40, y: 40 };
@@ -2485,8 +3391,8 @@
     var typeRow = mode === 'add' && !opts.lockType ? '<div class="xp-f"><label>' + t('Page type') + '</label><div class="pp-types">' +
       TYPES.map(function (ty) { return '<button type="button" class="pp-type' + (ty === selType ? ' on' : '') + '" data-ty="' + ty + '">' + t(fnLabel(ty)) + '</button>'; }).join('') + '</div></div>' : '';
     var swapDraftNote = mode === 'swap' ? '<div class="pp-draft-note"><span class="pp-draft-note-icon">✓</span><div><strong>' + t('Changing the draft does not change shopper traffic.') + '</strong><p>' + t('The published version stays in use until this purchase flow is published again.') + '</p></div></div>' : '';
-    m.innerHTML = '<div class="xp-mc"><div class="xp-mh">' + (mode === 'swap' ? t('Change template') : t(opts.title || 'Add a page')) + '</div><div class="xp-mb">' +
-      typeRow + '<div class="xp-f"><label>' + t('Template') + '</label><div class="pp-tpls" id="pp-tpls"></div></div>' + swapDraftNote + fromRow +
+    m.innerHTML = '<div class="xp-mc"><div class="xp-mh">' + (mode === 'swap' ? t('Change page') : t(opts.title || 'Add a page')) + '</div><div class="xp-mb">' +
+      typeRow + '<div class="xp-f"><div class="pp-tpls" id="pp-tpls"></div></div>' + swapDraftNote + fromRow +
       '</div><div class="xp-mf"><button class="btn btn-default" id="pp-cancel">' + t('Cancel') + '</button><button class="btn btn-primary" id="pp-ok">' + (mode === 'swap' ? t('Use selected page') : t('Add page')) + '</button></div></div>';
     document.body.appendChild(m);
     var wireFromSel = function () {
@@ -2501,8 +3407,7 @@
           '<span class="pp-thumb-wrap">' + bcTplThumb(x) + '</span>' +
           '<span class="pp-tpl-info"><span class="pp-tpl-nm">' + esc(x.name) + '</span>' +
             (x.tag ? '<span class="pp-tpl-tag">' + esc(t(x.tag)) + '</span>' : '') +
-          '</span>' +
-          (x.system ? '<span class="tp-sys">' + t('System') + '</span>' : '<span class="tp-saved">' + t('Saved') + '</span>') + '</button>';
+          '</span></button>';
       }).join('');
       m.querySelectorAll('#pp-tpls [data-tpl]').forEach(function (b) { b.onclick = function () { selTpl = b.getAttribute('data-tpl'); renderTpls(); }; });
     };
@@ -2519,7 +3424,7 @@
     m.querySelector('#pp-cancel').onclick = close;
     m.querySelector('#pp-ok').onclick = function () {
       if (!selTpl) { close(); return; }
-      if (mode === 'swap') { var s = bcFunnel(), n = fnNode(s, opts.id); if (n) n.tpl = selTpl; bcFunnelSave(s); close(); toast(t('Template changed')); renderFunnel(); }
+      if (mode === 'swap') { var s = bcFunnel(), n = fnNode(s, opts.id); if (n) n.tpl = selTpl; bcFunnelSave(s); close(); toast(t('Page changed')); renderFunnel(); }
       else { close(); if (opts.offerAdd) fnJourneyAddOffer(selType, selTpl); else fnAddPage(selType, selTpl, fixedParent || selParent || ''); }
     };
   }
@@ -3030,6 +3935,7 @@
     'new Daily Greens monthly started from the checkout': '从结账页发起了 Daily Greens 月度订阅',
   };
   Object.assign(ZH, {
+    'more': '更多',
     'BestCheckout installs the App Embed automatically. If it is removed during a theme change, reinstall it here to restore checkout interception.': 'BestCheckout 默认自动注入 App Embed。如果主题变更时被移除，可以在这里重新安装，恢复结账拦截。',
     'Restore App Embed': '重新安装 App Embed',
     'Checkout intercept installed': '结账拦截已安装',
@@ -3064,10 +3970,10 @@
     'Improve checkout completion': '提升结账完成率', 'Start with a focused checkout and add offers later.': '先完成简洁顺畅的结账，后续再按需添加优惠。', 'Checkout → Thank you': '结账页面 → Thank you 页面',
     'Nothing goes live when you create it': '创建后不会立即对买家生效', 'A draft is created with Shopify Checkout as the safety route. You choose traffic only when you publish.': '系统会先创建草稿，并保留 Shopify Checkout 作为安全兜底；发布时再决定要接入的流量。', 'A draft is created with Shopify Checkout as the safety route. Set the buyer entry from the flow after creating it.': '系统会先创建草稿，并保留 Shopify Checkout 作为安全兜底；创建后可在漏斗中配置买家入口。',
     'Continue': '继续', 'Back': '返回', 'Create flow': '创建流程', 'Starter flow': '起始流程', 'You can update the entry rule and add pages or offers after creating the flow.': '创建后，你仍可修改入口规则，并添加页面或优惠。',
-    'Order value booster': '客单价提升流程', 'Second-chance offer': '二次优惠流程', 'Close': '关闭'
+    'Order value booster': '客单价提升流程', 'Recover declined Upsells': '挽回被拒绝的加购', 'Second-chance offer': '挽回被拒绝的加购', 'Second chance offer': '挽回被拒绝的加购', 'Matches entry conditions': '匹配入口条件', 'Close': '关闭'
   });
   Object.assign(ZH, {
-    'Storefront': '店铺前台', 'Shopify control': 'Shopify 对照组', 'Safety fallback': '安全兜底', 'System fallback': '系统兜底', 'System': '系统', 'Required': '必选', 'Optional': '可选', 'Purchase flow': '购买流程',
+    'Storefront': '店铺前台', 'Shopify control': 'Shopify 对照组', 'Safety fallback': '安全兜底', 'System fallback': '系统兜底', 'System': '系统', 'Required': '必选', 'Optional': '可选', 'Purchase flow': '购买流程', 'Pagination': '分页', 'Previous page': '上一页', 'Next page': '下一页', 'Products per page': '每页商品数', 'page': '页', '0 results': '暂无结果',
     'Buyer entry': '买家入口', 'Who sees this purchase flow?': '哪些买家会看到这条购买流程？', 'All matching buyers enter this flow. Other buyers continue to Shopify Checkout.': '符合条件的买家会进入这条购买流程；其余买家继续进入 Shopify Checkout。',
     'Eligible shoppers': '符合条件的买家', 'Fallback': '兜底路径', 'Configure entry': '配置入口', 'Configure buyer entry': '配置买家入口', 'Who can enter this purchase flow?': '哪些买家可以进入这条购买流程？', 'This setting decides which buyers enter the flow. After they enter, the journey map only controls page routing and traffic allocation.': '此设置决定哪些买家进入流程；进入后，购买路径图只负责页面分流和流量分配。', 'Buyer group': '买家人群', 'Buyer entry saved': '买家入口已保存', 'Traffic allocation': '流量分配', 'How buyers enter this flow': '买家如何进入这条流程',
     'Customer type': '客户类型', 'New customer': '新客户', 'Returning customer': '复购客户', 'Customer tags': '客户标签', 'Past orders': '历史订单数', 'Customer lifetime spend': '客户累计消费', 'Last order': '最近一次下单', 'is at least': '至少为', 'is at most': '至多为', 'equals': '等于', 'is within the last': '最近', 'was more than': '距今超过', 'orders': '单', 'days': '天', 'Type a tag and press Enter': '输入标签后按 Enter 添加', 'Add user attribute': '添加用户属性', 'Add user attributes to target a specific group. Every condition must match before a buyer enters this flow.': '使用用户属性圈定人群；买家必须同时满足所有条件，才会进入这条购买流程。', 'Customer attributes apply only to recognized Shopify customers. Buyers who are not recognized or do not match continue to Shopify Checkout.': '客户标签、历史订单数、累计消费和最近一次下单仅适用于已识别的 Shopify 客户；未识别或不符合条件的买家会进入 Shopify Checkout。', 'Complete or remove every user attribute before applying.': '请补全或删除每一条用户属性条件后再应用。', 'No user attributes added. All buyers can enter this flow.': '尚未添加用户属性，所有买家都可以进入这条流程。',
@@ -3099,8 +4005,36 @@
     'Add customer attributes, storefront, or cart conditions directly. Every condition must match.': '直接添加用户属性、店铺上下文或购物车条件；买家须同时满足全部条件。',
     'Customer order history and tags apply only to recognized Shopify customers.': '客户订单历史和标签仅适用于已识别的 Shopify 客户。',
     'Customer identity': '用户属性',
+    'Customer': '客户',
     'Storefront context': '店铺上下文',
     'Cart': '购物车'
+  });
+  Object.assign(ZH, {
+    'Cart contains products': '购物车包含商品',
+    'Cart contains specific SKUs': '购物车包含指定 SKU',
+    'Contains any selected products': '包含任一所选商品',
+    'Contains all selected products': '包含全部所选商品',
+    'Does not contain selected products': '不包含所选商品',
+    'Contains any selected SKUs': '包含任一所选 SKU',
+    'Contains all selected SKUs': '包含全部所选 SKU',
+    'Does not contain selected SKUs': '不包含所选 SKU',
+    'Select products': '选择商品',
+    'Select SKUs': '选择 SKU',
+    'Search SKUs': '搜索 SKU',
+    'Use selected items': '使用所选项',
+    'item selected': '项已选择',
+    'items selected': '项已选择',
+    'Change': '更改',
+    'Select': '选择',
+    'Choose products. Any variant of a selected product will match.': '选择商品；所选商品的任一变体都会匹配。',
+    'Choose exact SKUs. Each SKU matches one product variant.': '选择精确 SKU；每个 SKU 对应一个商品变体。',
+    'No SKUs match your search.': '没有匹配的 SKU。',
+    'Paste SKUs, separated by commas or new lines': '粘贴 SKU，可用逗号或换行分隔',
+    'Add pasted SKUs': '添加粘贴的 SKU',
+    'Only exact SKUs in your synced catalog will be added.': '仅会添加已同步商品目录中的精确 SKU。',
+    'These SKUs were not found: ': '未找到这些 SKU：',
+    'Added matching SKUs. Review the selected items, then apply.': '已添加匹配的 SKU。请确认所选项后再应用。',
+    'Paste at least one SKU to add it.': '请至少粘贴一个 SKU 后再添加。'
   });
   Object.assign(ZH, {
     'System fallback — unmatched buyers continue to Shopify native checkout.': '系统兜底：未命中的买家继续使用 Shopify 原生结账。',
@@ -3163,6 +4097,7 @@
   });
   Object.assign(ZH, {
     'Customer identity': '客户身份',
+    'Customer': '客户',
     'Storefront context': '店铺前台上下文',
     'Cart': '购物车',
     'Account status': '账户状态',
@@ -3296,6 +4231,33 @@
     'Create a separate flow when customers should follow a different journey. Use this split only for a default route or an A/B experiment within the same audience.': '当客户需要走不同购买路径时，请新建独立购买流程；此处仅用于同一人群下的默认路径或 A/B 测试分流。',
     'Customer eligibility is set in Customer entry. This screen only allocates customers who already entered the flow.': '客户资格由“客户入口”统一设置；此处只分配已经进入流程的客户。',
     'Traffic share of entered customers:': '在进入该流程的客户中，流量配比：'
+  });
+  Object.assign(ZH, {
+    'New customer offer': '新客户优惠',
+    'Returning customer cross-sell': '复购客户交叉销售',
+    'Checkout A/B test': '结账页 A/B 测试',
+    'Recognized customers · first order': '已识别客户 · 首单',
+    'Recognized customers · returning': '已识别客户 · 复购',
+    'Default Checkout': '默认结账页',
+    'Checkout A': '结账页 A',
+    'Checkout B': '结账页 B',
+    'Default Thank you': '默认 Thank you 页面',
+    'New customer Upsell': '新客户 Upsell',
+    'New customer Downsell': '新客户 Downsell',
+    'Returning customer Upsell': '复购客户 Upsell',
+    'Returning customer Downsell': '复购客户 Downsell',
+    'Default setup': '默认初始化',
+    'Give recognized first-time customers a ready-to-use Upsell and Downsell journey.': '为已识别的首单客户提供可直接使用的 Upsell 和 Downsell 路径。',
+    'Give recognized returning customers a ready-to-use cross-sell and fallback offer.': '为已识别的复购客户提供可直接使用的交叉销售和替代优惠。',
+    'Split all remaining customers 50/50 between Checkout A and Checkout B.': '将其余客户按 50/50 分配至结账页 A 和结账页 B。',
+    'Ready-to-use checkout for the default purchase flows': '默认购买流程可直接使用的结账页',
+    'A/B test variant A': 'A/B 测试版本 A',
+    'A/B test variant B': 'A/B 测试版本 B',
+    '20% off one-click offer for first orders': '首单 8 折一键加购优惠',
+    '20% off fallback offer for first orders': '首单 8 折替代优惠',
+    '20% off one-click offer for repeat orders': '复购 8 折一键加购优惠',
+    '20% off fallback offer for repeat orders': '复购 8 折替代优惠',
+    'This permanently deletes the flow and its page configuration. New customers will continue to the next matching live flow or Shopify Checkout. This cannot be undone.': '这会永久删除该购买流程及其页面配置。新客户会继续进入下一条命中的已启用流程或 Shopify Checkout，且无法恢复。'
   });
   const t = (s) => (window.I18N && window.I18N.lang === 'zh' && ZH[s]) ? ZH[s] : s;
   function bcI18n(scope) {
@@ -3667,7 +4629,7 @@
     '.cf-sf-body{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:42px 20px}' +
     '.cf-oauth{width:100%;max-width:600px;background:#fff;border:1px solid #e1e3e5;border-radius:14px;overflow:hidden}' +
     '.cf-oauth-h{display:flex;align-items:center;gap:13px;padding:20px 22px;border-bottom:1px solid #e1e3e5}' +
-    '.cf-oauth-ico{width:46px;height:46px;border-radius:11px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;flex:none}' +
+    '.cf-oauth-ico{width:46px;height:46px;object-fit:contain;filter:drop-shadow(0 5px 10px rgba(84,88,246,.24));flex:none}' +
     '.cf-oauth-t{font-size:17px;font-weight:700;color:#1a1a1a}.cf-oauth-s{font-size:13px;color:#6d7175;margin-top:2px}' +
     '.cf-oauth-b{padding:18px 22px}.cf-oauth-lbl{font-size:13px;font-weight:600;color:#1a1a1a;margin-bottom:6px}' +
     '.cf-oauth-row{display:flex;gap:10px;padding:8px 0;font-size:13px;color:#1a1a1a;line-height:1.5}.cf-oauth-row svg{color:#008060;flex:none;margin-top:2px}' +
@@ -3698,7 +4660,7 @@
     return '<div class="cf-sf">' +
       '<div class="cf-sf-top"><div class="cf-sf-l"><span class="m">S</span>Shopify</div><div class="cf-sf-shop">' + esc(CF.store) + '</div></div>' +
       '<div class="cf-sf-body"><div class="cf-oauth">' +
-        '<div class="cf-oauth-h"><div class="cf-oauth-ico">B</div><div><div class="cf-oauth-t">' + t('Install BestCheckout?') + '</div><div class="cf-oauth-s">' + esc(CF.store) + ' · ' + t('by Bestfulfill') + '</div></div></div>' +
+        '<div class="cf-oauth-h"><img class="cf-oauth-ico" src="assets/brand-mark.svg?v=20260723brandmark1" alt="" aria-hidden="true"><div><div class="cf-oauth-t">' + t('Install BestCheckout?') + '</div><div class="cf-oauth-s">' + esc(CF.store) + ' · ' + t('by Bestfulfill') + '</div></div></div>' +
         '<div class="cf-oauth-b"><div class="cf-oauth-lbl">' + t('BestCheckout will be able to:') + '</div>' + list +
           '<div class="cf-oauth-note">' + t('This is a custom (private) app installed via a one-time link — it is not listed on the Shopify App Store. By clicking Install, you grant the access above; you can uninstall anytime from Settings → Apps.') + '</div>' +
         '</div>' +
@@ -3898,24 +4860,24 @@
       label: 'Last 7 days', sales: '$117,284', salesDelta: '+16.7%', orders: '2,016', ordersDelta: '+14.9%', conversion: '63.8%', conversionDelta: '+4.7 pts', offerRevenue: '$11,552', offerShare: '9.8%',
       chart: [13200, 14860, 15520, 16140, 17280, 18310, 21974], chartLabels: ['Jul 9', 'Jul 10', 'Jul 11', 'Jul 12', 'Jul 13', 'Jul 14', 'Jul 15'],
       flows: [
-        { name: 'First-order boost', sessions: '742', orders: '498', conversion: '67.1%', aov: '$62.40', sales: '$31,075', lift: '+6.4 pts', id: 'first-order-boost' },
-        { name: 'Smooth checkout', sessions: '1,274', orders: '812', conversion: '63.7%', aov: '$55.75', sales: '$45,269', lift: '+4.1 pts', id: 'smooth-checkout' }
+        { name: 'New customer offer', sessions: '742', orders: '498', conversion: '67.1%', aov: '$62.40', sales: '$31,075', lift: '+6.4 pts', id: 'new-customer-offer' },
+        { name: 'Returning customer cross-sell', sessions: '1,274', orders: '812', conversion: '63.7%', aov: '$55.75', sales: '$45,269', lift: '+4.1 pts', id: 'returning-customer-cross-sell' }
       ]
     },
     '30d': {
       label: 'Last 30 days', sales: '$490,044', salesDelta: '+18.4%', orders: '8,420', ordersDelta: '+17.8%', conversion: '64.2%', conversionDelta: '+5.1 pts', offerRevenue: '$46,360', offerShare: '9.5%',
       chart: [14120, 15240, 14980, 16040, 17120, 16980, 18140, 18820, 20160, 21040, 21870, 23120], chartLabels: ['Jun 24', 'Jun 27', 'Jun 30', 'Jul 3', 'Jul 6', 'Jul 9', 'Jul 12', 'Jul 15'],
       flows: [
-        { name: 'First-order boost', sessions: '3,116', orders: '2,116', conversion: '67.9%', aov: '$62.40', sales: '$132,038', lift: '+6.4 pts', id: 'first-order-boost' },
-        { name: 'Smooth checkout', sessions: '5,304', orders: '3,405', conversion: '64.2%', aov: '$55.75', sales: '$189,859', lift: '+4.8 pts', id: 'smooth-checkout' }
+        { name: 'New customer offer', sessions: '3,116', orders: '2,116', conversion: '67.9%', aov: '$62.40', sales: '$132,038', lift: '+6.4 pts', id: 'new-customer-offer' },
+        { name: 'Returning customer cross-sell', sessions: '5,304', orders: '3,405', conversion: '64.2%', aov: '$55.75', sales: '$189,859', lift: '+4.8 pts', id: 'returning-customer-cross-sell' }
       ]
     },
     '90d': {
       label: 'Last 90 days', sales: '$1,367,890', salesDelta: '+15.2%', orders: '23,470', ordersDelta: '+13.6%', conversion: '62.9%', conversionDelta: '+4.3 pts', offerRevenue: '$122,130', offerShare: '8.9%',
       chart: [138800, 143220, 148140, 150680, 154920, 160140, 163480, 169030, 174920, 181340, 187220, 196000], chartLabels: ['Apr 17', 'May 1', 'May 15', 'May 29', 'Jun 12', 'Jun 26', 'Jul 10', 'Jul 15'],
       flows: [
-        { name: 'First-order boost', sessions: '8,576', orders: '5,742', conversion: '66.9%', aov: '$62.18', sales: '$357,082', lift: '+5.9 pts', id: 'first-order-boost' },
-        { name: 'Smooth checkout', sessions: '14,894', orders: '9,373', conversion: '62.9%', aov: '$55.94', sales: '$524,404', lift: '+4.2 pts', id: 'smooth-checkout' }
+        { name: 'New customer offer', sessions: '8,576', orders: '5,742', conversion: '66.9%', aov: '$62.18', sales: '$357,082', lift: '+5.9 pts', id: 'new-customer-offer' },
+        { name: 'Returning customer cross-sell', sessions: '14,894', orders: '9,373', conversion: '62.9%', aov: '$55.94', sales: '$524,404', lift: '+4.2 pts', id: 'returning-customer-cross-sell' }
       ]
     }
   };

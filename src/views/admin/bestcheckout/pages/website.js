@@ -22,6 +22,20 @@ const testimonials = [
   { quote: 'The checkout builder let us match our brand voice perfectly. We went from generic Shopify checkout to an experience that feels like ours. Conversion lifted 26% month one.', metric: '+26% conversion', initials: 'AF', name: 'Alex Foster', role: 'Creative Director, Lunar Apparel' },
 ];
 
+const footerTrustBadges = [
+  { label: 'Shopify Partner', icon: 'https://cdn.simpleicons.org/shopify/95BF47', className: 'shopify' },
+  { label: 'Trusted Shops', icon: 'https://cdn.simpleicons.org/trustedshops/00B67A', className: 'trusted-shops' },
+  { label: 'SecurityScorecard', icon: 'https://cdn.simpleicons.org/securityscorecard/FFFFFF', className: 'security-scorecard' },
+  { label: 'GDPR ready', icon: 'https://cdn.simpleicons.org/europeanunion/FFCC00', className: 'gdpr' },
+];
+
+const footerPaymentLogo = '../settings/assets/payments/payment-logo-sheet.svg?v=20260723paymentlogosheet3';
+const brandMark = '../assets/brand-mark.svg?v=20260723brandmark1';
+
+function renderFooterTrustBadge(item) {
+  return `<span class="fable-trust-badge fable-trust-badge--${item.className}"><img src="${item.icon}" alt="" aria-hidden="true" loading="lazy" decoding="async"/><span>${item.label}</span></span>`;
+}
+
 function previewChart() {
   return '<div class="fable-preview-chart"><i style="height:35%"></i><i style="height:53%"></i><i style="height:42%"></i><i style="height:78%"></i><i style="height:61%"></i><i style="height:90%"></i><i style="height:75%"></i></div>';
 }
@@ -33,7 +47,7 @@ function workspacePreview() {
       <span class="fable-float-pill fable-float-pill--sync"><i></i> Shopify order synced</span>
       <div class="fable-workspace-shell">
         <aside class="fable-workspace-nav" aria-label="Preview navigation">
-          <span class="fable-preview-logo">B</span>
+          <img class="fable-preview-logo" src="${brandMark}" alt="" aria-hidden="true"/>
           <i class="is-active">${icon('pages', 15)}</i><i>${icon('sparkles', 15)}</i><i>${icon('card', 15)}</i><i>${icon('analytics', 15)}</i><i>${icon('settings', 15)}</i>
         </aside>
         <div class="fable-workspace-main">
@@ -62,11 +76,11 @@ export function renderMarketingSite() {
     <div class="fable-site">
       <header class="fable-nav">
         <nav aria-label="Primary">
-          <a class="fable-brand" href="#/landing">BestCheckout</a>
+          <a class="fable-brand" href="#/landing"><img class="fable-brand-mark" src="${brandMark}" alt="" aria-hidden="true"/><span>BestCheckout</span></a>
           <div class="fable-nav-links">
-            <a href="#/landing">Home</a><a href="#/landing?section=results">Product</a><a href="#/landing?section=how-it-works">How it works</a><a href="../help/" target="_blank" rel="noopener">Help Center</a><a href="../help/#guide=connect-shopify" target="_blank" rel="noopener">Connect guide</a>
+            <a href="#/landing">Home</a><a href="#/landing?section=results">Product</a><a href="#/landing?section=how-it-works">How it works</a><a href="../help/">Help Center</a><a href="../help/#guide=connect-shopify">Connect guide</a>
           </div>
-          <div class="fable-nav-actions"><a class="fable-mobile-guide" href="../help/#guide=connect-shopify" target="_blank" rel="noopener">Connect guide</a><a class="fable-sign-in" href="#/sign-in">Sign in</a><a class="fable-button fable-button--small" href="#/sign-up?next=connect-shopify">Start free</a></div>
+          <div class="fable-nav-actions"><a class="fable-mobile-guide" href="../help/#guide=connect-shopify">Connect guide</a><a class="fable-sign-in" href="#/sign-in">Sign in</a><a class="fable-button fable-button--small" href="#/sign-up?next=connect-shopify">Start free</a></div>
         </nav>
       </header>
       <main>
@@ -90,6 +104,6 @@ export function renderMarketingSite() {
         <section class="fable-section"><div class="fable-container"><h2 class="fable-section-title">Your store. Your payment accounts.<br/>Your data.</h2><div class="fable-trust-grid"><article>${cardIcon('shield')}<h3>Merchant-owned access</h3><p>You connect your own Shopify app; BestCheckout never holds your credentials.</p></article><article>${cardIcon('orders')}<h3>Shopify order sync</h3><p>Every completed checkout writes back to Shopify automatically.</p></article><article>${cardIcon('analytics')}<h3>Clear performance data</h3><p>Conversion rates, AOV, and recovery stats visible from day one.</p></article></div></div></section>
         <section class="fable-section fable-final"><div class="fable-container"><div><h2 class="fable-section-title">Make the checkout your<br/>strongest sales page.</h2><a class="fable-button" href="#/sign-up?next=connect-shopify">Start free ${icon('arrow', 16)}</a></div></div></section>
       </main>
-      <footer class="fable-footer"><div class="fable-container"><div><strong>BestCheckout</strong><p>Conversion infrastructure for Shopify brands.</p></div><nav><a href="#/landing">Home</a><a href="#/landing?section=results">Product</a><a href="#/landing?section=how-it-works">How it works</a><a href="../help/" target="_blank" rel="noopener">Help Center</a><a href="../help/#guide=connect-shopify" target="_blank" rel="noopener">Connect guide</a><a href="#/sign-in">Sign in</a></nav><small>© 2025 BestCheckout. All rights reserved.</small></div></footer>
+      <footer class="fable-footer"><div class="fable-container fable-footer-main"><section class="fable-footer-brand"><strong><img class="fable-footer-brand-mark" src="${brandMark}" alt="" aria-hidden="true"/><span>BestCheckout</span></strong><p>Conversion infrastructure for Shopify brands.</p><div class="fable-trust-badges" aria-label="Trust and compliance badges">${footerTrustBadges.map(renderFooterTrustBadge).join('')}</div></section><nav><a href="#/landing">Home</a><a href="#/landing?section=results">Product</a><a href="#/landing?section=how-it-works">How it works</a><a href="../help/">Help Center</a><a href="../help/#guide=connect-shopify">Connect guide</a><a href="#/sign-in">Sign in</a></nav></div><div class="fable-container fable-footer-bottom"><small>© 2026 BestCheckout. All rights reserved.</small><section class="fable-payment-methods" aria-label="Supported payment methods"><span class="fable-footer-label">Supported payment methods</span><img class="fable-payment-logo" src="${footerPaymentLogo}" alt="American Express, Visa, Mastercard, UnionPay, PayPal, JCB, Discover, and Klarna" loading="lazy" decoding="async"/></section></div></footer>
     </div>`;
 }

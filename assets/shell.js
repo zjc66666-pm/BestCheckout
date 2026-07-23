@@ -9,7 +9,7 @@
    #/orders/5042, or 'base' for #/settings/base). Internal navigation just sets
    location.hash; the router re-dispatches. */
 (function () {
-  var V = '20260722offerconfig1'; // cache-bust for lazy-loaded module scripts
+  var V = '20260723variantalignment1'; // cache-bust for lazy-loaded module scripts
   var s = function (p) { return '<svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>'; };
   var ICONS = {
     home: s('<path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/>'),
@@ -52,14 +52,25 @@
   var STORES = window.STORES || [];
   // A store's Home state comes from store metadata in production. The query fallback
   // preserves the existing Provisioning -> Home prototype handoff.
-  var isNewStore = false, activeStore = null;
+  var isNewStore = false, activeStore = null, shopifyConnectionState = 'connected';
   try {
-    var qsStore = new URLSearchParams(location.search).get('store');
+    var query = new URLSearchParams(location.search);
+    var qsStore = query.get('store');
     activeStore = STORES.filter(function (store) { return store.name === qsStore; })[0] || null;
     if (activeStore) SITE.store = activeStore.name;
+    shopifyConnectionState = query.get('shopify') === 'unlinked' ? 'unlinked' : 'connected';
+    // A merchant must complete Shopify connection before any admin surface is
+    // available. Keep every unlinked deep link on the connection form instead
+    // of exposing an empty admin state behind it.
+    if (shopifyConnectionState === 'unlinked' && (query.get('connect') !== 'shopify' || location.hash !== '#/connect-shopify')) {
+      query.set('connect', 'shopify');
+      location.replace(location.pathname + '?' + query.toString() + '#/connect-shopify');
+      return;
+    }
     // V1.139 provisioning still sends ?new=1. Normal entry derives the Home from store state.
-    isNewStore = !!(activeStore && activeStore.homeState === 'setup') || new URLSearchParams(location.search).get('new') === '1';
+    isNewStore = !!(activeStore && activeStore.homeState === 'setup') || query.get('new') === '1';
   } catch (e) {}
+  window.BESTCHECKOUT_SHOPIFY_CONNECTION = shopifyConnectionState;
   var setupDismissed = false;
   window.VIEWS = window.VIEWS || {};
 
@@ -407,10 +418,11 @@
     // The connection is completed automatically during Shopify authorization.
     // The remaining steps mirror the buyer journey and link to the workspace
     // where each launch outcome is configured.
+    var connected = shopifyConnectionState === 'connected';
     var tasks = [
-      { done: true,  title: 'Shopify store connected', desc: 'Products, discounts and delivery options are ready for checkout.' },
-      { done: false, current: true, title: 'Set Checkout and Thank you pages', desc: 'Choose the pages buyers see before and after payment.', href: '#/pages', action: 'Set up' },
-      { done: false, title: 'Create and publish a purchase flow', desc: 'Bring your pages together and decide who sees the flow.', href: '#/flows', action: 'Set up' },
+      connected
+        ? { done: true, title: 'Shopify store connected', desc: 'Products, discounts and delivery options are ready for checkout.' }
+        : { done: false, current: true, title: 'Connect your Shopify store', desc: 'Connect your custom app to sync products, orders, and checkout data.', href: '?shopify=unlinked&connect=shopify#/connect-shopify', action: 'Connect' },
       { done: false, title: 'Set checkout domain', desc: 'Use a branded, secure address throughout checkout, Upsell, Downsell, and Thank you pages.', href: '#/settings/domains', action: 'Set up' },
       { done: false, title: 'Connect payment service', desc: 'Choose how buyers can pay and complete a test payment.', href: '#/settings/payments', action: 'Set up' }
     ];
@@ -427,7 +439,7 @@
       '<header class="onboard-head"><div><div class="home-overline">Quick start</div><h2>Complete your launch setup</h2><p>Follow these steps once to start taking orders with BestCheckout.</p></div>' +
       '<div class="onboard-progress"><div><strong>' + complete + ' / ' + tasks.length + '</strong><span>complete</span></div><i><b style="width:' + Math.round(complete / tasks.length * 100) + '%"></b></i></div></header>' +
       '<div class="onboard-rows">' + rows + '</div>' +
-      '<div class="onboard-safety"><span>!</span><p>Your Shopify checkout stays available until you publish a purchase flow.</p></div>' +
+      '<div class="onboard-safety"><span>!</span><p>Your default checkout pages and purchase flow are ready to use. Finish the steps above before routing live shoppers to BestCheckout.</p></div>' +
     '</section>';
   }
   function renderNewStoreHome() {
@@ -478,6 +490,12 @@
   // ---------- router ----------
   function dispatch() {
     var p = parse();
+    if (shopifyConnectionState === 'unlinked' && p.first !== 'connect-shopify') {
+      var connectionDestination = new URL(window.location.href);
+      connectionDestination.searchParams.set('connect', 'shopify');
+      location.assign(connectionDestination.pathname + connectionDestination.search + '#/connect-shopify');
+      return;
+    }
     // Performance is now part of Overview. Keep existing shared links useful.
     if (p.first === 'performance') { location.hash = '#/home'; return; }
     // Preserve previously shared links while grouping these operational pages
@@ -494,7 +512,25 @@
     if (p.first === 'post-purchase') { location.hash = '#/home'; return; }
     // The copied baseline used this path for a broader internal workspace.
     // Preserve bookmarks without exposing that unrelated surface to merchants.
-    if (p.first === 'bestcheckout') { location.hash = p.rest === 'connect' ? '#/settings/base' : '#/flows'; return; }
+    if (p.first === 'bestcheckout') { location.hash = p.rest === 'connect' ? '#/connect-shopify' : '#/flows'; return; }
+    if (p.first === 'connect-shopify') {
+      removeSettings();
+      curActiveId = '';
+      renderSidebar('');
+      root.innerHTML = '<div class="view-wrap"><div class="placeholder">Loading...</div></div>';
+      loadModule('settings').then(function () {
+        if (parse().first !== 'connect-shopify') return;
+        var connectionView = window.VIEWS.settings;
+        if (!connectionView || !connectionView.render) { root.innerHTML = '<div class="view-wrap"><div class="placeholder">Connection page unavailable.</div></div>'; return; }
+        connectionView.render(root, 'base');
+        if (window.UI) window.UI.scan(root);
+        current = 'settings';
+        root.scrollTop = 0;
+      }).catch(function () {
+        root.innerHTML = '<div class="view-wrap"><div class="placeholder">Failed to load connection page.</div></div>';
+      });
+      return;
+    }
     removeSettings();
     var moduleId = ROUTE_MODULE[p.first] || p.first;
     /* BestCheckout has first-level navigation, while the reused module keeps
@@ -571,13 +607,13 @@
       '</button>';
     }).join('');
     return '<div class="hdr-store-list">' + rows + '</div>' +
-      '<a class="hdr-menu-foot" href="account/stores.html">View all stores</a>';
+      '<a class="hdr-menu-foot" href="?shopify=unlinked&connect=shopify#/connect-shopify">Connect new Shopify store</a>';
   }
   function userMenuHtml() {
     return '<div class="hdr-menu-head">' + MICO.user + '<span>' + (SITE.email || 'owner@bestshopio.com') + '</span></div>' +
       '<div class="hdr-menu-divider"></div>' +
       '<button class="hdr-menu-item" data-changepw>' + MICO.lock + 'Change password</button>' +
-      '<a class="hdr-menu-item" href="account/signin.html">' + MICO.out + 'Sign out</a>';
+      '<button class="hdr-menu-item" data-signout>' + MICO.out + 'Sign out</button>';
   }
   // Change password — shell-level dialog (PRD 7.3 store-admin top bar)
   function openChangePassword() {
@@ -649,6 +685,11 @@
       toggleHdrMenu(userBtn.parentNode, userMenuHtml(), function (panel) {
         var cp = panel.querySelector('[data-changepw]');
         if (cp) cp.onclick = function () { closeHdrMenus(); openChangePassword(); };
+        var signout = panel.querySelector('[data-signout]');
+        if (signout) signout.onclick = function () {
+          closeHdrMenus();
+          window.location.assign('landing/?rev=20260723accountmenu1#/sign-in');
+        };
       });
     };
   }
@@ -667,7 +708,7 @@
     app.innerHTML =
       '<header class="app-header">' +
         '<button class="sidebar-toggle" aria-label="Menu">' + ICONS.menu + '</button>' +
-        '<a class="hdr-logo" href="#/home" title="BestCheckout"><span class="brand-mark">B</span><span class="hdr-logo-name">BestCheckout</span></a>' +
+        '<a class="hdr-logo" href="#/home" title="BestCheckout"><img class="brand-mark" src="assets/brand-mark.svg?v=20260723brandmark1" alt="" aria-hidden="true"><span class="hdr-logo-name">BestCheckout</span></a>' +
         '<div class="hdr-right">' +
           '<a class="hdr-help" href="' + helpCenterUrl() + '" target="_blank" rel="noopener" aria-label="Help Center" title="Help Center" data-tooltip="Help Center">' + ICONS.help + '</a>' +
           '<div class="hdr-menu-wrap"><button class="hdr-store" id="hdr-store">' + (SITE.store || 'Store') + ICONS.chevDown + '</button></div>' +

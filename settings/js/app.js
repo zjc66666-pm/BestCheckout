@@ -9,6 +9,23 @@
 (function () {
   const D = window.DATA_SETTINGS;
   let root; // set by the SPA shell router via VIEWS.settings.render(el, rest)
+  // Prototype-only values representing the credentials submitted during store
+  // connection. They are always masked until the merchant explicitly reveals
+  // one field, matching the intended production behaviour.
+  const shopifyAppCredentials = {
+    clientId: '7b4f3d2e1a9c8f6b5d4e3f2a1b0c9d8e',
+    secret: 'shpss_demo_lavender_labs_connection',
+  };
+  let shopifyCredentialVisible = { clientId: false, secret: false };
+  let shopifyConnectionSetupOpen = new URLSearchParams(window.location.search).get('connect') === 'shopify';
+
+  function setShopifyConnectionSetupRoute(open) {
+    const destination = new URL(window.location.href);
+    if (open) destination.searchParams.set('connect', 'shopify');
+    else destination.searchParams.delete('connect');
+    window.history.replaceState(null, '', destination.pathname + destination.search + destination.hash);
+    shopifyConnectionSetupOpen = open;
+  }
 
   // tiny html -> element helper (same pattern as orders prototype)
   const h = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
@@ -95,7 +112,7 @@
 
   // a Page-style header (title + optional description + optional right slot)
   const pageHead = (title, sub, rightHtml) =>
-    '<div class="flex items-start justify-between mb-4" style="gap:12px">' +
+    '<div class="flex items-end justify-between mb-4" style="gap:12px">' +
       '<div><div class="page-title" style="font-size:20px">' + esc(title) + '</div>' +
         (sub ? '<div class="muted" style="font-size:13px;margin-top:2px">' + esc(sub) + '</div>' : '') + '</div>' +
       '<div class="flex items-center gap-2">' + (rightHtml || '') + '</div>' +
@@ -263,25 +280,97 @@
   // checkout. Storefront theme, social login and catalogue-administration
   // controls remain in the underlying BestShopio record and are not merchant
   // actions in this product.
-  function renderShopifyStore() {
-    const syncRow = (name, count, detail, last) =>
-      '<div class="bc-store-row"><div><strong>' + esc(name) + '</strong><span>' + esc(detail) + '</span><small class="bc-sync-last">Last synced ' + esc(last) + '</small></div><div class="bc-store-row-end"><b>' + esc(count) + '</b><span class="pill pill-green"><span class="dot"></span>Synced</span></div></div>';
-    const status = '<span class="pill pill-green"><span class="dot"></span>Connected</span>';
+  function renderShopifyConnectionSetup() {
     const body =
       '<style>' +
-        '.bc-store-kicker{font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--ink-muted);text-transform:uppercase;margin-bottom:10px}.bc-store-name{font-size:17px;font-weight:700;color:var(--ink);margin-bottom:4px}.bc-store-domain{font-size:13px;color:var(--ink-muted)}.bc-store-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px;padding-top:16px;border-top:1px solid var(--hair)}.bc-store-fact small{display:block;color:var(--ink-muted);font-size:11px;margin-bottom:4px}.bc-store-fact strong{display:block;color:var(--ink-body);font-size:13px;font-weight:600;line-height:1.4}.bc-store-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 0;border-top:1px solid var(--hair)}.bc-store-row:first-child{border-top:0;padding-top:0}.bc-store-row strong{display:block;font-size:13.5px;color:var(--ink)}.bc-store-row span,.bc-store-row small{display:block;font-size:12px;color:var(--ink-muted);margin-top:3px;line-height:1.45}.bc-store-row-end{display:flex;align-items:center;gap:10px;white-space:nowrap}.bc-store-row-end>b{font-size:13px;color:var(--ink)}.bc-store-row-end .pill{margin:0}.bc-writeback{display:flex;align-items:flex-start;gap:11px;padding:14px 16px}.bc-writeback-ico{width:28px;height:28px;display:grid;place-items:center;flex:none;border-radius:50%;background:#e8f8ef;color:#14834c}.bc-writeback strong{display:block;font-size:13.5px;color:var(--ink);margin-bottom:4px}.bc-writeback p{margin:0;color:var(--ink-muted);font-size:12.5px;line-height:1.55}.bc-writeback-links{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:12.5px;font-weight:500}.bc-connection-option{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:13px 0;border-top:1px solid var(--hair)}.bc-connection-option:first-child{padding-top:0;border-top:0}.bc-connection-option strong{display:block;font-size:13px;color:var(--ink)}.bc-connection-option span{display:block;font-size:12px;color:var(--ink-muted);line-height:1.5;margin-top:3px}@media(max-width:760px){.bc-store-facts{grid-template-columns:1fr;gap:10px}.bc-store-row,.bc-connection-option{align-items:flex-start;flex-direction:column}.bc-store-row-end{flex-direction:row;align-items:center}.bc-store-row-end>b{display:none}}' +
+        '.bc-connect-page{max-width:640px}.bc-connect-card{padding:24px}.bc-connect-card h2{margin:0;color:var(--ink);font-size:18px;line-height:1.35}.bc-connect-card>p{max-width:560px;margin:7px 0 22px;color:var(--ink-muted);font-size:13px;line-height:1.55}.bc-connect-field{margin-top:16px}.bc-connect-field>label{display:block;margin-bottom:6px;color:var(--ink);font-size:12.5px;font-weight:650}.bc-connect-field input{box-sizing:border-box;width:100%;height:40px;border:1px solid var(--ctl);border-radius:8px;background:#fff;color:var(--ink);font:inherit;font-size:13px;padding:0 11px;outline:0}.bc-connect-field input:focus{border-color:var(--brand);box-shadow:0 0 0 2px rgb(0 102 230 / 8%)}.bc-connect-field.is-invalid input{border-color:var(--err)}.bc-connect-field small{display:block;margin-top:5px;color:var(--ink-muted);font-size:11.5px;line-height:1.45}.bc-connect-field .bc-connect-error{display:none;color:var(--err)}.bc-connect-field.is-invalid .bc-connect-error{display:block}.bc-connect-domain{display:flex;align-items:center;height:40px;border:1px solid var(--ctl);border-radius:8px;background:#fff}.bc-connect-domain:focus-within{border-color:var(--brand);box-shadow:0 0 0 2px rgb(0 102 230 / 8%)}.bc-connect-field.is-invalid .bc-connect-domain{border-color:var(--err)}.bc-connect-domain input{height:38px;border:0!important;box-shadow:none!important;flex:1}.bc-connect-domain span{padding:0 11px;color:var(--ink-muted);font-size:12px;font-weight:600}.bc-connect-secret{position:relative}.bc-connect-secret input{padding-right:62px}.bc-connect-secret button{position:absolute;top:4px;right:5px;height:32px;border:0;border-radius:6px;background:transparent;color:var(--brand);padding:0 8px;font:inherit;font-size:12px;font-weight:650;cursor:pointer}.bc-connect-secret button:hover{background:#f0f5ff}.bc-connect-confirm{display:flex;gap:8px;align-items:flex-start;margin-top:20px;color:var(--ink-body);font-size:12px;line-height:1.5}.bc-connect-confirm input{width:16px;height:16px;margin:1px 0 0;accent-color:var(--brand);flex:none}.bc-connect-confirm.is-invalid{color:var(--err)}.bc-connect-confirm .bc-connect-error{display:none;margin-top:3px;color:var(--err)}.bc-connect-confirm.is-invalid .bc-connect-error{display:block}.bc-connect-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:24px;padding-top:16px;border-top:1px solid var(--hair)}@media(max-width:640px){.bc-connect-card{padding:18px}.bc-connect-actions .btn{flex:1}}' +
       '</style>' +
-      pageHead('Shopify connection', 'Review the Shopify store and syncs that power your BestCheckout purchase experience.', '<button class="btn btn-default" data-act="connection">Manage connection</button>') +
-      '<section class="panel card-pad mb-4"><div class="bc-store-kicker">Connected Shopify store</div><div class="flex items-start justify-between" style="gap:12px"><div><div class="bc-store-name">Lavender Labs</div><div class="bc-store-domain">lavender-labs.myshopify.com</div></div>' + status + '</div><div class="bc-store-facts"><div class="bc-store-fact"><small>Shop name</small><strong>Lavender Labs</strong></div><div class="bc-store-fact"><small>Myshopify domain</small><strong>lavender-labs.myshopify.com</strong></div><div class="bc-store-fact"><small>Connection status</small><strong>Connected via custom app</strong></div></div></section>' +
-      '<section class="panel card-pad mb-4">' + sectionTitle('Shopify → BestCheckout data sync', 'BestCheckout reads Shopify as the source of truth for checkout. Data flows one way into BestCheckout.') +
-        '<div class="mt-4">' +
-          syncRow('Products and variants', '1,310 items', 'Available in product and offer selectors', '3 minutes ago') +
-          syncRow('Discounts', '23 active', 'Available when buyers enter or receive an offer', '5 minutes ago') +
-          syncRow('Shipping options', '9 options', 'Shown after the buyer enters a delivery address', '5 minutes ago') +
-        '</div><div class="mt-3"><button class="btn btn-default" data-act="sync">Sync now</button></div>' +
+      '<div class="bc-connect-page">' +
+        pageHead('Shopify connection', 'Connect a Shopify store from your BestCheckout workspace.') +
+        '<section class="panel bc-connect-card"><h2>Connect your Shopify store</h2><p>Use the custom app created in Shopify Dev Dashboard. BestCheckout will sync the checkout data it needs and write paid orders back to Shopify.</p>' +
+          '<form data-shopify-connect-form novalidate>' +
+            '<div class="bc-connect-field" data-connect-field="store"><label for="bc-connect-store">Shopify store address</label><div class="bc-connect-domain"><input id="bc-connect-store" autocomplete="off" placeholder="your-store"><span>.myshopify.com</span></div><small>Enter your permanent myshopify.com store address, not your storefront domain.</small><small class="bc-connect-error">Enter your Shopify store name.</small></div>' +
+            '<div class="bc-connect-field" data-connect-field="client"><label for="bc-connect-client">Client ID</label><input id="bc-connect-client" autocomplete="off" placeholder="Paste your Client ID"><small>Find this in your app\'s Settings page in Shopify Dev Dashboard.</small><small class="bc-connect-error">Enter your Shopify Client ID.</small></div>' +
+            '<div class="bc-connect-field" data-connect-field="secret"><label for="bc-connect-secret">Secret</label><div class="bc-connect-secret"><input id="bc-connect-secret" type="password" autocomplete="new-password" placeholder="Paste your Secret"><button type="button" data-connect-secret-toggle>Show</button></div><small>Stored securely and shown only when you choose to reveal it in Shopify connection settings.</small><small class="bc-connect-error">Enter your Shopify Secret.</small></div>' +
+            '<label class="bc-connect-confirm" data-connect-confirm><input type="checkbox" checked><span>I created this app in Shopify Dev Dashboard and authorize BestCheckout to use it for this store.<small class="bc-connect-error">Confirm authorization before connecting.</small></span></label>' +
+            '<div class="bc-connect-actions"><button type="button" class="btn btn-default" data-connect-cancel>Cancel</button><button type="submit" class="btn btn-primary">Connect store</button></div>' +
+          '</form>' +
+        '</section>' +
+      '</div>';
+    paint(body, false);
+    const form = root.querySelector('[data-shopify-connect-form]');
+    const secret = root.querySelector('#bc-connect-secret');
+    const secretToggle = root.querySelector('[data-connect-secret-toggle]');
+    if (secretToggle && secret) secretToggle.onclick = () => {
+      const visible = secret.type === 'text';
+      secret.type = visible ? 'password' : 'text';
+      secretToggle.textContent = visible ? 'Show' : 'Hide';
+    };
+    const cancel = root.querySelector('[data-connect-cancel]');
+    if (cancel) cancel.onclick = () => { setShopifyConnectionSetupRoute(false); renderShopifyStore(); };
+    if (form) form.onsubmit = (event) => {
+      event.preventDefault();
+      const store = root.querySelector('#bc-connect-store');
+      const client = root.querySelector('#bc-connect-client');
+      const confirmation = root.querySelector('[data-connect-confirm]');
+      const accepted = confirmation && confirmation.querySelector('input').checked;
+      const setInvalid = (key, invalid) => {
+        const field = root.querySelector('[data-connect-field="' + key + '"]');
+        if (field) field.classList.toggle('is-invalid', invalid);
+        return invalid;
+      };
+      const invalidStore = setInvalid('store', !store.value.trim());
+      const invalidClient = setInvalid('client', !client.value.trim());
+      const invalidSecret = setInvalid('secret', !secret.value.trim());
+      const invalid = invalidStore || invalidClient || invalidSecret;
+      if (confirmation) confirmation.classList.toggle('is-invalid', !accepted);
+      if (invalid || !accepted) return;
+      const destination = new URL(window.location.href);
+      destination.searchParams.set('shopify', 'connected');
+      destination.searchParams.delete('connect');
+      destination.hash = '#/home';
+      window.location.assign(destination.pathname + destination.search + destination.hash);
+    };
+  }
+
+  function renderShopifyStore() {
+    const isConnected = window.BESTCHECKOUT_SHOPIFY_CONNECTION !== 'unlinked';
+    if (!isConnected) {
+      if (!shopifyConnectionSetupOpen) setShopifyConnectionSetupRoute(true);
+      renderShopifyConnectionSetup();
+      return;
+    }
+    const syncRow = (name, count, detail) =>
+      '<div class="bc-store-row"><div><strong>' + esc(name) + '</strong><span>' + esc(detail) + '</span></div><div class="bc-store-row-end"><b>' + esc(count) + '</b></div></div>';
+    const status = '<span class="pill pill-green"><span class="dot"></span>Connected</span>';
+    const credentialRow = (key, label) => {
+      const isVisible = !!shopifyCredentialVisible[key];
+      const value = shopifyAppCredentials[key];
+      const action = (isVisible ? 'Hide ' : 'Show ') + label;
+      const eye = isVisible
+        ? svg('<path d="m3 3 18 18"/><path d="M10.6 10.7a2 2 0 0 0 2.7 2.7"/><path d="M9.9 4.3A10.6 10.6 0 0 1 12 4c5.5 0 9.5 5.3 9.5 8s-1.2 3.1-3 4.7M6.2 6.2C3.9 8.1 2.5 10.5 2.5 12c0 2.7 4 8 9.5 8 1.5 0 2.9-.4 4.1-1"/>', 17)
+        : svg('<path d="M2.5 12S6.5 4 12 4s9.5 5.3 9.5 8-4 8-9.5 8S2.5 14.7 2.5 12Z"/><circle cx="12" cy="12" r="3"/>', 17);
+      return '<div class="bc-credential"><small>' + esc(label) + '</small><div class="bc-credential-control"><code>' + esc(isVisible ? value : '••••••••••••••••••••') + '</code><button type="button" class="bc-credential-toggle" data-credential-toggle="' + key + '" aria-label="' + esc(action) + '" aria-pressed="' + (isVisible ? 'true' : 'false') + '" title="' + esc(action) + '">' + eye + '</button></div></div>';
+    };
+    const body =
+      '<style>' +
+        '.bc-store-kicker{font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--ink-muted);text-transform:uppercase;margin-bottom:10px}.bc-store-name{font-size:17px;font-weight:700;color:var(--ink);margin-bottom:4px}.bc-store-domain{font-size:13px;color:var(--ink-muted)}.bc-store-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px;padding-top:16px;border-top:1px solid var(--hair)}.bc-store-fact small{display:block;color:var(--ink-muted);font-size:11px;margin-bottom:4px}.bc-store-fact strong{display:block;color:var(--ink-body);font-size:13px;font-weight:600;line-height:1.4}.bc-credentials{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px}.bc-credential small{display:block;margin-bottom:6px;color:var(--ink-muted);font-size:11px;font-weight:600}.bc-credential-control{display:flex;align-items:center;min-width:0;height:38px;border:1px solid var(--ctl);border-radius:8px;background:#fff}.bc-credential-control code{min-width:0;flex:1;overflow:hidden;padding-left:11px;color:var(--ink-body);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;letter-spacing:.035em;text-overflow:ellipsis;white-space:nowrap}.bc-credential-toggle{display:grid;place-items:center;width:36px;height:36px;flex:none;border:0;border-radius:7px;background:transparent;color:var(--ink-muted);cursor:pointer}.bc-credential-toggle:hover{background:#f1f5fa;color:var(--brand)}.bc-credential-toggle:focus-visible{outline:2px solid var(--brand);outline-offset:1px}.bc-sync-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.bc-sync-status{margin-top:2px;white-space:nowrap}.bc-store-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 0;border-top:1px solid var(--hair)}.bc-store-row:first-child{border-top:0;padding-top:0}.bc-store-row strong{display:block;font-size:13.5px;color:var(--ink)}.bc-store-row span,.bc-store-row small{display:block;font-size:12px;color:var(--ink-muted);margin-top:3px;line-height:1.45}.bc-store-row-end{display:flex;align-items:center;gap:10px;white-space:nowrap}.bc-store-row-end>b{font-size:13px;color:var(--ink)}.bc-writeback{display:flex;align-items:flex-start;gap:11px;padding:14px 16px}.bc-writeback-ico{width:28px;height:28px;display:grid;place-items:center;flex:none;border-radius:50%;background:#e8f8ef;color:#14834c}.bc-writeback strong{display:block;font-size:13.5px;color:var(--ink);margin-bottom:4px}.bc-writeback p{margin:0;color:var(--ink-muted);font-size:12.5px;line-height:1.55}.bc-writeback-links{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:12.5px;font-weight:500}.bc-connection-option{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:13px 0;border-top:1px solid var(--hair)}.bc-connection-option:first-child{padding-top:0;border-top:0}.bc-connection-option strong{display:block;font-size:13px;color:var(--ink)}.bc-connection-option span{display:block;font-size:12px;color:var(--ink-muted);line-height:1.5;margin-top:3px}@media(max-width:760px){.bc-store-facts,.bc-credentials{grid-template-columns:1fr;gap:10px}.bc-sync-heading{align-items:flex-start;flex-direction:column}.bc-store-row,.bc-connection-option{align-items:flex-start;flex-direction:column}.bc-store-row-end{flex-direction:row;align-items:center}}' +
+      '</style><style>.bc-sync-panel{overflow:hidden;padding:0!important}.bc-sync-heading{position:relative;align-items:center;padding:16px 18px;background:linear-gradient(120deg,#f2f7ff 0%,#fbfdff 72%);border-bottom:1px solid #d7e4f1;box-shadow:inset 3px 0 0 #4f83d8}.bc-sync-heading .card-title{color:#263b55;font-size:14px;font-weight:750}.bc-sync-heading .muted{color:#657a94!important;line-height:1.45}.bc-sync-content{padding:0 18px 16px;background:#fff}.bc-sync-content .bc-store-row:first-child{padding-top:14px}.bc-sync-actions{display:flex;justify-content:flex-start;padding-top:13px;border-top:1px solid var(--hair)}@media(max-width:760px){.bc-sync-heading{padding:14px 16px}.bc-sync-content{padding:0 16px 14px}}</style>' +
+      pageHead('Shopify connection', 'Review the Shopify store and syncs that power your BestCheckout purchase experience.') +
+      '<section class="panel card-pad mb-4"><div class="bc-store-kicker">Connected Shopify store</div><div class="flex items-start justify-between" style="gap:12px"><div><div class="bc-store-name">Lavender Labs</div><div class="bc-store-domain">lavender-labs.myshopify.com</div></div>' + status + '</div><div class="bc-store-facts"><div class="bc-store-fact"><small>Shop name</small><strong>Lavender Labs</strong></div><div class="bc-store-fact"><small>Myshopify domain</small><strong>lavender-labs.myshopify.com</strong></div><div class="bc-store-fact"><small>Connection status</small><strong>Ready for checkout</strong></div></div></section>' +
+      '<section class="panel card-pad mb-4">' + sectionTitle('Shopify app credentials', 'Saved when you connected this store. Values stay hidden until you choose to reveal them.') + '<div class="bc-credentials">' + credentialRow('clientId', 'Client ID') + credentialRow('secret', 'Secret') + '</div></section>' +
+      '<section class="panel mb-4 bc-sync-panel"><div class="bc-sync-heading"><div>' + sectionTitle('Shopify → BestCheckout data sync', 'BestCheckout reads Shopify as the source of truth for checkout. Data flows one way into BestCheckout.') + '</div><span class="pill pill-green bc-sync-status"><span class="dot"></span><span data-sync-summary>All data synced · 5 min ago</span></span></div>' +
+        '<div class="bc-sync-content"><div class="bc-sync-rows">' +
+          syncRow('Products, variants & inventory', '1,310 products', 'Product selection, SKU, price, and inventory checks') +
+          syncRow('Collections', '48 collections', 'Collection selectors, collection rules, and product filters') +
+          syncRow('Customers & order history', '215 customers', 'Customer eligibility, tags, and returning-customer rules') +
+          syncRow('Discounts & discount codes', '23 active', 'Automatic discounts, discount codes, and offer eligibility') +
+          syncRow('Shipping zones, rates & delivery profiles', '9 profiles', 'Accurate shipping calculation after the buyer enters an address') +
+          syncRow('Store settings', 'USD · en-US', 'Store currency, timezone, and brand defaults') +
+        '</div><div class="bc-sync-actions"><button class="btn btn-default" data-act="sync">Sync now</button></div></div>' +
       '</section>' +
       '<section class="panel card-pad mb-4">' + sectionTitle('Order write-back to Shopify', 'BestCheckout creates the order, then Shopify remains the fulfillment workspace.') +
-        '<div class="mt-4"><div class="b-c bc-writeback"><span class="bc-writeback-ico">' + I.check + '</span><div><strong>Paid BestCheckout orders are automatically created in Shopify</strong><p>After payment, your existing Shopify fulfillment workflow continues as usual. There is no setting to save on this page.</p><div class="bc-writeback-links"><a class="lnk" href="#/orders">View orders</a><a class="lnk" href="#/activity">View sync activity</a></div></div></div></div>' +
+        '<div class="mt-4"><div class="b-c bc-writeback"><span class="bc-writeback-ico">' + I.check + '</span><div><strong>Paid BestCheckout orders are automatically created in Shopify</strong><p>After payment, your existing Shopify fulfillment workflow continues as usual. There is no setting to save on this page.</p><div class="bc-writeback-links"><a class="lnk" href="#/orders">View orders</a><a class="lnk" href="#/activity/order">View sync activity</a></div></div></div></div>' +
       '</section>';
 
     // The shared Settings frame keeps this operational overview readable while
@@ -290,28 +379,20 @@
     const sync = root.querySelector('[data-act="sync"]');
     if (sync) sync.onclick = () => {
       sync.disabled = true; sync.textContent = 'Syncing…';
-      root.querySelectorAll('.bc-sync-last').forEach((el) => { el.textContent = 'Syncing now…'; });
+      root.querySelectorAll('[data-sync-summary]').forEach((el) => { el.textContent = 'Syncing data…'; });
       setTimeout(() => {
         if (!root || !root.contains(sync)) return;
         sync.disabled = false; sync.textContent = 'Sync now';
-        root.querySelectorAll('.bc-sync-last').forEach((el) => { el.textContent = 'Last synced just now'; });
+        root.querySelectorAll('[data-sync-summary]').forEach((el) => { el.textContent = 'All data synced · just now'; });
         toast('Shopify data sync completed');
       }, 650);
     };
-    const connection = root.querySelector('[data-act="connection"]');
-    if (connection) connection.onclick = () => {
-      const ctrl = modal({
-        title: 'Manage Shopify connection', width: 560, okText: 'Done', hideCancel: true,
-        body: '<div class="bc-connection-option"><div><strong>App credentials</strong><span>Client ID and client secret are stored securely. Update them only when you replace the custom app.</span></div><button class="btn btn-default" data-connection-credentials>Update credentials</button></div><div class="bc-connection-option"><div><strong>Authorization</strong><span>Refresh the Shopify grant if access was revoked or required scopes changed.</span></div><button class="btn btn-default" data-connection-reauthorize>Reauthorize</button></div><div class="bc-connection-option"><div><strong>Disconnect store</strong><span>This stops checkout routing, data sync, and order write-back for this store.</span></div><button class="btn" style="background:var(--err);color:#fff" data-connection-disconnect>Disconnect</button></div>',
-        onOk: function (m, close) { close(); }
-      });
-      const credentials = ctrl.m.querySelector('[data-connection-credentials]');
-      if (credentials) credentials.onclick = () => toast('Open your custom app to update credentials');
-      const reauthorize = ctrl.m.querySelector('[data-connection-reauthorize]');
-      if (reauthorize) reauthorize.onclick = () => toast('Shopify reauthorization started');
-      const disconnect = ctrl.m.querySelector('[data-connection-disconnect]');
-      if (disconnect) disconnect.onclick = () => { ctrl.close(); confirm({ title: 'Disconnect Shopify store', content: 'This stops BestCheckout routing, Shopify data sync, and order write-back. Shopify native checkout stays available.', okText: 'Disconnect', danger: true, onOk: () => toast('Shopify connection disconnected') }); };
-    };
+    root.querySelectorAll('[data-credential-toggle]').forEach((button) => button.onclick = () => {
+      const key = button.getAttribute('data-credential-toggle');
+      if (!Object.prototype.hasOwnProperty.call(shopifyCredentialVisible, key)) return;
+      shopifyCredentialVisible[key] = !shopifyCredentialVisible[key];
+      renderShopifyStore();
+    });
   }
 
   // Add font — mirrors fontModel.tsx: "Font:" label + Ant Select(mode=multiple) of
@@ -361,11 +442,11 @@
   // ===========================================================================
   // ---- v2 资源 / 能力 ----
   const PAY_ASSET = 'settings/assets/payments/';
-  const payImg = (f, hh) => '<img src="' + PAY_ASSET + f + '" style="height:' + (hh || 18) + 'px" alt=""/>';
+  const payImg = (f, hh, cn) => '<img' + (cn ? ' class="' + cn + '"' : '') + ' src="' + PAY_ASSET + f + '" style="height:' + (hh || 18) + 'px" alt=""/>';
   const PAY_ICON = {
     cards: payImg('visa.svg', 20) + payImg('mastercard.svg', 20) + payImg('amex.svg', 20) + payImg('unionpay.svg', 20),
     applepay: payImg('applepay.svg'), googlepay: payImg('googlepay.svg'), link: payImg('link.svg'),
-    amazonpay: payImg('amazonpay.svg'), klarna: payImg('klarna.svg'), paypal: payImg('paypal-logo.svg', 16),
+    amazonpay: payImg('amazonpay.svg?v=20260723amazonpayicon1', 18, 'amazon-pay-icon'), klarna: payImg('klarna.svg'), paypal: payImg('paypal-logo.svg', 16),
   };
   // 各处理方「我们采用的集成方式」下 Express 块实际能出的方式（均已查官方文档核实 2026-06，见 PRD §5.2）。
   // PayPal Cards 没有条目：当前接入不提供 PayPal Apple Pay / Google Pay，不能假装成 Express 钱包。
@@ -444,7 +525,7 @@
       : 'Once a processor is connected, card input and Express both show at checkout automatically; the specific wallets are auto-detected by buyer device/environment.';
     const cardMeta = paypalCards ? 'PayPal Card Fields · Visa / Mastercard / Amex …' : 'Visa / Mastercard / Amex / UnionPay …';
     const expressRow = paypalCards
-      ? '<div class="slot-row"><span class="ic"><span class="pill pill-gray"><span class="dot"></span>Not available</span></span><div class="bd"><span class="lbl">Express wallets</span><span class="meta">Apple Pay and Google Pay are not available with the current PayPal integration.</span></div></div>'
+      ? '<div class="slot-row"><span class="ic"><span class="pill pill-gray express-unavailable"><span class="dot"></span>Not available</span></span><div class="bd"><span class="lbl">Express wallets</span><span class="meta">Apple Pay and Google Pay are not available with the current PayPal integration.</span></div></div>'
       : '<div class="slot-row"><span class="ic">' + (expIcos || '<span class="muted" style="font-size:12px">This processor has no Express</span>') + '</span><div class="bd"><span class="lbl">Express Checkout</span><span class="meta">Auto-rendered by buyer environment · <span class="lnkico" data-dash="' + a.key + '">Manage in dashboard ↗</span></span></div></div>';
     return '<div class="panel card-pad">' +
       '<div class="slot-head"><span class="slot-title">Processed by ' + esc(a.name) + '</span>' + picker + '</div>' +
@@ -601,7 +682,7 @@
     '.payv2 .proc-pick .pchip .pchip-cog:hover{background:rgba(0,0,0,.05);color:var(--ink)}' +
     '.payv2 .proc-pick .lock{height:30px;padding:0 11px;border-radius:8px;border:1px dashed var(--hair);background:var(--panel);font-size:13px;color:var(--ink-muted);display:inline-flex;align-items:center;gap:6px}' +
     '.payv2 .slot-row{display:flex;align-items:center;gap:12px;padding:14px 0;border-top:1px solid var(--hair)}' +
-    '.payv2 .slot-row .ic{display:flex;gap:4px;align-items:center;flex-wrap:wrap}' +
+    '.payv2 .slot-row .ic{display:flex;gap:4px;align-items:center;flex-wrap:wrap}.payv2 .express-unavailable{white-space:nowrap;flex:none}' +
     '.payv2 .slot-row .ic img{height:20px}' +
     '.payv2 .slot-row .bd{display:flex;flex-direction:column}' +
     '.payv2 .slot-row .lbl{font-weight:600;font-size:13.5px;color:var(--ink)}' +
@@ -636,7 +717,7 @@
     '.payv2 .ck-ico{margin-left:auto;display:flex;gap:4px}.payv2 .ck-ico img{height:16px}' +
     '.payv2 .ck-pay{margin-top:6px;height:42px;border-radius:10px;background:var(--brand);color:#fff;font-weight:700;font-size:14px;display:grid;place-items:center}' +
     '.payv2 .wallets{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}' +
-    '.payv2 .wallet{height:40px;border-radius:9px;border:1px solid var(--ctl);display:grid;place-items:center}.payv2 .wallet img{height:18px}' +
+    '.payv2 .wallet{height:40px;border-radius:9px;border:1px solid var(--ctl);display:grid;place-items:center}.payv2 .wallet img{height:18px}.payv2 .amazon-pay-icon{width:18px;max-width:18px;object-fit:contain;display:block}' +
     '.payv2 .preview-note{font-size:11.5px;color:var(--ink-muted);text-align:center;margin-top:10px;line-height:1.5}' +
     '.payv2 .foot-note{font-size:12px;color:var(--ink-muted);margin-top:20px;line-height:1.7}';
 
@@ -2387,8 +2468,8 @@
   .nf-seg button.on { background: var(--brand); color: #fff; }
   .nf-inbox { border: 1px solid var(--hair); border-bottom: none; border-radius: 10px 10px 0 0; background: #fff; padding: 10px 14px; font-size: 12.5px; }
   .nf-inbox .l { color: var(--ink-muted); } .nf-inbox .v { color: var(--ink); font-weight: 500; }
-  .nf-stage { border: 1px solid var(--hair); border-radius: 0 0 10px 10px; background: #eef1f5; padding: 18px 12px; overflow: hidden; }
-  .email-card { background: #fff; border-radius: 12px; box-shadow: 0 4px 16px rgb(16 24 40 / 8%); overflow: hidden; margin: 0 auto; font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  .nf-stage { border: 1px solid var(--hair); border-radius: 0 0 10px 10px; background: #eef1f5; padding: 18px 12px; overflow: hidden; display: flex; justify-content: center; align-items: flex-start; }
+  .email-card { background: #fff; border-radius: 12px; box-shadow: 0 4px 16px rgb(16 24 40 / 8%); overflow: hidden; margin: 0; flex: none; font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
   .email-card .nf-h { margin: 0 0 10px; font-size: 22px; font-weight: 700; color: #1f2430; letter-spacing: -.01em; }
   .email-card .nf-lead { margin: 0 0 22px; font-size: 15px; color: #5a6473; line-height: 1.7; }
   .email-card .nf-fine { margin: 18px 0 0; font-size: 13px; color: #9aa3b2; line-height: 1.7; }
@@ -2452,8 +2533,8 @@
   const STYLES = `
   /* All Settings pages share a focused reading width. Forms retain the
      narrower 860px measure used by the live admin. */
-  .set-page { width: 960px; max-width: 100%; margin: 0 auto; }
-  .set-page.set-narrow { width: 860px; }
+  .set-page { width: 1120px; max-width: 100%; margin: 0 auto; }
+  .set-page.set-narrow { width: 960px; }
   .domain-change-action { flex: 0 0 auto; min-width: 168px; justify-content: center; white-space: nowrap; }
 
   /* switch */

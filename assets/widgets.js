@@ -83,7 +83,11 @@
       if (openLayer && openLayer._owner === btn) { closePop(); return; }
       var panel = document.createElement('div');
       panel.className = 'ui-select-pop';
-      panel.style.minWidth = Math.max(btn.offsetWidth, 160) + 'px';
+      if (sel.hasAttribute('data-ui-match-width')) {
+        panel.style.boxSizing = 'border-box';
+        panel.style.width = btn.offsetWidth + 'px';
+        panel.style.minWidth = '0';
+      } else panel.style.minWidth = Math.max(btn.offsetWidth, 160) + 'px';
       var appendOption = function (o) {
         var i = o.index;
         var opt = document.createElement('div');
