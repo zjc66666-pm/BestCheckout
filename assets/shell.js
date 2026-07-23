@@ -9,7 +9,8 @@
    #/orders/5042, or 'base' for #/settings/base). Internal navigation just sets
    location.hash; the router re-dispatches. */
 (function () {
-  var V = '20260723variantalignment1'; // cache-bust for lazy-loaded module scripts
+  var V = '20260723releasefix1'; // cache-bust for lazy-loaded module scripts
+  var PUBLIC_SHOPIFY_CONNECTION_URL = 'landing/?entry=connect-new-shopify-store#/connect-shopify';
   var s = function (p) { return '<svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>'; };
   var ICONS = {
     home: s('<path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/>'),
@@ -59,12 +60,10 @@
     activeStore = STORES.filter(function (store) { return store.name === qsStore; })[0] || null;
     if (activeStore) SITE.store = activeStore.name;
     shopifyConnectionState = query.get('shopify') === 'unlinked' ? 'unlinked' : 'connected';
-    // A merchant must complete Shopify connection before any admin surface is
-    // available. Keep every unlinked deep link on the connection form instead
-    // of exposing an empty admin state behind it.
-    if (shopifyConnectionState === 'unlinked' && (query.get('connect') !== 'shopify' || location.hash !== '#/connect-shopify')) {
-      query.set('connect', 'shopify');
-      location.replace(location.pathname + '?' + query.toString() + '#/connect-shopify');
+    // Store connection is completed in the public onboarding flow. Do not
+    // expose the retired, admin-embedded connection form for unlinked stores.
+    if (shopifyConnectionState === 'unlinked') {
+      location.replace(PUBLIC_SHOPIFY_CONNECTION_URL);
       return;
     }
     // V1.139 provisioning still sends ?new=1. Normal entry derives the Home from store state.
@@ -422,7 +421,7 @@
     var tasks = [
       connected
         ? { done: true, title: 'Shopify store connected', desc: 'Products, discounts and delivery options are ready for checkout.' }
-        : { done: false, current: true, title: 'Connect your Shopify store', desc: 'Connect your custom app to sync products, orders, and checkout data.', href: '?shopify=unlinked&connect=shopify#/connect-shopify', action: 'Connect' },
+        : { done: false, current: true, title: 'Connect your Shopify store', desc: 'Connect your custom app to sync products, orders, and checkout data.', href: 'landing/?entry=connect-new-shopify-store#/connect-shopify', action: 'Connect' },
       { done: false, title: 'Set checkout domain', desc: 'Use a branded, secure address throughout checkout, Upsell, Downsell, and Thank you pages.', href: '#/settings/domains', action: 'Set up' },
       { done: false, title: 'Connect payment service', desc: 'Choose how buyers can pay and complete a test payment.', href: '#/settings/payments', action: 'Set up' }
     ];
@@ -490,10 +489,8 @@
   // ---------- router ----------
   function dispatch() {
     var p = parse();
-    if (shopifyConnectionState === 'unlinked' && p.first !== 'connect-shopify') {
-      var connectionDestination = new URL(window.location.href);
-      connectionDestination.searchParams.set('connect', 'shopify');
-      location.assign(connectionDestination.pathname + connectionDestination.search + '#/connect-shopify');
+    if (shopifyConnectionState === 'unlinked') {
+      location.assign(PUBLIC_SHOPIFY_CONNECTION_URL);
       return;
     }
     // Performance is now part of Overview. Keep existing shared links useful.
@@ -512,23 +509,13 @@
     if (p.first === 'post-purchase') { location.hash = '#/home'; return; }
     // The copied baseline used this path for a broader internal workspace.
     // Preserve bookmarks without exposing that unrelated surface to merchants.
-    if (p.first === 'bestcheckout') { location.hash = p.rest === 'connect' ? '#/connect-shopify' : '#/flows'; return; }
+    if (p.first === 'bestcheckout') {
+      if (p.rest === 'connect') location.assign(PUBLIC_SHOPIFY_CONNECTION_URL);
+      else location.hash = '#/flows';
+      return;
+    }
     if (p.first === 'connect-shopify') {
-      removeSettings();
-      curActiveId = '';
-      renderSidebar('');
-      root.innerHTML = '<div class="view-wrap"><div class="placeholder">Loading...</div></div>';
-      loadModule('settings').then(function () {
-        if (parse().first !== 'connect-shopify') return;
-        var connectionView = window.VIEWS.settings;
-        if (!connectionView || !connectionView.render) { root.innerHTML = '<div class="view-wrap"><div class="placeholder">Connection page unavailable.</div></div>'; return; }
-        connectionView.render(root, 'base');
-        if (window.UI) window.UI.scan(root);
-        current = 'settings';
-        root.scrollTop = 0;
-      }).catch(function () {
-        root.innerHTML = '<div class="view-wrap"><div class="placeholder">Failed to load connection page.</div></div>';
-      });
+      location.assign(PUBLIC_SHOPIFY_CONNECTION_URL);
       return;
     }
     removeSettings();
@@ -607,7 +594,7 @@
       '</button>';
     }).join('');
     return '<div class="hdr-store-list">' + rows + '</div>' +
-      '<a class="hdr-menu-foot" href="?shopify=unlinked&connect=shopify#/connect-shopify">Connect new Shopify store</a>';
+      '<a class="hdr-menu-foot" href="landing/?entry=connect-new-shopify-store#/connect-shopify">Connect new Shopify store</a>';
   }
   function userMenuHtml() {
     return '<div class="hdr-menu-head">' + MICO.user + '<span>' + (SITE.email || 'owner@bestshopio.com') + '</span></div>' +

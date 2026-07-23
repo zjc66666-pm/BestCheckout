@@ -98,7 +98,7 @@ function syncResetCodeCooldown(form) {
       ? (seconds > 0
         ? 'Verification code sent to ' + sentTo + '. You can resend it in ' + seconds + ' seconds.'
         : 'You can request a new verification code for ' + sentTo + '.')
-      : 'We\u2019ll send a 6-digit code to this email address.';
+      : 'We’ll send a 6-digit code to this email address.';
   }
   return seconds === 0;
 }
@@ -296,8 +296,8 @@ function renderPortalStoreMenu() {
     const selected = store.id === current.id;
     return '<button type="button" class="hdr-store-row' + (selected ? ' current' : '') + '" data-action="switch-portal-store" data-store-id="' + escapeHtml(store.id) + '" role="menuitemradio" aria-checked="' + selected + '"><span class="hdr-store-ico"></span><span class="hdr-store-meta"><span class="hdr-store-name">' + escapeHtml(store.name) + '</span><span class="hdr-store-url">' + escapeHtml(store.domain) + '</span></span>' + (selected ? '<span class="hdr-store-check">✓</span>' : '') + '</button>';
   }).join('');
-  const foot = state.ui.locale === 'zh' ? '查看全部 Shopify 店铺' : 'View all Shopify stores';
-  return '<div class="hdr-menu bc-shell-menu" role="menu">' + rows + '<button type="button" class="hdr-menu-foot" data-route="settings?tab=store">' + escapeHtml(foot) + '</button></div>';
+  const foot = state.ui.locale === 'zh' ? '连接新的 Shopify 店铺' : 'Connect new Shopify store';
+  return '<div class="hdr-menu bc-shell-menu" role="menu">' + rows + '<button type="button" class="hdr-menu-foot" data-route="connect-shopify">' + escapeHtml(foot) + '</button></div>';
 }
 
 function renderPortalAccountMenu() {
@@ -487,10 +487,6 @@ function pageForRoute(route) {
 
 function renderShell(options) {
   const route = parseRoute();
-  if (route.segments[0] === 'connect-shopify' && !state.ui.isAuthenticated) {
-    setRoute('sign-up?next=connect-shopify');
-    return;
-  }
   if (isPublicRoute(route)) {
     clearMarketingMotion();
     appRoot.innerHTML = renderPublicRoute(route);
@@ -2131,6 +2127,22 @@ function validatePortalForm(form) {
   return true;
 }
 
+function validateConnectAuthorization(form, focusOnError) {
+  const authorization = form.querySelector('[name="authorizationConfirmed"]');
+  const confirmation = form.querySelector('[data-connect-confirmation]');
+  const confirmationError = form.querySelector('[data-connect-confirmation-error]');
+  const isValid = Boolean(authorization && authorization.checked);
+
+  if (confirmation) confirmation.classList.toggle('is-invalid', !isValid);
+  if (confirmationError) confirmationError.hidden = isValid;
+  if (authorization) {
+    if (isValid) authorization.removeAttribute('aria-invalid');
+    else authorization.setAttribute('aria-invalid', 'true');
+    if (!isValid && focusOnError) authorization.focus();
+  }
+  return isValid;
+}
+
 function bindFormSubmissions(event) {
   const form = event.target;
   if (form.id === 'portal-change-password-form') {
@@ -2194,19 +2206,9 @@ function bindFormSubmissions(event) {
   }
   if (form.id === 'connect-shopify-form') {
     event.preventDefault();
-    if (!validatePortalForm(form)) return;
-    const authorization = form.querySelector('[name="authorizationConfirmed"]');
-    const confirmation = form.querySelector('[data-connect-confirmation]');
-    const confirmationError = form.querySelector('[data-connect-confirmation-error]');
-    if (!authorization || !authorization.checked) {
-      if (confirmation) confirmation.classList.add('is-invalid');
-      if (confirmationError) confirmationError.hidden = false;
-      if (authorization) {
-        authorization.setAttribute('aria-invalid', 'true');
-        authorization.focus();
-      }
-      return;
-    }
+    const fieldsValid = validatePortalForm(form);
+    const authorizationValid = validateConnectAuthorization(form, fieldsValid);
+    if (!fieldsValid || !authorizationValid) return;
     startShopifyConnection(form);
     return;
   }

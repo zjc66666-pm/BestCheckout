@@ -8,8 +8,7 @@
     (function () {
       var route = window.location.hash;
       var legacyDestination = {
-        '#/help': '../help/',
-        '#/connect-shopify': '../?shopify=unlinked&connect=shopify#/settings/base'
+        '#/help': '../help/'
       }[route];
       if (legacyDestination) {
         window.location.replace(legacyDestination);
