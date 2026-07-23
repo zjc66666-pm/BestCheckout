@@ -37,18 +37,13 @@ export function renderForgotPasswordCode(step) {
     const message = '<div class="portal-reset-sent" role="status"><span class="portal-reset-sent-icon">' + icon('check', 22) + '</span><p>Your password has been reset. Sign in with your new password.</p></div><div class="portal-reset-actions"><button type="button" class="portal-submit" data-route="sign-in">Back to sign in</button></div>';
     return authLayout('Password recovery', 'Password reset', 'Your BestCheckout account is ready to use.', message);
   }
-  if (step === 'reset' || step === 'sent') {
-    const form = '<form class="portal-form" id="portal-reset-password-form" novalidate>'
-      + portalField('Verification code', '<input required type="text" name="verificationCode" inputmode="numeric" autocomplete="one-time-code" minlength="6" maxlength="6" pattern="[0-9]{6}" placeholder="Enter 6-digit code" data-validation-required="Enter the verification code." data-validation-too-short="Enter the 6-digit verification code." data-validation-invalid="Enter the 6-digit verification code." />', 'We sent a 6-digit code to your email address.')
-      + portalField('New password', '<input required type="password" name="newPassword" autocomplete="new-password" minlength="8" placeholder="Create a new password" data-validation-required="Create a new password." data-validation-too-short="Use at least 8 characters." />')
-      + portalField('Confirm new password', '<input required type="password" name="confirmPassword" autocomplete="new-password" minlength="8" placeholder="Re-enter your new password" data-validation-required="Confirm your new password." data-validation-too-short="Use at least 8 characters." />')
-      + '<button type="submit" class="portal-submit">Reset password ' + icon('arrow', 16) + '</button></form>';
-    return authLayout('Password recovery', 'Enter verification code', 'Use the code from your email and choose a new password.', form, '<p class="portal-auth-foot"><button type="button" data-route="forgot-password">Use a different email</button></p>');
-  }
-  const form = '<form class="portal-form" id="portal-forgot-password-form" novalidate>'
-    + portalField('Email', '<input required type="email" name="email" autocomplete="email" autofocus data-validation-required="Enter your email address." data-validation-invalid="Enter a valid email address." />')
-    + '<button type="submit" class="portal-submit">Send verification code ' + icon('arrow', 16) + '</button></form>';
-  return authLayout('Password recovery', 'Reset your password', 'Enter the email address you use for BestCheckout. We’ll send a 6-digit verification code.', form, '<p class="portal-auth-foot">Remembered your password? <button type="button" data-route="sign-in">Back to sign in</button></p>');
+  const form = '<form class="portal-form" id="portal-reset-password-form" novalidate>'
+    + portalField('Email', '<input required type="email" name="email" autocomplete="email" autofocus placeholder="you@company.com" data-validation-required="Enter your email address." data-validation-invalid="Enter a valid email address." />')
+    + portalField('Verification code', '<div class="portal-code-field"><input required type="text" name="verificationCode" inputmode="numeric" autocomplete="one-time-code" minlength="6" maxlength="6" pattern="[0-9]{6}" placeholder="Enter 6-digit code" data-validation-required="Enter the verification code." data-validation-too-short="Enter the 6-digit verification code." data-validation-invalid="Enter the 6-digit verification code." /><button type="button" class="portal-code-send" data-action="send-reset-code" data-reset-code-button>Send code</button></div>', '<span data-reset-code-status aria-live="polite">We’ll send a 6-digit code to this email address.</span>')
+    + portalField('New password', '<input required type="password" name="newPassword" autocomplete="new-password" minlength="8" placeholder="Create a new password" data-validation-required="Create a new password." data-validation-too-short="Use at least 8 characters." />')
+    + portalField('Confirm new password', '<input required type="password" name="confirmPassword" autocomplete="new-password" minlength="8" placeholder="Re-enter your new password" data-validation-required="Confirm your new password." data-validation-too-short="Use at least 8 characters." />')
+    + '<button type="submit" class="portal-submit">Reset password ' + icon('arrow', 16) + '</button></form>';
+  return authLayout('Password recovery', 'Reset your password', 'Verify your email and choose a new password without leaving this page.', form, '<p class="portal-auth-foot">Remembered your password? <button type="button" data-route="sign-in">Back to sign in</button></p>');
 }
 
 export function renderSignUp() {

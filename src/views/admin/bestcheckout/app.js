@@ -36,7 +36,7 @@ import { renderActivity } from './pages/activity.js?rev=20260720-standalone-port
 import { renderSettings } from './pages/settings.js?rev=20260720-standalone-portal-v150';
 import { renderEditor, mountEditor } from './pages/editor.js?rev=20260719-preview-session-v92';
 import { renderOrders } from './pages/orders.js?rev=20260720-standalone-portal-v145';
-import { renderConnectShopify, renderForgotPasswordCode, renderSignIn, renderSignUp } from './pages/auth.js?rev=20260723forgotcode1';
+import { renderConnectShopify, renderForgotPasswordCode, renderSignIn, renderSignUp } from './pages/auth.js?rev=20260723singlepasswordreset1';
 import { renderHelpCenter } from './pages/help.js?rev=20260723brandunify1';
 import { renderMarketingSite } from './pages/website.js?rev=20260723brandmark1';
 import { escapeHtml, formatDateTime, getRouteName, parseRoute, setRoute } from './utils.js?rev=20260720-standalone-portal-v145';
@@ -64,6 +64,7 @@ try {
 }
 let modalReturnFocus = null;
 let marketingMotionCleanup = null;
+let resetCodeCooldownTimer = null;
 
 function clearMarketingMotion() {
   if (typeof marketingMotionCleanup === 'function') marketingMotionCleanup();
@@ -74,6 +75,46 @@ function useEnglishPortalDefault() {
   state.ui.locale = 'en';
   state.ui.languageOpen = false;
   try { window.localStorage.setItem('bestcheckout-prototype-locale', 'en'); } catch (error) { /* no-op */ }
+}
+
+function resetCodeCooldownSeconds() {
+  const endsAt = Number(state.ui.resetCodeCooldownEndsAt || 0);
+  return Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
+}
+
+function syncResetCodeCooldown(form) {
+  const currentForm = form || appRoot.querySelector('#portal-reset-password-form');
+  if (!currentForm) return true;
+  const button = currentForm.querySelector('[data-reset-code-button]');
+  const status = currentForm.querySelector('[data-reset-code-status]');
+  if (!button) return true;
+
+  const seconds = resetCodeCooldownSeconds();
+  const sentTo = String(state.ui.resetCodeEmail || '').trim();
+  button.disabled = seconds > 0;
+  button.textContent = seconds > 0 ? 'Resend in ' + seconds + 's' : sentTo ? 'Resend code' : 'Send code';
+  if (status) {
+    status.textContent = sentTo
+      ? (seconds > 0
+        ? 'Verification code sent to ' + sentTo + '. You can resend it in ' + seconds + ' seconds.'
+        : 'You can request a new verification code for ' + sentTo + '.')
+      : 'We\u2019ll send a 6-digit code to this email address.';
+  }
+  return seconds === 0;
+}
+
+function startResetCodeCooldown(form, email) {
+  state.ui.resetCodeEmail = email;
+  state.ui.resetCodeCooldownEndsAt = Date.now() + 60000;
+  window.clearInterval(resetCodeCooldownTimer);
+  syncResetCodeCooldown(form);
+  resetCodeCooldownTimer = window.setInterval(function () {
+    const expired = syncResetCodeCooldown();
+    if (expired) {
+      window.clearInterval(resetCodeCooldownTimer);
+      resetCodeCooldownTimer = null;
+    }
+  }, 1000);
 }
 
 function mountMarketingMotion() {
@@ -453,6 +494,7 @@ function renderShell(options) {
   if (isPublicRoute(route)) {
     clearMarketingMotion();
     appRoot.innerHTML = renderPublicRoute(route);
+    if (route.segments[0] === 'forgot-password' && route.segments[1] !== 'complete') syncResetCodeCooldown();
     if (route.segments[0] === 'landing') mountMarketingMotion();
     const section = route.segments[0] === 'landing' ? route.query.get('section') : null;
     if (section && ['product', 'results', 'how-it-works'].includes(section)) {
@@ -1052,6 +1094,19 @@ function initialAudienceForPreset(preset, locale) {
 }
 
 function handleAction(action, element) {
+  if (action === 'send-reset-code') {
+    const form = element.closest('#portal-reset-password-form');
+    const emailInput = form && form.querySelector('[name="email"]');
+    if (!form || !emailInput) return;
+    if (!setPortalFieldValidation(emailInput, true)) {
+      emailInput.focus();
+      return;
+    }
+    const codeInput = form.querySelector('[name="verificationCode"]');
+    if (codeInput) setPortalFieldValidation(codeInput, false);
+    startResetCodeCooldown(form, emailInput.value.trim());
+    return;
+  }
   if (action === 'portal-signout') {
     state.ui.isAuthenticated = false;
     state.ui.languageOpen = false;
@@ -2099,16 +2154,22 @@ function bindFormSubmissions(event) {
     openNewBestCheckoutDashboard();
     return;
   }
-  if (form.id === 'portal-forgot-password-form') {
-    event.preventDefault();
-    if (!validatePortalForm(form)) return;
-    setRoute('forgot-password/reset');
-    return;
-  }
   if (form.id === 'portal-reset-password-form') {
     event.preventDefault();
-    if (!validatePortalForm(form)) return;
     const data = new FormData(form);
+    const email = String(data.get('email') || '').trim();
+    if (!state.ui.resetCodeEmail || state.ui.resetCodeEmail !== email) {
+      const codeInput = form.querySelector('[name="verificationCode"]');
+      const field = codeInput && codeInput.closest('[data-portal-field]');
+      const error = field && field.querySelector('[data-field-error]');
+      if (field) field.classList.add('is-invalid');
+      if (codeInput) codeInput.setAttribute('aria-invalid', 'true');
+      if (error) { error.hidden = false; error.textContent = 'Send a verification code to this email first.'; }
+      const sendButton = form.querySelector('[data-reset-code-button]');
+      if (sendButton) sendButton.focus();
+      return;
+    }
+    if (!validatePortalForm(form)) return;
     const next = String(data.get('newPassword') || '');
     const confirmation = String(data.get('confirmPassword') || '');
     if (next !== confirmation) {
@@ -2635,6 +2696,19 @@ function bindFormSubmissions(event) {
 
 function handleInput(event) {
   if (event.target.matches('[data-portal-field] input')) {
+    if (event.target.name === 'email' && event.target.closest('#portal-reset-password-form') && state.ui.resetCodeEmail && event.target.value.trim() !== state.ui.resetCodeEmail) {
+      const form = event.target.closest('#portal-reset-password-form');
+      state.ui.resetCodeEmail = '';
+      state.ui.resetCodeCooldownEndsAt = 0;
+      window.clearInterval(resetCodeCooldownTimer);
+      resetCodeCooldownTimer = null;
+      const codeInput = form && form.querySelector('[name="verificationCode"]');
+      if (codeInput) {
+        codeInput.value = '';
+        setPortalFieldValidation(codeInput, false);
+      }
+      syncResetCodeCooldown(form);
+    }
     const field = event.target.closest('[data-portal-field]');
     if (field && field.classList.contains('is-invalid')) setPortalFieldValidation(event.target, true);
     return;
