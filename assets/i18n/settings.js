@@ -448,10 +448,10 @@ window.I18N.extend({
   "Your Shopify storefront domain will not change.": "Shopify 店铺前台域名不会改变。",
   "Your Shopify storefront domain stays unchanged. This only sets the address BestCheckout uses for checkout.": "不会更改你的 Shopify 店铺前台域名；仅设置由 BestCheckout 承接的结账地址。",
   "When the record is ready, select Verify connection. BestCheckout checks DNS first, then provisions SSL.": "记录生效后，点击“验证连接”。BestCheckout 会先检查 DNS，再开通 SSL。",
-  "CNAME record not found": "未找到 CNAME 记录",
-  "We could not find this CNAME record yet. Check the host and target, then verify again.": "暂未找到这条 CNAME 记录。请检查主机记录和目标值后再次验证。",
-  "DNS record found": "已找到 DNS 记录",
-  "The CNAME is resolving, but SSL could not be issued yet. Retry to start SSL issuance again.": "CNAME 已解析，但暂时无法签发 SSL。请重试以再次开通 SSL。",
+  "DNS record not found": "未找到 DNS 记录",
+  "We could not find this DNS record yet. Check the record details, then verify again.": "暂未找到这条 DNS 记录。请检查记录详情后再次验证。",
+  "DNS verified, SSL needs attention": "DNS 已验证，但 SSL 需要处理",
+  "The DNS record is resolving, but SSL could not be issued yet. Retry to start SSL issuance again.": "DNS 记录已解析，但暂时无法签发 SSL。请重试以再次开通 SSL。",
   "Checkout domain connected": "结账域名已连接",
   "DNS and SSL are active. Buyers can now use this address securely.": "DNS 和 SSL 均已生效，买家现在可以安全使用此地址。",
   "Verify connection": "验证连接",
@@ -776,7 +776,6 @@ window.I18N.extend({
   "Verify": "验证",
   "BestCheckout will finish the setup": "BestCheckout 将完成剩余设置",
   "DNS record is being created automatically": "正在自动创建 DNS 记录",
-  "Finish later": "稍后完成",
   "Check connection": "检查连接",
   "Manual DNS setup": "手动 DNS 设置",
   "Add DNS record": "添加 DNS 记录",
@@ -828,4 +827,6 @@ window.I18N.addRules([
   ,{ re: /^BestCheckout is asking (.+) to create and verify the CNAME for (.+)\.$/, zh: function (m) { return 'BestCheckout 正在请求 ' + m[1] + ' 为 ' + m[2] + ' 创建并验证 CNAME 记录。'; } }
   ,{ re: /^We're checking the records for (.+)\.$/, zh: function (m) { return '正在检查 ' + m[1] + ' 的记录。'; } }
   ,{ re: /^We're securing (.+)\.$/, zh: function (m) { return '正在为 ' + m[1] + ' 配置安全连接。'; } }
+  ,{ re: /^At your domain provider \((.+)\), add this DNS record\. We detect it automatically and issue SSL for the checkout domain\.$/, zh: function (m) { return '请在域名服务商（' + m[1] + '）处添加这条 DNS 记录。BestCheckout 会自动检测，并为结账域名签发 SSL。'; } }
+  ,{ re: /^Remove any old DNS record on (.+) that points elsewhere\.$/, zh: function (m) { return '请移除 ' + m[1] + ' 上指向其他位置的旧 DNS 记录。'; } }
 ]);
