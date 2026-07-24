@@ -143,6 +143,15 @@ window.DATA_SETTINGS = {
     ],
   },
 
+  // Shopify is the source of truth for store identity. The primary domain is
+  // synced with the store connection and used to suggest a checkout subdomain.
+  shopifyConnection: {
+    storeName: 'Lavender Labs',
+    myshopifyDomain: 'lavender-labs.myshopify.com',
+    primaryDomain: 'lavenderlabs.co',
+    primaryDomainSyncedAt: 'Just now',
+  },
+
   // =========================================================================
   // PAYMENTS  (tab_switch_payment_processor + tab_pay_airwallex/_stripe/_paypal)
   //   The page itself only persists the processor radio; each provider's

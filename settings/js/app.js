@@ -1850,13 +1850,29 @@
   ];
   // BestCheckout has one buyer-facing checkout address per Shopify store. It is
   // deliberately separate from the storefront's primary / redirect domains.
-  let checkoutDomain = { domain: 'checkout.lavenderlabs.co', status: 'connected' };
+  const shopifyDomain = D.shopifyConnection || {
+    storeName: 'Lavender Labs',
+    myshopifyDomain: 'lavender-labs.myshopify.com',
+    primaryDomain: 'lavenderlabs.co',
+    primaryDomainSyncedAt: 'Just now',
+  };
+  let checkoutDomain = {
+    platform: 'lavender-labs.store.bestcheckout.com/checkout',
+    custom: 'checkout.' + shopifyDomain.primaryDomain,
+    status: 'not_connected',
+    provider: '',
+    verificationMode: '',
+    verificationAttempt: 0,
+    isChecking: false,
+  };
   let domainStep = null;   // null = list · 'add' = configure DNS · 'bound' = success (set by show())
   let pendingDomain = '';  // domain being added through the wizard
   let domainVerifyFailed = false; // wizard: first "Verify now" shows the DNS-not-detected state, retry succeeds
 
   const DOMAIN_BADGE = {
     connected:            { cls: 'pill-green',  label: 'Connected' },
+    not_connected:        { cls: 'pill-gray',   label: 'Not connected' },
+    provisioning:         { cls: 'pill-blue',   label: 'Setting up' },
     pending_verification: { cls: 'pill-orange', label: 'Pending verification' },
     dns_error:            { cls: 'pill-red',    label: 'DNS error' },
     ssl_pending:          { cls: 'pill-blue',   label: 'SSL pending' },
@@ -1901,6 +1917,8 @@
   .dns-fail svg { width: 16px; height: 16px; flex: none; margin-top: 1px; }
   .dbound { text-align: center; padding: 30px 20px 12px; }
   .dbound .ck { width: 60px; height: 60px; border-radius: 50%; background: #e7f7ee; color: #2bb673; display: grid; place-items: center; margin: 0 auto 16px; }
+  .dbinding { min-height: 190px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .dbinding .ssl-spin { width: 34px; height: 34px; border-width: 3px; margin: 0 auto 18px; }
   /* modal form fields (Connect domain) — same look as the Roles/Staff modal inputs */
   .sp-field { margin-bottom: 16px; }
   .sp-label { display: block; margin-bottom: 7px; font-size: 13.5px; font-weight: 600; color: #2f3542; }
@@ -1942,7 +1960,238 @@
         '<div class="dom-actions"><span class="pill ' + badge.cls + '"><span class="dot"></span>' + badge.label + sslSuffix + '</span>' + del + '</div>' +
       '</div>';
   }
+  function renderCheckoutDomainExperience() {
+    const customBadge = DOMAIN_BADGE[checkoutDomain.status] || DOMAIN_BADGE.not_connected;
+    const flowMode = checkoutDomain.verificationMode || (checkoutDomain.provider === 'Manual DNS' ? 'manual' : 'automatic');
+    const setupCopy = checkoutDomain.status === 'connected'
+      ? 'Your branded address is active and SSL is managed automatically.'
+      : checkoutDomain.status === 'pending_verification'
+        ? 'DNS is being prepared. Your default checkout address stays available while BestCheckout verifies the record.'
+        : checkoutDomain.status === 'dns_error'
+          ? 'BestCheckout could not confirm the DNS record yet. Retry the DNS step when you are ready.'
+          : checkoutDomain.status === 'ssl_pending'
+            ? 'DNS is verified. BestCheckout is issuing SSL for your branded checkout address.'
+            : checkoutDomain.status === 'ssl_failed'
+              ? 'DNS is verified, but SSL could not be issued yet. Retry SSL to start issuance again.'
+              : 'Connect a supported provider to create the DNS record automatically, or add one CNAME yourself.';
+    const switchToAutomaticDnsLink = '<button data-switch-to-auto-dns style="margin:5px 0 0;padding:0;border:0;background:transparent;color:var(--brand);font-size:12px;cursor:pointer">Set up DNS automatically instead</button>';
+    const statusProgress = checkoutDomain.status === 'pending_verification'
+      ? '<div class="domain-progress"><span class="ssl-spin"></span><div><strong>' + (flowMode === 'automatic' ? 'Creating DNS record automatically' : 'Waiting for DNS records') + '</strong><br/>' + (flowMode === 'automatic' ? esc(checkoutDomain.provider || 'Your DNS provider') + ' is creating and checking the CNAME for ' + esc(checkoutDomain.custom) + '.' : 'Add the CNAME record, then return here to verify the connection.' + switchToAutomaticDnsLink) + '</div><div class="domain-progress-actions">' + (flowMode === 'manual' ? '<button class="btn btn-primary" data-enable-auto-verification>Enable automatic verification</button><button class="btn btn-gray" data-resume-domain>Verify now</button>' : '<button class="btn btn-primary" data-resume-domain>Continue verification</button>') + '</div></div>'
+      : checkoutDomain.status === 'dns_error'
+        ? '<div class="domain-progress is-error"><span>' + I.info + '</span><div><strong>DNS record not detected</strong><br/>BestCheckout could not confirm the DNS record for ' + esc(checkoutDomain.custom) + '. Retry DNS to continue.</div><div class="domain-progress-actions"><button class="btn btn-gray" data-switch-to-auto-dns>Set up DNS automatically</button><button class="btn btn-primary" data-resume-domain>Retry DNS</button></div></div>'
+        : checkoutDomain.status === 'ssl_pending'
+          ? '<div class="domain-progress"><span class="ssl-spin"></span><div><strong>SSL certificate is being issued</strong><br/>DNS is verified. BestCheckout is securing ' + esc(checkoutDomain.custom) + ' now.</div></div>'
+          : checkoutDomain.status === 'ssl_failed'
+            ? '<div class="domain-progress is-error"><span>' + I.info + '</span><div><strong>SSL issuance failed</strong><br/>DNS is verified, but SSL is not ready yet. Retry SSL to start issuance again.</div><button class="btn btn-primary" data-resume-domain>Retry SSL</button></div>'
+            : '';
+    let setupPath = checkoutDomain.status === 'connected'
+      ? ''
+      : checkoutDomain.status !== 'not_connected'
+        ? statusProgress
+        : '<div class="domain-path-grid">' +
+            '<article class="domain-path domain-path-primary"><div class="domain-path-head"><span class="domain-path-icon">' + I.globe + '</span><div><strong>Automatic setup</strong><small>Recommended · no DNS record to copy</small></div><span class="domain-recommended">Recommended</span></div><p>Authorize your DNS provider once. BestCheckout creates and monitors the checkout record, then provisions SSL.</p><div class="domain-provider-list"><span>GoDaddy</span><span>Cloudflare</span><span>Namecheap</span></div><button class="btn btn-primary" data-connect-provider>Connect DNS provider</button></article>' +
+            '<article class="domain-path"><div class="domain-path-head"><span class="domain-path-icon domain-path-icon-muted">' + I.info + '</span><div><strong>Manual setup</strong><small>For another DNS provider</small></div></div><p>Add one CNAME record yourself. BestCheckout verifies it and provisions SSL once the record is found.</p><button class="btn btn-gray" data-open-manual-domain>Show CNAME record</button></article>' +
+          '</div>';
+    const sslAssurance = '<style>.domain-ssl-assurance{display:flex;align-items:flex-start;gap:10px;margin-top:16px;padding:13px 14px;border:1px solid #dce5f5;border-radius:8px;background:#f7f9fc;color:var(--ink-body)}.domain-ssl-assurance>span{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#e8f6ee;color:#16875b;flex:none}.domain-ssl-assurance svg{width:14px;height:14px}.domain-ssl-assurance strong{display:block;color:var(--ink);font-size:13px;line-height:1.4}.domain-ssl-assurance p{margin:3px 0 0;color:var(--ink-muted);font-size:12.5px;line-height:1.5}</style><aside class="domain-ssl-assurance"><span>' + I.check + '</span><div><strong>SSL is automatic</strong><p>BestCheckout automatically issues and renews the SSL certificate for every checkout domain. You never need to manage a certificate or server.</p></div></aside>';
+    setupPath += sslAssurance;
+    paint(
+      '<style>' + DOMAIN_STYLES +
+        '.domain-stack{display:flex;flex-direction:column;gap:16px}.domain-card{border:1px solid var(--hair);border-radius:12px;background:#fff;padding:20px}.domain-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.domain-card-main{display:flex;gap:12px;min-width:0;flex:1}.domain-card-actions{display:flex;align-items:center;gap:8px;flex:none;white-space:nowrap}.domain-card-actions .pill,.domain-card-actions .btn{flex:none;white-space:nowrap}.domain-card-icon{width:40px;height:40px;border-radius:10px;background:#eef3ff;color:var(--brand);display:grid;place-items:center;flex:none}.domain-card-icon.is-default{background:#edf8f2;color:#16875b}.domain-eyebrow{font-size:12px;font-weight:650;color:var(--ink-muted);margin-bottom:5px}.domain-address{font-size:16px;line-height:1.4;font-weight:650;color:var(--ink);overflow-wrap:anywhere}.domain-note{font-size:12.5px;line-height:1.55;color:var(--ink-muted);margin-top:5px}.domain-scope-note{font-size:12px;line-height:1.5;color:var(--ink-muted);margin-top:6px}.domain-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px;padding-top:15px;border-top:1px solid var(--hair)}.domain-fact small{display:block;color:var(--ink-muted);font-size:11px;margin-bottom:4px}.domain-fact strong{display:block;color:var(--ink-body);font-size:13px;font-weight:600;line-height:1.45;overflow-wrap:anywhere}.domain-path-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:18px}.domain-path{display:flex;min-height:222px;flex-direction:column;border:1px solid var(--hair);border-radius:10px;padding:16px;background:#fff}.domain-path-primary{border-color:#b9d2ff;background:#fbfdff}.domain-path-head{display:flex;align-items:flex-start;gap:10px}.domain-path-icon{width:32px;height:32px;display:grid;place-items:center;border-radius:8px;background:#eaf2ff;color:var(--brand);flex:none}.domain-path-icon-muted{background:#f2f4f7;color:var(--ink-muted)}.domain-path-head strong{display:block;color:var(--ink);font-size:14px;line-height:1.35}.domain-path-head small{display:block;color:var(--ink-muted);font-size:12px;margin-top:2px;line-height:1.4}.domain-recommended{margin-left:auto;border-radius:999px;background:#eaf2ff;color:var(--brand);font-size:10.5px;font-weight:650;padding:3px 7px;white-space:nowrap}.domain-path p{color:var(--ink-muted);font-size:12.5px;line-height:1.55;margin:13px 0}.domain-path .btn{margin-top:auto;align-self:flex-start}.domain-provider-list{display:flex;flex-wrap:wrap;gap:6px;margin:-2px 0 14px}.domain-provider-list span{border:1px solid #dce5f5;border-radius:5px;background:#fff;color:var(--ink-body);font-size:11.5px;font-weight:600;padding:4px 7px}.domain-progress{display:flex;align-items:flex-start;gap:10px;margin-top:18px;padding:13px;border:1px solid #c9d9f7;border-radius:8px;background:#f7faff;color:var(--ink-body);font-size:12.5px;line-height:1.55}.domain-progress.is-error{border-color:#fecaca;background:#fff7f7;color:#a13b2b}.domain-progress>span{color:var(--brand);display:inline-flex;flex:none}.domain-progress.is-error>span{color:#b42318}.domain-progress .ssl-spin{margin-top:3px}.domain-progress-actions{display:flex;align-items:center;gap:8px;margin-left:auto;flex:none;white-space:nowrap}.domain-progress-actions .btn{flex:none;white-space:nowrap}@media(max-width:760px){.domain-card-top{flex-direction:column}.domain-card-actions{width:100%;justify-content:flex-end}.domain-facts,.domain-path-grid{grid-template-columns:1fr}.domain-progress{flex-wrap:wrap}.domain-progress-actions{margin-left:0;width:100%;justify-content:flex-end}}' +
+        '</style><div class="dom-wrap domain-stack">' +
+        pageHead('Checkout domain', 'Every connected Shopify store receives a secure BestCheckout checkout address. Add your own branded subdomain whenever you are ready.') +
+        '<section class="domain-card"><div class="domain-card-top"><div class="domain-card-main"><span class="domain-card-icon is-default">' + I.check + '</span><div><div class="domain-eyebrow">Default checkout address</div><div class="domain-address">' + esc(checkoutDomain.platform) + '</div><div class="domain-note">Created automatically when you connect Shopify. Use it immediately for previews and buyer traffic while your branded domain is being prepared.</div></div></div><div class="domain-card-actions"><span class="pill pill-green"><span class="dot"></span>Active · SSL managed</span><button class="btn btn-gray" data-copy-default-domain>Copy</button></div></div><div class="domain-facts"><div class="domain-fact"><small>Used on</small><strong>Checkout · Upsell · Downsell · Thank you</strong></div><div class="domain-fact"><small>SSL</small><strong>Enabled and renewed automatically</strong></div><div class="domain-fact"><small>Fallback</small><strong>Always available if a branded domain is not ready</strong></div></div></section>' +
+        '<section class="domain-card"><div class="domain-card-top"><div class="domain-card-main"><span class="domain-card-icon">' + I.globe + '</span><div><div class="domain-eyebrow">Recommended branded checkout address</div><div class="domain-address">' + esc(checkoutDomain.custom) + '</div><div class="domain-note">' + esc(setupCopy) + '</div><div class="domain-scope-note">Your Shopify storefront domain stays unchanged. This only sets the address BestCheckout uses for checkout.</div></div></div><div class="domain-card-actions"><span class="pill ' + customBadge.cls + '"><span class="dot"></span>' + customBadge.label + (checkoutDomain.status === 'connected' ? ' · SSL active' : '') + '</span><button class="btn btn-gray" data-edit-custom-domain>Edit subdomain</button></div></div>' + setupPath + '</section>' +
+      '</div>',
+      false
+    );
+    root.querySelector('[data-copy-default-domain]').onclick = () => copyCheckoutDomain(checkoutDomain.platform);
+    root.querySelectorAll('[data-edit-custom-domain]').forEach((el) => el.onclick = openSuggestedDomainModal);
+    const connect = root.querySelector('[data-connect-provider]'); if (connect) connect.onclick = openDnsProviderModal;
+    const manual = root.querySelector('[data-open-manual-domain]'); if (manual) manual.onclick = () => openCheckoutDomainFlow('manual');
+    root.querySelectorAll('[data-switch-to-auto-dns]').forEach((el) => el.onclick = openDnsProviderModal);
+    const enableAutoVerification = root.querySelector('[data-enable-auto-verification]'); if (enableAutoVerification) enableAutoVerification.onclick = () => { openCheckoutDomainFlow('manual'); advanceCheckoutDomainVerification('manual'); };
+    root.querySelectorAll('[data-resume-domain]').forEach((el) => el.onclick = () => openCheckoutDomainFlow(flowMode));
+  }
+
+  function copyCheckoutDomain(value) {
+    try { navigator.clipboard.writeText('https://' + value); } catch (e) {}
+    toast('Checkout address copied');
+  }
+
+  function openSuggestedDomainModal() {
+    modal({
+      title: 'Set branded checkout domain', width: 520, okText: 'Save',
+      body: '<div class="muted" style="font-size:13px;margin-bottom:14px;line-height:1.55">Use a subdomain of your Shopify store domain. We recommend <b>checkout.' + esc(shopifyDomain.primaryDomain) + '</b>.</div><div class="sp-field"><label class="sp-label">Checkout subdomain</label><div class="sp-input-wrap"><input id="branded-checkout-domain" class="sp-input" value="' + esc(checkoutDomain.custom) + '" placeholder="checkout.' + esc(shopifyDomain.primaryDomain) + '"/></div><div class="sp-err" data-err="branded-checkout-domain"></div></div>',
+      onOk: (m, close) => {
+        const value = (m.querySelector('#branded-checkout-domain').value || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+        if (!validDomain(value) || value.split('.').length < 3) { setErr(m, 'branded-checkout-domain', 'Use a subdomain, for example checkout.' + shopifyDomain.primaryDomain); m.querySelector('#branded-checkout-domain').classList.add('err'); return; }
+        checkoutDomain.custom = value; checkoutDomain.status = 'not_connected'; checkoutDomain.provider = ''; checkoutDomain.verificationMode = ''; checkoutDomain.verificationAttempt = 0; checkoutDomain.isChecking = false; close(); renderDomainList();
+      },
+    });
+  }
+
+  function openDnsProviderModal() {
+    const option = (name, checked) => '<label class="dns-provider-option"><input type="radio" name="dns-provider" value="' + name + '"' + (checked ? ' checked' : '') + '/><span class="dns-provider-radio"></span><span><strong>' + name + '</strong><small>Authorize BestCheckout to create and monitor only this checkout record.</small></span></label>';
+    modal({
+      title: (checkoutDomain.verificationMode === 'manual' || domainStep === 'manual') ? 'Switch to automatic DNS setup' : 'Connect a DNS provider', width: 560, okText: 'Continue',
+      body: '<style>.dns-provider-intro{font-size:13px;line-height:1.55;color:var(--ink-muted);margin-bottom:14px}.dns-provider-domain{padding:10px 12px;margin-bottom:14px;border-radius:8px;background:#f5f8fd;color:var(--ink);font-size:13px}.dns-provider-option{display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid var(--hair);border-radius:9px;margin-top:8px;cursor:pointer}.dns-provider-option:hover{border-color:#a8c7ff;background:#fbfdff}.dns-provider-option input{position:absolute;opacity:0}.dns-provider-radio{width:16px;height:16px;margin-top:2px;border:1px solid #aeb8c8;border-radius:50%;flex:none}.dns-provider-option input:checked + .dns-provider-radio{border:5px solid var(--brand)}.dns-provider-option strong{display:block;color:var(--ink);font-size:13.5px}.dns-provider-option small{display:block;margin-top:3px;color:var(--ink-muted);font-size:12px;line-height:1.45}</style><div class="dns-provider-intro">Choose where DNS for <b>' + esc(shopifyDomain.primaryDomain) + '</b> is managed. BestCheckout will add <b>' + esc(checkoutDomain.custom) + '</b> automatically after you authorize the provider.</div><div class="dns-provider-domain">No manual CNAME record is required with a supported provider.</div>' + option('GoDaddy', true) + option('Cloudflare') + option('Namecheap'),
+      onOk: (m, close) => { const selected = m.querySelector('input[name="dns-provider"]:checked'); checkoutDomain.provider = selected ? selected.value : 'GoDaddy'; checkoutDomain.verificationMode = 'automatic'; checkoutDomain.verificationAttempt = 0; checkoutDomain.isChecking = false; checkoutDomain.status = 'pending_verification'; close(); location.hash = '#/settings/domains/automatic'; },
+    });
+  }
+
+  // Both setup paths share the same domain lifecycle. The path only decides who
+  // creates the CNAME (BestCheckout or the merchant); DNS/SSL outcomes remain
+  // pending_verification → dns_error → ssl_pending → ssl_failed → connected.
+  function openCheckoutDomainFlow(mode) {
+    checkoutDomain.verificationMode = mode;
+    if (mode === 'manual') checkoutDomain.provider = 'Manual DNS';
+    location.hash = '#/settings/domains/' + mode;
+  }
+
+  function isActiveCheckoutDomainFlow(mode) {
+    return location.hash === '#/settings/domains/' + mode;
+  }
+
+  function rerenderCheckoutDomainFlow(mode) {
+    if (!isActiveCheckoutDomainFlow(mode)) return;
+    renderDomains();
+    // The flow re-renders after async DNS/SSL jobs finish. Re-apply the runtime
+    // locale overlay so loading and error states follow the selected language.
+    if (window.I18N && typeof window.I18N.apply === 'function') window.I18N.apply(root);
+  }
+
+  // Keep each asynchronous state visible long enough to be understood in the
+  // prototype. Production timing is driven by the real DNS and SSL jobs.
+  const DOMAIN_DNS_CHECK_DELAY = 2400;
+  const DOMAIN_SSL_ISSUANCE_DELAY = 3200;
+
+  function advanceCheckoutDomainVerification(mode) {
+    if (checkoutDomain.isChecking || checkoutDomain.status === 'ssl_pending') return;
+    checkoutDomain.verificationMode = mode;
+    if (mode === 'manual') checkoutDomain.provider = 'Manual DNS';
+    checkoutDomain.isChecking = true;
+    rerenderCheckoutDomainFlow(mode);
+
+    window.setTimeout(() => {
+      checkoutDomain.isChecking = false;
+      checkoutDomain.verificationAttempt = (checkoutDomain.verificationAttempt || 0) + 1;
+      if (checkoutDomain.verificationAttempt === 1) {
+        checkoutDomain.status = 'dns_error';
+        rerenderCheckoutDomainFlow(mode);
+        return;
+      }
+
+      checkoutDomain.status = 'ssl_pending';
+      rerenderCheckoutDomainFlow(mode);
+      window.setTimeout(() => {
+        if (checkoutDomain.verificationAttempt === 2) {
+          checkoutDomain.status = 'ssl_failed';
+          rerenderCheckoutDomainFlow(mode);
+          return;
+        }
+        checkoutDomain.status = 'connected';
+        if (isActiveCheckoutDomainFlow(mode)) {
+          location.hash = '#/settings/domains';
+          toast('Checkout domain connected · SSL active');
+        }
+      }, DOMAIN_SSL_ISSUANCE_DELAY);
+    }, DOMAIN_DNS_CHECK_DELAY);
+  }
+
+  // Matches BestShopio Settings → Domains: verification replaces the setup
+  // panel with one centered, non-blocking task state for both DNS and SSL.
+  function renderCheckoutDomainBindingScreen(mode) {
+    const status = checkoutDomain.status;
+    const checkingDns = checkoutDomain.isChecking && status !== 'ssl_failed';
+    const isManual = mode === 'manual';
+    const title = checkingDns ? 'Checking your DNS records…' : 'Connecting your domain…';
+    const copy = checkingDns
+      ? 'We\'re checking the records for ' + esc(checkoutDomain.custom) + '.'
+      : 'We\'re securing ' + esc(checkoutDomain.custom) + '.';
+    const pageTitle = isManual ? 'Set up ' : 'Connect ';
+    const pageSubtitle = isManual ? 'Manual DNS setup' : 'Automatic DNS setup with ' + esc(checkoutDomain.provider || 'GoDaddy');
+    const steps = isManual
+      ? '<span class="sp ok"><span class="sn">' + I.check + '</span>Choose domain</span><span class="ln"></span>' +
+          (checkingDns
+            ? '<span class="sp on"><span class="sn">2</span>Checking DNS</span><span class="ln"></span><span class="sp"><span class="sn">3</span>Verify</span>'
+            : '<span class="sp ok"><span class="sn">' + I.check + '</span>Add DNS record</span><span class="ln"></span><span class="sp on"><span class="sn">3</span>Connecting domain</span>')
+      : '<span class="sp ok"><span class="sn">' + I.check + '</span>Choose domain</span><span class="ln"></span><span class="sp ok"><span class="sn">' + I.check + '</span>Connect provider</span><span class="ln"></span><span class="sp on"><span class="sn">3</span>' + (checkingDns ? 'Checking DNS' : 'Connecting domain') + '</span>';
+    paint(
+      '<style>' + DOMAIN_STYLES + '</style><div class="dom-wrap"><div class="flex items-center gap-3 mb-4"><button class="back-btn" data-domain-back title="Back">' + I.chevL + '</button><div><div class="page-title" style="font-size:20px">' + pageTitle + esc(checkoutDomain.custom) + '</div><div class="muted" style="font-size:13px;margin-top:2px">' + pageSubtitle + '</div></div></div><div class="dstep">' + steps + '</div><section class="panel card-pad"><div class="dbound dbinding"><span class="ssl-spin"></span><div class="page-title" style="font-size:20px">' + title + '</div><div class="muted" style="font-size:13.5px;margin-top:6px;line-height:1.6">' + copy + '</div><div class="muted" style="font-size:13.5px;margin-top:2px;line-height:1.6">This takes just a few seconds.</div><div class="muted" style="font-size:12.5px;margin-top:5px">You can safely leave this page.</div><div style="margin-top:20px"><button class="btn btn-gray" data-domain-back>Finish later</button></div></div></section></div>',
+      false
+    );
+    root.querySelectorAll('[data-domain-back]').forEach((el) => el.onclick = () => { location.hash = '#/settings/domains'; });
+  }
+
+  function renderAutomaticDomainSetup() {
+    const provider = checkoutDomain.provider || 'GoDaddy';
+    const status = checkoutDomain.status;
+    const checking = checkoutDomain.isChecking;
+    if (checking || status === 'ssl_pending') return renderCheckoutDomainBindingScreen('automatic');
+    const body = checking
+      ? '<div class="ssl-pill"><span class="ssl-spin"></span>' + (status === 'ssl_failed' ? 'Restarting SSL issuance…' : 'Checking DNS records…') + '</div>'
+      : status === 'dns_error'
+        ? '<div class="checkout-domain-verification is-error"><span>' + I.info + '</span><div><strong>DNS record not detected</strong><p>BestCheckout could not confirm the DNS record created with ' + esc(provider) + '. Retry DNS to create and verify it again.</p></div></div>'
+        : status === 'ssl_pending'
+          ? '<div class="checkout-domain-verification is-pending"><span class="ssl-spin"></span><div><strong>SSL certificate is being issued</strong><p>DNS is verified. BestCheckout is securing ' + esc(checkoutDomain.custom) + ' now.</p></div></div>'
+          : status === 'ssl_failed'
+            ? '<div class="checkout-domain-verification is-error"><span>' + I.info + '</span><div><strong>SSL issuance failed</strong><p>DNS is verified, but SSL could not be issued yet. Retry SSL to start issuance again.</p></div></div>'
+            : '<div class="checkout-domain-verification is-pending"><span class="ssl-spin"></span><div><strong>Creating DNS record automatically</strong><p>BestCheckout is asking ' + esc(provider) + ' to create and verify the CNAME for ' + esc(checkoutDomain.custom) + '.</p></div></div>';
+    const action = checking || status === 'ssl_pending'
+      ? ''
+      : '<button class="btn btn-primary" data-verify-automatic-domain>' + (status === 'dns_error' ? 'Retry DNS' : status === 'ssl_failed' ? 'Retry SSL' : 'Check connection') + '</button>';
+    paint('<style>' + DOMAIN_STYLES + '.checkout-domain-verification{display:flex;align-items:flex-start;gap:10px;margin-top:16px;padding:12px 13px;border:1px solid var(--hair);border-radius:8px;font-size:12.5px;line-height:1.5}.checkout-domain-verification>span{display:inline-flex;flex:none;margin-top:1px}.checkout-domain-verification .ssl-spin{margin-top:3px}.checkout-domain-verification strong{display:block;font-size:13px}.checkout-domain-verification p{margin:3px 0 0}.checkout-domain-verification.is-error{border-color:#fecaca;background:#fff7f7;color:#a13b2b}.checkout-domain-verification.is-pending{border-color:#c9d9f7;background:#f7faff;color:var(--ink-body)}</style><div class="dom-wrap"><div class="flex items-center gap-3 mb-4"><button class="back-btn" data-domain-back title="Back">' + I.chevL + '</button><div><div class="page-title" style="font-size:20px">Connect ' + esc(checkoutDomain.custom) + '</div><div class="muted" style="font-size:13px;margin-top:2px">Automatic DNS setup with ' + esc(provider) + '</div></div></div><div class="dstep"><span class="sp ok"><span class="sn">' + I.check + '</span>Choose domain</span><span class="ln"></span><span class="sp ok"><span class="sn">' + I.check + '</span>Connect provider</span><span class="ln"></span><span class="sp on"><span class="sn">3</span>Verify</span></div><section class="panel card-pad"><div class="card-title">BestCheckout will finish the setup</div><div class="muted" style="font-size:13px;line-height:1.6;margin-top:5px">' + esc(provider) + ' is authorized to create and monitor the CNAME for <b>' + esc(checkoutDomain.custom) + '</b>. No record needs to be copied into ' + esc(provider) + '.</div>' + body + '<div class="flex justify-end gap-2 mt-4"><button class="btn btn-gray" data-domain-back>Finish later</button>' + action + '</div></section></div>', false);
+    root.querySelectorAll('[data-domain-back]').forEach((el) => el.onclick = () => { location.hash = '#/settings/domains'; });
+    const verify = root.querySelector('[data-verify-automatic-domain]'); if (verify) verify.onclick = () => advanceCheckoutDomainVerification('automatic');
+  }
+
+  function renderManualDomainSetupLegacy() {
+    const host = (checkoutDomain.custom || 'checkout.yourdomain.com').split('.')[0] || 'checkout';
+    paint('<style>' + DOMAIN_STYLES + '</style><div class="dom-wrap"><div class="flex items-center gap-3 mb-4"><button class="back-btn" data-domain-back title="Back">' + I.chevL + '</button><div><div class="page-title" style="font-size:20px">Set up ' + esc(checkoutDomain.custom) + '</div><div class="muted" style="font-size:13px;margin-top:2px">Manual DNS setup</div></div></div><div class="dstep"><span class="sp ok"><span class="sn">' + I.check + '</span>Choose domain</span><span class="ln"></span><span class="sp on"><span class="sn">2</span>Add DNS record</span><span class="ln"></span><span class="sp"><span class="sn">3</span>Verify</span></div><section class="panel card-pad"><div class="card-title">Add this DNS record at your domain provider</div><div class="muted" style="font-size:13px;line-height:1.55;margin:4px 0 16px">Sign in to where you bought <b>' + esc(shopifyDomain.primaryDomain) + '</b> (e.g. GoDaddy, Namecheap, Alibaba Cloud) and add the record below. BestCheckout detects it automatically.</div><div class="dns-tbl"><div class="dns-tr dns-th"><div class="dns-cell">Type</div><div class="dns-cell">Name</div><div class="dns-cell">Value</div><div class="dns-cell"></div></div><div class="dns-tr"><div class="dns-cell dns-mono">CNAME</div><div class="dns-cell dns-mono">' + esc(host) + '</div><div class="dns-cell dns-mono">' + PLATFORM_CNAME + '</div><div class="dns-cell"><button class="dns-copy" data-copy-manual-domain>Copy</button></div></div></div><div class="ssl-pill"><span class="ssl-spin"></span>After adding the record, click Verify now to check your domain.</div><div class="flex justify-end gap-2 mt-4"><button class="btn btn-gray" data-domain-back>Verify later</button><button class="btn btn-primary" data-finish-manual>Verify now</button></div></section></div>', false);
+    root.querySelectorAll('[data-domain-back]').forEach((el) => el.onclick = () => { location.hash = '#/settings/domains'; });
+    root.querySelector('[data-copy-manual-domain]').onclick = () => { try { navigator.clipboard.writeText('CNAME ' + host + ' ' + PLATFORM_CNAME); } catch (e) {} toast('CNAME record copied'); };
+    addDomainGuideLink(root.querySelector('[data-finish-manual]').parentElement);
+    root.querySelector('[data-finish-manual]').onclick = () => { checkoutDomain.provider = 'Manual DNS'; checkoutDomain.status = 'connected'; location.hash = '#/settings/domains'; toast('Checkout domain connected · SSL active'); };
+  }
+
+  function renderManualDomainSetup() {
+    const host = (checkoutDomain.custom || 'checkout.yourdomain.com').split('.')[0] || 'checkout';
+    const status = checkoutDomain.status;
+    const checking = checkoutDomain.isChecking;
+    if (checking || status === 'ssl_pending') return renderCheckoutDomainBindingScreen('manual');
+    const feedback = checking
+      ? '<div class="checkout-domain-verification is-pending"><span class="ssl-spin"></span><div><strong>' + (status === 'ssl_failed' ? 'Restarting SSL issuance' : 'Checking DNS records') + '</strong><p>' + (status === 'ssl_failed' ? 'BestCheckout is starting SSL issuance again for this verified DNS record.' : 'BestCheckout is checking the CNAME record before it can issue SSL.') + '</p></div></div>'
+      : status === 'dns_error'
+      ? '<div class="checkout-domain-verification is-error"><span>' + I.info + '</span><div><strong>CNAME record not found</strong><p>We could not find this CNAME record yet. Check the host and target, then verify again.</p></div></div>'
+      : status === 'ssl_pending'
+        ? '<div class="checkout-domain-verification is-pending"><span class="ssl-spin"></span><div><strong>SSL certificate is being issued</strong><p>DNS is verified. BestCheckout is securing this checkout address now.</p></div></div>'
+        : status === 'ssl_failed'
+        ? '<div class="checkout-domain-verification is-error"><span>' + I.info + '</span><div><strong>DNS record found</strong><p>The CNAME is resolving, but SSL could not be issued yet. Retry to start SSL issuance again.</p></div></div>'
+        : status === 'connected'
+          ? '<div class="checkout-domain-verification is-success"><span>' + I.check + '</span><div><strong>Checkout domain connected</strong><p>DNS and SSL are active. Buyers can now use this address securely.</p></div></div>'
+        : '<div class="ssl-pill"><span class="ssl-spin"></span>After adding the record, click Verify now to check your domain.</div>';
+    const action = status === 'connected'
+      ? '<button class="btn btn-primary" data-domain-back>Back to checkout domain</button>'
+      : checking || status === 'ssl_pending'
+        ? ''
+        : '<button class="btn btn-primary" data-verify-manual-domain>' + (status === 'dns_error' ? 'Verify again' : status === 'ssl_failed' ? 'Retry SSL' : 'Verify now') + '</button>';
+    const stepThree = status === 'connected'
+      ? '<span class="sp ok"><span class="sn">' + I.check + '</span>Verified</span>'
+      : '<span class="sp"><span class="sn">3</span>Verify</span>';
+    paint(
+      '<style>' + DOMAIN_STYLES +
+        '.checkout-domain-verification{display:flex;align-items:flex-start;gap:10px;margin-top:16px;padding:12px 13px;border:1px solid var(--hair);border-radius:8px;font-size:12.5px;line-height:1.5}.checkout-domain-verification>span{display:inline-flex;flex:none;margin-top:1px}.checkout-domain-verification .ssl-spin{margin-top:3px}.checkout-domain-verification strong{display:block;font-size:13px}.checkout-domain-verification p{margin:3px 0 0}.checkout-domain-verification.is-error{border-color:#fecaca;background:#fff7f7;color:#a13b2b}.checkout-domain-verification.is-success{border-color:#b8e6cc;background:#f3fcf6;color:#16794e}.checkout-domain-verification.is-pending{border-color:#c9d9f7;background:#f7faff;color:var(--ink-body)}' +
+      '</style><div class="dom-wrap"><div class="flex items-center gap-3 mb-4"><button class="back-btn" data-domain-back title="Back">' + I.chevL + '</button><div><div class="page-title" style="font-size:20px">Set up ' + esc(checkoutDomain.custom) + '</div><div class="muted" style="font-size:13px;margin-top:2px">Manual DNS setup</div></div></div><div class="dstep"><span class="sp ok"><span class="sn">' + I.check + '</span>Choose domain</span><span class="ln"></span><span class="sp on"><span class="sn">2</span>Add DNS record</span><span class="ln"></span>' + stepThree + '</div><section class="panel card-pad"><div class="card-title">Add this DNS record at your domain provider</div><div class="muted" style="font-size:13px;line-height:1.55;margin:4px 0 16px">Sign in to where you bought <b>' + esc(shopifyDomain.primaryDomain) + '</b> (e.g. GoDaddy, Namecheap, Alibaba Cloud) and add the record below. BestCheckout detects it automatically.</div><div class="dns-tbl"><div class="dns-tr dns-th"><div class="dns-cell">Type</div><div class="dns-cell">Name</div><div class="dns-cell">Value</div><div class="dns-cell"></div></div><div class="dns-tr"><div class="dns-cell dns-mono">CNAME</div><div class="dns-cell dns-mono">' + esc(host) + '</div><div class="dns-cell dns-mono">' + PLATFORM_CNAME + '</div><div class="dns-cell"><button class="dns-copy" data-copy-manual-domain>Copy</button></div></div></div>' + feedback + '<div class="flex justify-end gap-2 mt-4">' + (status === 'connected' ? '' : '<button class="btn btn-gray" data-domain-back>Verify later</button>') + action + '</div></section></div>',
+      false
+    );
+    root.querySelectorAll('[data-domain-back]').forEach((el) => el.onclick = () => { location.hash = '#/settings/domains'; });
+    root.querySelector('[data-copy-manual-domain]').onclick = () => { try { navigator.clipboard.writeText('CNAME ' + host + ' ' + PLATFORM_CNAME); } catch (e) {} toast('CNAME record copied'); };
+    addDomainGuideLink(root.querySelector('[data-verify-manual-domain]')?.parentElement);
+    const verify = root.querySelector('[data-verify-manual-domain]'); if (verify) verify.onclick = () => advanceCheckoutDomainVerification('manual');
+  }
+
   function renderDomainList() {
+    return renderCheckoutDomainExperience();
     const badge = DOMAIN_BADGE[checkoutDomain.status] || DOMAIN_BADGE.connected;
     paint(
       '<style>' + DOMAIN_STYLES +
@@ -1974,14 +2223,14 @@
         '</div>' +
         '<div class="panel card-pad">' +
           '<div class="card-title">Add this DNS record at your domain provider</div>' +
-          '<div class="muted" style="font-size:13px;margin:4px 0 16px;line-height:1.5">Sign in to the provider that manages <b>' + esc(dom) + '</b> and add this CNAME. This does not change your Shopify storefront domain.</div>' +
+          '<div class="muted" style="font-size:13px;margin:4px 0 16px;line-height:1.5">Sign in to where you bought <b>' + esc(shopifyDomain.primaryDomain) + '</b> (e.g. GoDaddy, Namecheap, Alibaba Cloud) and add the record below. BestCheckout detects it automatically.</div>' +
           '<div class="dns-tbl">' +
             '<div class="dns-tr dns-th"><div class="dns-cell">Type</div><div class="dns-cell">Name</div><div class="dns-cell">Value</div><div class="dns-cell"></div></div>' +
             '<div class="dns-tr"><div class="dns-cell dns-mono">CNAME</div><div class="dns-cell dns-mono">' + esc(host) + '</div><div class="dns-cell dns-mono">' + PLATFORM_CNAME + '</div><div class="dns-cell"><button class="dns-copy" data-copy="' + PLATFORM_CNAME + '">Copy</button></div></div>' +
           '</div>' +
           (domainVerifyFailed
             ? '<div class="dns-fail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg><div><b>We couldn\'t detect your CNAME yet.</b> DNS changes can take up to 30 minutes to take effect. Double-check the record above, then verify again.</div></div>'
-            : '<div class="ssl-pill"><span class="ssl-spin"></span>Waiting for the CNAME to take effect. SSL is then issued automatically (usually within 30 minutes).</div>') +
+            : '<div class="ssl-pill"><span class="ssl-spin"></span>After adding the record, click Verify now to check your domain.</div>') +
           '<div class="flex items-center justify-between" style="margin-top:22px">' +
             '<a class="lnk" data-guide-faq style="font-size:13px;cursor:pointer">Having issues? View the setup guide</a>' +
             '<div class="flex" style="gap:10px"><button class="btn btn-gray" data-verify-later>Verify later</button><button class="btn btn-primary" data-verify-now>' + (domainVerifyFailed ? 'Verify again' : 'Verify now') + '</button></div>' +
@@ -2025,6 +2274,8 @@
     };
   }
   function renderDomains() {
+    if (domainStep === 'automatic') return renderAutomaticDomainSetup();
+    if (domainStep === 'manual') return renderManualDomainSetup();
     if (domainStep === 'add') return renderAddDomainDNS();
     if (domainStep === 'bound') return renderAddDomainBound();
     return renderDomainList();
@@ -2072,9 +2323,32 @@
     if (d) { d.status = 'connected'; }
     toast('Domain connected · SSL active'); renderDomainList();
   }
+  function addDomainGuideLink(actionRow) {
+    if (!actionRow) return;
+    const actions = document.createElement('div');
+    actions.className = 'flex';
+    actions.style.gap = '10px';
+    while (actionRow.firstChild) actions.appendChild(actionRow.firstChild);
+    const guide = document.createElement('a');
+    guide.className = 'lnk';
+    guide.href = '#';
+    guide.style.cssText = 'font-size:13px;cursor:pointer';
+    guide.textContent = 'Having issues? View the setup guide';
+    guide.onclick = (event) => { event.preventDefault(); openDomainGuide(); };
+    const supportLinks = document.createElement('div');
+    supportLinks.className = 'flex';
+    supportLinks.style.cssText = 'gap:12px;flex-wrap:wrap';
+    supportLinks.append(guide);
+    actionRow.style.justifyContent = 'space-between';
+    actionRow.style.alignItems = 'center';
+    actionRow.style.flexWrap = 'wrap';
+    actionRow.append(supportLinks, actions);
+    if (window.I18N && window.I18N.apply) window.I18N.apply(supportLinks);
+  }
+
   // "Having issues? View the setup guide" — DNS records recap + troubleshooting.
   function openDomainGuide() {
-    const host = (pendingDomain || 'checkout.yourdomain.com').split('.')[0] || 'checkout';
+    const host = (pendingDomain || checkoutDomain.custom || 'checkout.yourdomain.com').split('.')[0] || 'checkout';
     modal({
       title: 'Connecting your checkout domain', width: 580, okText: 'Got it', hideCancel: true,
       body:
