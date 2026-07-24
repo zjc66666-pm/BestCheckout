@@ -1,43 +1,46 @@
-# BestCheckout merchant admin and marketing prototype
+# BestCheckout
 
-BestCheckout is a focused checkout-growth workspace for Shopify brands. It has its own website, sign-in journey and merchant admin. BestShopio is an internal capability foundation and is not shown to merchants.
+BestCheckout 的独立产品原型，包含官网、认证与 Shopify 连接流程，以及商家独立后台。
 
-## Product boundary
+## 产品边界
 
-- Shopify remains the merchant's storefront and fulfillment workspace.
-- BestCheckout creates the checkout order after payment, using synchronized Shopify product, discount and shipping data.
-- BestCheckout sends completed paid orders back to Shopify for fulfillment and customer operations.
-- Merchants create and authorize their own Shopify app connection. BestCheckout stores only the access needed to run checkout.
+- 官网：产品介绍、登录、注册、找回密码、Shopify 连接
+- Help Center：Shopify 连接指南
+- 独立后台：Overview、Purchase flows、Checkout pages、Orders、Activity log、Settings
+- Checkout 页面：Checkout、Upsell、Downsell、Thank you
 
-## Included prototype surfaces
+不包含 BestShopio 商家后台的 Products、Collections、Customers、Google、Facebook、Reviews、Blog 等模块。
 
-- Marketing website: `landing/#/landing`
-- Authentication: `#/sign-in`, `#/sign-up`
-- Shopify connection guide: `#/connect-shopify`
-- Overview and launch checklist: `#/home`
-- Checkout flows: `#/funnels`
-- Checkout, upsell, downsell and Thank you pages: `#/pages`
-- Order status and Shopify order sync: `#/orders`
-- Performance and activity: `#/performance`, `#/activity`
-- Settings: Shopify store, checkout domain, payments, emails, tracking and store health: `#/settings?tab=store`
+## 目录
 
-## Local preview
+| 路径 | 用途 |
+|---|---|
+| `index.html` | BestCheckout 官网和公共流程入口 |
+| `app/` | BestCheckout 独立后台入口 |
+| `help/` | Help Center |
+| `src/views/admin/bestcheckout/` | 官网、认证和公共流程组件 |
+| `bestcheckout/` | Purchase flows 与 Checkout pages |
+| `orders/` | BestCheckout 订单和 Shopify 回写状态 |
+| `activity/` | 操作与服务事件日志 |
+| `settings/` | Shopify、支付、结账域名、邮件与员工设置 |
+| `online-store/` | 仅保留 Checkout 与 post-purchase 页面编辑器 |
+| `bundles/js/data.js` | Bundle 订单与选择器兼容数据 |
+| `subscriptions/js/data.js` | Subscription 订单展示兼容数据 |
 
-Run this in the repository root:
+## 本地预览
 
 ```powershell
-python -m http.server 4175
+python -m http.server 4195 --bind 127.0.0.1
 ```
 
-Open the merchant admin at [http://127.0.0.1:4175/#/home](http://127.0.0.1:4175/#/home). The marketing website is at [http://127.0.0.1:4175/landing/#/landing](http://127.0.0.1:4175/landing/#/landing).
+- 官网：`http://127.0.0.1:4195/#/landing`
+- 后台：`http://127.0.0.1:4195/app/#/home`
+- Help：`http://127.0.0.1:4195/help/#guide=connect-shopify`
 
-## Prototype conventions
+## GitHub
 
-- It is a static hash-routed prototype, so deep links work in local preview and GitHub Pages.
-- English is the default. The lower-left language switcher changes product UI copy, not store names or product data.
-- Merchant-facing pages avoid internal concepts such as BestShopio, Shopify distribution modes, webhook configuration, IDs and payment-routing internals.
-- Existing Checkout Flow and Page Editor modules are reused; this project does not create a second editor.
+- 仓库：`zjc66666-pm/BestCheckout`
+- 分支：`main`
+- GitHub Pages：`https://zjc66666-pm.github.io/BestCheckout/`
 
-## Publish safety
-
-Only the static prototype assets are suitable for publication. Do not publish local docs, temporary files, screenshots, credentials or reference source code.
+当前 D 盘目录是清理后的本地候选版本。验证通过并经确认后，再用它替换线上混合目录。

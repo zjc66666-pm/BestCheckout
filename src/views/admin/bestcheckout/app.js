@@ -45,7 +45,7 @@ import { applyLocale, renderLanguageSwitcher, translate } from './i18n.js?rev=20
 const appRoot = document.getElementById('app');
 const modalRoot = document.getElementById('modal-root');
 const toastRoot = document.getElementById('toast-root');
-const BRAND_MARK_SRC = '../assets/brand-mark.svg?v=20260723brandmark1';
+const BRAND_MARK_SRC = 'assets/brand-mark.svg?v=20260723brandmark1';
 
 function renderBrandMark(className) {
   return '<img class="' + className + '" src="' + BRAND_MARK_SRC + '" alt="" aria-hidden="true"/>';
@@ -2087,7 +2087,7 @@ function openNewBestCheckoutDashboard() {
   // The standalone merchant dashboard is the root prototype, not this legacy
   // landing/portal shell. Keep authentication and Shopify-connect handoffs on
   // the same destination so merchants always enter the current Overview.
-  window.location.assign('../?rev=20260723newdashboardentry1#/home');
+  window.location.assign('app/?rev=20260723newdashboardentry1#/home');
 }
 
 function portalFieldMessage(input) {
@@ -3387,7 +3387,7 @@ window.addEventListener('beforeunload', function (event) {
 });
 
 const initialRoute = parseRoute();
-if (!window.location.hash || !['landing', 'sign-in', 'sign-up', 'forgot-password', 'connect-shopify', 'help', 'home', 'funnels', 'pages', 'orders', 'performance', 'activity', 'settings'].includes(initialRoute.segments[0])) {
+if (!window.location.hash || !['landing', 'sign-in', 'sign-up', 'forgot-password', 'connect-shopify', 'help'].includes(initialRoute.segments[0])) {
   setRoute('landing');
 } else {
   renderShell();

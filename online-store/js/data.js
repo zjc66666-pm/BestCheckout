@@ -38,46 +38,22 @@
     },
   ];
 
-  // ---------- page-type templates (theme-editor PAGE_OPTIONS) ----------
+  // BestCheckout owns only purchase-flow pages. Storefront page types live in
+  // the separate BestShopio merchant and storefront repositories.
   const PAGE_OPTIONS = [
-    { value: 'home',        label: 'Home page' },
-    { value: 'collection',  label: 'Collection page' },
-    { value: 'collections', label: 'Collection list' },
-    { value: 'product',     label: 'Product page' },
     { value: 'checkout',   label: 'Checkout' },
     { value: 'thank-you',  label: 'Thank you' },
     { value: 'upsell',     label: 'Upsell' },
     { value: 'downsell',   label: 'Downsell' },
   ];
 
-  // ---------- Add-Section catalog (Shopify-style popover; 5 groups) ----------
-  // kind === null  => "coming soon" stub (kept so coverage count reads true to the PRD).
+  // BestCheckout-specific add-section catalog. Keep only conversion and trust
+  // components that belong on checkout and post-purchase pages.
   const CATALOG = [
-    { id: 'hero', label: 'Hero & banners', entries: [
-      { kind: 'slideshow', name: 'Slideshow', desc: 'Full-width rotating banners with CTAs' },
-    ] },
-    { id: 'products', label: 'Products & collections', entries: [
-      { kind: 'image-link-blocks', name: 'Image link blocks', desc: 'Tappable collection / category tiles' },
-      { kind: 'featured-collection', name: 'Featured collection', desc: 'Tabbed product grid from a collection' },
-      { kind: 'featured-product', name: 'Featured product', desc: 'In-page buy box for one product' },
-    ] },
-    { id: 'content', label: 'Content & media', entries: [
-      { kind: 'media-with-text', name: 'Media with text', desc: 'Image / video beside copy, alternating' },
+    { id: 'trust', label: 'Trust & content', entries: [
       { kind: 'text-with-icon', name: 'Text with icon', desc: 'Row of icon + text trust badges' },
-      { kind: 'video-feed', name: 'Video feed', desc: 'Shoppable short-video carousel' },
-      { kind: 'before-after-image', name: 'Before / after image', desc: 'Draggable comparison slider' },
-      { kind: 'blog-posts', name: 'Blog posts', desc: 'Latest articles from a blog' },
-      { kind: 'media-grid', name: 'Media grid', desc: 'Image / video cards with captions' },
-      { kind: 'feature-cards', name: 'Feature cards', desc: 'Icon + title + text benefit cards' },
-    ] },
-    { id: 'social', label: 'Social proof', entries: [
       { kind: 'testimonial', name: 'Testimonial', desc: 'Customer review cards' },
-      { kind: 'ugc-gallery', name: 'UGC gallery', desc: 'User photo wall' },
-      { kind: 'as-seen-in', name: 'As seen in', desc: 'Press / media logo strip' },
-    ] },
-    { id: 'engagement', label: 'Engagement & utility', entries: [
       { kind: 'faq', name: 'FAQ', desc: 'Accordion questions + support panel' },
-      { kind: 'newsletter', name: 'Newsletter', desc: 'Email capture block' },
       { kind: 'custom-html', name: 'Custom HTML', desc: 'Raw HTML embed' },
     ] },
     { id: 'checkout', label: 'Checkout', entries: [

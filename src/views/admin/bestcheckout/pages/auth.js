@@ -1,7 +1,7 @@
 import { icon } from '../components/common.js';
 
 function brand() {
-  return '<a class="portal-auth-brand" href="#/" aria-label="BestCheckout home"><img class="portal-mark" src="../assets/brand-mark.svg?v=20260723transparentmark1" alt="" aria-hidden="true"/><strong>BestCheckout</strong></a>';
+  return '<a class="portal-auth-brand" href="#/" aria-label="BestCheckout home"><img class="portal-mark" src="assets/brand-mark.svg?v=20260723transparentmark1" alt="" aria-hidden="true"/><strong>BestCheckout</strong></a>';
 }
 
 function authLayout(eyebrow, title, copy, formMarkup, foot) {
@@ -56,7 +56,7 @@ export function renderSignUp() {
 }
 
 export function renderConnectShopify() {
-  const credentialsHelp = '<aside class="connect-credentials-help"><div><strong>Need your Client ID and Secret?</strong><span>Open your Shopify app\'s Settings in Shopify Dev Dashboard to find both credentials.</span></div><a href="../help/#guide=connect-shopify" target="_blank" rel="noopener">View the guide ' + icon('external', 14) + '</a></aside>';
+  const credentialsHelp = '<aside class="connect-credentials-help"><div><strong>Need your Client ID and Secret?</strong><span>Open your Shopify app\'s Settings in Shopify Dev Dashboard to find both credentials.</span></div><a href="help/#guide=connect-shopify" target="_blank" rel="noopener">View the guide ' + icon('external', 14) + '</a></aside>';
   const domainField = '<div class="portal-domain-input"><input required type="text" name="shopDomain" placeholder="your-store" pattern="[a-z0-9]+(-[a-z0-9]+)*" autocomplete="off" data-validation-required="Enter your Shopify store name." data-validation-invalid="Use the store name from your permanent myshopify.com address." /><span>.myshopify.com</span></div>';
   return '<div class="connect-flow"><header class="connect-header">' + brand() + '<button type="button" class="portal-inline-button" data-action="portal-signout">Sign out</button></header><main><div class="connect-card"><span class="connect-icon">' + icon('store', 23) + '</span><span class="portal-auth-eyebrow">Shopify connection</span><h1>Connect your Shopify store</h1><p>Use the app you create in Shopify Dev Dashboard. BestCheckout uses it only to keep checkout data current and write paid orders back to Shopify.</p><form class="portal-form" id="connect-shopify-form" novalidate>'
     + portalField('Shopify store address', domainField, 'Enter the permanent <strong>myshopify.com</strong> address, not your storefront domain.')

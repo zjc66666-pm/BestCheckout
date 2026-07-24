@@ -1,22 +1,22 @@
 {
-  "name": "BestCheckout merchant admin prototype",
+  "name": "BestCheckout website and standalone merchant admin",
   "entry": "index.html",
   "staticRoot": ".",
   "routing": {
-    "prototype": "hash",
-    "production": "merchant-admin-and-marketing-routes"
+    "website": "hash routes at repository root",
+    "admin": "hash routes under /app/",
+    "legacyLanding": "redirects /landing/ to repository root"
   },
   "contracts": {
     "funnelDeploymentSchema": "bestcheckout.funnel-deployment.v1",
     "cartHandoffSchema": "bestcheckout.cart-handoff.v1",
-    "trackingContract": "bestcheckout.tracking.v1",
-    "prototypeHashAlgorithm": "prototype-fnv1a32",
-    "productionHashAlgorithm": "canonical-json-v1+sha256",
-    "editorCoreTarget": "@bestshopio/checkout-editor-core"
+    "trackingContract": "bestcheckout.tracking.v1"
   },
   "localPreview": {
-    "command": "python -m http.server 4175",
-    "url": "http://127.0.0.1:4175/#/home"
+    "command": "python -m http.server 4195 --bind 127.0.0.1",
+    "websiteUrl": "http://127.0.0.1:4195/#/landing",
+    "adminUrl": "http://127.0.0.1:4195/app/#/home",
+    "helpUrl": "http://127.0.0.1:4195/help/#guide=connect-shopify"
   },
   "githubPages": {
     "branch": "main",
@@ -24,64 +24,56 @@
     "buildRequired": false,
     "jekyll": false,
     "publicWhitelist": [
+      ".gitattributes",
+      ".gitignore",
       ".nojekyll",
       "404.html",
+      "README.md",
       "index.html",
       "preview.config.json",
-      "assets/**",
-      "account/**",
-      "activity/**",
-      "analytics/**",
-      "apps/**",
-      "bestcheckout/**",
-      "blog/**",
-      "bundles/**",
-      "collections/**",
-      "customers/**",
-      "discounts/**",
-      "facebook/**",
-      "google/**",
-      "help/**",
-      "home/**",
+      "app/**",
       "landing/**",
-      "menu/**",
-      "online-store/**",
+      "help/**",
+      "assets/**",
+      "home/js/data.js",
+      "bestcheckout/**",
       "orders/**",
-      "page/**",
-      "products/**",
-      "reviews/**",
+      "activity/**",
       "settings/**",
-      "storefront/**",
-      "subscriptions/**",
+      "online-store/**",
+      "bundles/js/data.js",
+      "subscriptions/js/data.js",
       "src/views/admin/bestcheckout/**"
     ],
-    "targetOptions": [
-      {
-        "repo": "zjc66666-pm/BestCheckout",
-        "path": "/",
-        "status": "current-target"
-      }
-    ]
+    "target": {
+      "repo": "zjc66666-pm/BestCheckout",
+      "path": "/",
+      "status": "current-target-after-review"
+    }
   },
   "smokeRoutes": [
-    "landing/#/landing",
-    "#/home",
-    "#/flows",
-    "#/pages",
-    "#/orders",
-    "#/activity",
-    "#/settings/base",
-    "#/settings/domains",
-    "#/settings/payments",
-    "help/#guide=connect-shopify"
+    "#/landing",
+    "#/sign-in",
+    "#/sign-up?next=connect-shopify",
+    "#/forgot-password",
+    "#/connect-shopify",
+    "help/#guide=connect-shopify",
+    "app/#/home",
+    "app/#/flows",
+    "app/#/pages",
+    "app/#/orders",
+    "app/#/activity",
+    "app/#/settings/base",
+    "app/#/settings/domains",
+    "app/#/settings/payments"
   ],
   "interactionSmoke": [
-    "English -> 简体中文 -> English",
-    "Pages editor -> desktop/mobile preview",
-    "Funnel node editor -> live pin/latest page/draft context",
-    "Create typed Page -> replace Funnel node page",
-    "Draft page publish -> Funnel republish",
-    "Pause -> resume last deployment without publishing draft",
-    "Pause -> publish current draft and resume"
+    "Website Start free -> sign up -> connect Shopify -> admin Overview",
+    "Sign in -> admin Overview",
+    "Forgot password code countdown and resend",
+    "Purchase flow list -> canvas -> Checkout page editor",
+    "Checkout domain automatic and manual verification states",
+    "Order detail with bundle and subscription metadata",
+    "English -> Simplified Chinese -> English"
   ]
 }

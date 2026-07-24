@@ -548,7 +548,7 @@
   function subscriptionContractReference(sub) {
     if (!sub || !sub.id) return '';
     return '<span aria-hidden="true" class="muted">&middot;</span>' +
-      '<a href="#/subscriptions/contracts/' + encodeURIComponent(sub.id) + '" style="color:var(--brand);font-weight:500;text-decoration:none">' + esc(sub.id) + '</a>';
+      '<span style="color:var(--ink-body);font-weight:500">' + esc(sub.id) + '</span>';
   }
   function subscriptionDiscountLabel(discount) {
     const label = String((discount && discount.name) || '').trim();
@@ -608,7 +608,7 @@
   function subOrderStrip(sub) {
     return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:10px 12px;background:#eef4ff;border:1px solid #d6e4ff;border-radius:8px;margin-bottom:12px;font-size:12.5px">' +
       '<span style="color:#1d4ed8"><b>Recurring order</b> · from ' + esc(sub.id) + ' · cycle ' + sub.cycle + (sub.next ? ' · next charge ' + esc(sub.next) : '') + '</span>' +
-      '<a href="#/subscriptions/contracts/' + esc(sub.id) + '" style="color:#1d4ed8;font-weight:600;white-space:nowrap;text-decoration:none">View contract →</a>' +
+      '<span style="color:#1d4ed8;font-weight:600;white-space:nowrap">Subscription details included</span>' +
     '</div>';
   }
   // Bundle group block — component SKUs (+ gifts) under one header with a subtotal.
@@ -824,9 +824,7 @@
     const email = String(shipping.email || '').trim();
     const phoneCode = String(shipping.phone_code || '').replace(/^\+/, '').trim();
     const phone = shipping.phone ? ((phoneCode ? '+' + phoneCode + ' ' : '') + String(shipping.phone).trim()) : '';
-    const profileLink = customerId
-      ? '<a class="lnk" href="#/customers/' + encodeURIComponent(customerId) + '" style="font-size:13px;font-weight:500">View customer</a>'
-      : '';
+    const profileLink = '';
     const contactRows = [
       email ? '<div class="flex items-center gap-2" style="min-width:0;color:var(--ink-muted)">' + I.mail + '<span class="subtle" style="font-size:13px;line-height:1.45;overflow-wrap:anywhere">' + esc(email) + '</span></div>' : '',
       phone ? '<div class="flex items-center gap-2" style="min-width:0;color:var(--ink-muted)">' + I.phone + '<span class="subtle" style="font-size:13px;line-height:1.45">' + esc(phone) + '</span></div>' : '',

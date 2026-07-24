@@ -10,7 +10,7 @@
    location.hash; the router re-dispatches. */
 (function () {
   var V = '20260724checkoutdomainflow25'; // cache-bust for lazy-loaded module scripts
-  var PUBLIC_SHOPIFY_CONNECTION_URL = 'landing/?entry=connect-new-shopify-store#/connect-shopify';
+  var PUBLIC_SHOPIFY_CONNECTION_URL = './?entry=connect-new-shopify-store#/connect-shopify';
   var s = function (p) { return '<svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>'; };
   var ICONS = {
     home: s('<path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/>'),
@@ -176,7 +176,10 @@
   }
   function loadModule(id) {
     if (loaded[id]) return loaded[id];
-    var chain = loadScript(id + '/js/icons.js?v=' + V).catch(function () {});            // optional (analytics)
+    // BestCheckout's retained modules use the shared icon set from this shell.
+    // The former BestShopio loader probed every module for an optional icons.js,
+    // producing a harmless but noisy 404 on each first visit.
+    var chain = Promise.resolve();
     // Customer detail renders canonical order snapshots. Load the shared order data
     // first so a direct #/customers entry cannot fall back to stale duplicate mocks.
     chain = chain.then(function () {
@@ -421,7 +424,7 @@
     var tasks = [
       connected
         ? { done: true, title: 'Shopify store connected', desc: 'Products, discounts and delivery options are ready for checkout.' }
-        : { done: false, current: true, title: 'Connect your Shopify store', desc: 'Connect your custom app to sync products, orders, and checkout data.', href: 'landing/?entry=connect-new-shopify-store#/connect-shopify', action: 'Connect' },
+        : { done: false, current: true, title: 'Connect your Shopify store', desc: 'Connect your custom app to sync products, orders, and checkout data.', href: './?entry=connect-new-shopify-store#/connect-shopify', action: 'Connect' },
       { done: false, title: 'Set checkout domain', desc: 'Use a branded, secure address throughout checkout, Upsell, Downsell, and Thank you pages.', href: '#/settings/domains', action: 'Set up' },
       { done: false, title: 'Connect payment service', desc: 'Choose how buyers can pay and complete a test payment.', href: '#/settings/payments', action: 'Set up' }
     ];
@@ -594,7 +597,7 @@
       '</button>';
     }).join('');
     return '<div class="hdr-store-list">' + rows + '</div>' +
-      '<a class="hdr-menu-foot" href="landing/?entry=connect-new-shopify-store#/connect-shopify">Connect new Shopify store</a>';
+      '<a class="hdr-menu-foot" href="./?entry=connect-new-shopify-store#/connect-shopify">Connect new Shopify store</a>';
   }
   function userMenuHtml() {
     return '<div class="hdr-menu-head">' + MICO.user + '<span>' + (SITE.email || 'owner@bestshopio.com') + '</span></div>' +
@@ -662,7 +665,7 @@
             closeHdrMenus();
             if (name === SITE.store) return;
             // PRD 7.3: open the chosen store admin in a new tab
-            window.open('index.html?store=' + encodeURIComponent(name) + '#/home', '_blank', 'noopener');
+            window.open('app/index.html?store=' + encodeURIComponent(name) + '#/home', '_blank', 'noopener');
           };
         });
       });
@@ -675,7 +678,7 @@
         var signout = panel.querySelector('[data-signout]');
         if (signout) signout.onclick = function () {
           closeHdrMenus();
-          window.location.assign('landing/?rev=20260723accountmenu1#/sign-in');
+          window.location.assign('./?rev=20260723accountmenu1#/sign-in');
         };
       });
     };
