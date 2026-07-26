@@ -40,7 +40,7 @@
     'Basic settings': '基础设置', 'Payments': '收款', 'Currency': '币种', 'Checkout': '结账',
     'Notifications': '通知', 'Domains': '域名', 'Metafields': '元字段',
     'Ship locations': '发货地', 'Shipping rates': '运费',
-    'Staff and permissions': '员工与权限', 'Roles': '角色', 'Staff': '员工',
+    'Staff and permissions': '员工与权限', 'Roles': '角色', 'Staff': '员工', 'Ad data': '广告数据',
 
     // ---- Home: module card descriptions (nav.js desc) ----
     'Orders, fulfillment, refunds and returns.': '订单、发货、退款与退货。',

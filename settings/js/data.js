@@ -94,7 +94,6 @@ window.DATA_SETTINGS = {
         note: 'Marketing emails need consent management and an unsubscribe center. Coming in a later release.',
         events: [
           { code: 'abandoned_cart', name: 'Abandoned cart', cls: 'Marketing', priority: 'P2', desc: 'Remind shoppers who left items in their cart.' },
-          { code: 'back_in_stock', name: 'Back in stock', cls: 'Marketing', priority: 'P2', desc: 'Notify shoppers when a sold-out item returns.' },
           { code: 'review_request', name: 'Review request', cls: 'Marketing', priority: 'P2', desc: 'Ask for a review after delivery.' },
         ] },
     ],
@@ -189,50 +188,57 @@ window.DATA_SETTINGS = {
   },
 
   // =========================================================================
-  // TRACKING PIXELS (platform-level)
-  //   Cross-app — Online Store, BestCheckout, Subscriptions all read the same pixel
-  //   IDs from here. BestShopio fires standard events on the merchant's behalf
-  //   (PageView, InitiateCheckout, Purchase, etc.) so they don't have to hand-roll
-  //   tracking code per app. Conversion API tokens enable server-side de-duped events
-  //   — critical post-iOS 14 because client-side pixels miss 30-50% of conversions.
+  // ADVERTISING & ANALYTICS (BestCheckout V1)
+  // BestCheckout reuses the separate Meta / GA4 / GTM configuration contracts.
+  // Storefront detection is runtime evidence only; it never becomes a saved
+  // credential until a merchant confirms the corresponding configuration.
   // =========================================================================
-  pixels: {
-    platforms: {
-      meta: {
-        key: 'meta', name: 'Meta Pixel', vendor: 'Facebook · Instagram', logo: 'meta',
-        enabled: true, pixelId: '102938475610293', capiToken: 'EAA•••••••••••••••', testEventCode: '',
-        advMatching: true,
-        docs: 'https://www.facebook.com/business/help/952192354843755',
+  advertisingAnalytics: {
+    meta: {
+      detection: {
+        pixelIds: ['128745690123042'],
+        source: 'Detected on your Shopify storefront',
       },
-      ga4: {
-        key: 'ga4', name: 'Google Analytics 4', vendor: 'GA4 · GTM', logo: 'ga4',
-        enabled: true, measurementId: 'G-AB12CD34EF', apiSecret: 'gtm_•••••••••', gtmId: '',
-        docs: 'https://developers.google.com/analytics/devguides/collection/ga4',
-      },
-      tiktok: {
-        key: 'tiktok', name: 'TikTok Pixel', vendor: 'TikTok Ads', logo: 'tiktok',
-        enabled: false, pixelId: '', accessToken: '', testCode: '',
-        docs: 'https://ads.tiktok.com/marketing_api/docs?id=1739584847324162',
-      },
-      googleAds: {
-        key: 'googleAds', name: 'Google Ads Conversion', vendor: 'Google Ads', logo: 'gads',
-        enabled: false, conversionId: '', purchaseLabel: '', leadLabel: '',
-        docs: 'https://support.google.com/google-ads/answer/6095821',
-      },
-      custom: {
-        key: 'custom', name: 'Custom tracking code', vendor: 'Head & Body scripts', logo: 'code',
-        enabled: false, headScript: '', bodyScript: '',
+      // Mirrors the independent Meta Pixel + CAPI configuration endpoint.
+      config: {
+        pixelId: '',
+        accessToken: '',
+        enabled: false,
       },
     },
-    // Standard events BestShopio fires automatically. Merchants don't pick these — the platform
-    // maps a unified internal event ("buyer reached checkout") to each platform's vendor name.
+    ga4: {
+      detection: {
+        measurementIds: ['G-4N8P7HJ2'],
+        source: 'Detected on your Shopify storefront',
+      },
+      // Mirrors the independent GA4 configuration endpoint. API secret stays
+      // optional so browser delivery works without GA4 Measurement Protocol.
+      config: {
+        measurementId: 'G-4N8P7HJ2',
+        apiSecret: '',
+        enabled: true,
+      },
+    },
+    gtm: {
+      detection: {
+        containerIds: ['GTM-N8X4P6Q'],
+        source: 'Detected on your Shopify storefront',
+      },
+      // Mirrors the independent GTM configuration endpoint.
+      config: {
+        containerId: 'GTM-N8X4P6Q',
+        enabled: true,
+      },
+    },
     events: [
-      { id: 'page_view',     name: 'Page view',          meta: 'PageView',         ga4: 'page_view',       tiktok: 'PageView',         gads: '—',                       fires: 'Every storefront page load' },
-      { id: 'view_item',     name: 'View product / offer', meta: 'ViewContent',    ga4: 'view_item',       tiktok: 'ViewContent',      gads: '—',                       fires: 'Product page, upsell offer, downsell offer' },
-      { id: 'add_to_cart',   name: 'Add to cart / accept upsell', meta: 'AddToCart', ga4: 'add_to_cart',  tiktok: 'AddToCart',        gads: '—',                       fires: 'Cart add + one-click upsell accept' },
-      { id: 'begin_checkout', name: 'Begin checkout',    meta: 'InitiateCheckout', ga4: 'begin_checkout', tiktok: 'InitiateCheckout', gads: '—',                       fires: 'Buyer lands on the checkout page' },
-      { id: 'add_payment',   name: 'Payment info added', meta: 'AddPaymentInfo',   ga4: 'add_payment_info', tiktok: 'AddPaymentInfo', gads: '—',                       fires: 'Buyer fills payment method' },
-      { id: 'purchase',      name: 'Purchase',           meta: 'Purchase',         ga4: 'purchase',        tiktok: 'CompletePayment',  gads: 'Conversion (Purchase)',   fires: 'Order written back (Thank-you / order_create webhook)' },
+      { id: 'begin_checkout', label: 'Checkout started', meta: 'InitiateCheckout', ga4: 'begin_checkout', gtm: 'begin_checkout', delivery: 'Checkout session · once' },
+      { id: 'checkout_contact_info', label: 'Contact information', meta: '—', ga4: 'checkout_contact_info', gtm: 'checkout_contact_info', delivery: 'Browser event' },
+      { id: 'add_shipping_info', label: 'Shipping information', meta: '—', ga4: 'add_shipping_info', gtm: 'add_shipping_info', delivery: 'Browser event' },
+      { id: 'add_payment_info', label: 'Payment information', meta: 'AddPaymentInfo', ga4: 'add_payment_info', gtm: 'add_payment_info', delivery: 'Browser event' },
+      { id: 'post_purchase_offer_view', label: 'Post-purchase offer', meta: 'PostPurchaseOfferView', ga4: 'post_purchase_offer_view', gtm: 'post_purchase_offer_view', delivery: 'Browser event' },
+      { id: 'post_purchase_offer_accept', label: 'Post-purchase offer accepted', meta: 'PostPurchaseOfferAccept', ga4: 'post_purchase_offer_accept', gtm: 'post_purchase_offer_accept', delivery: 'Browser event' },
+      { id: 'post_purchase_offer_decline', label: 'Post-purchase offer declined', meta: 'PostPurchaseOfferDecline', ga4: 'post_purchase_offer_decline', gtm: 'post_purchase_offer_decline', delivery: 'Browser event' },
+      { id: 'purchase', label: 'Completed purchase', meta: 'Purchase', ga4: 'purchase', gtm: 'purchase', delivery: 'Browser + server · once per order' },
     ],
   },
 

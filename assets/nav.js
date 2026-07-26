@@ -23,8 +23,9 @@ window.NAV_MENU = [
     id: 'settings', label: 'Settings', icon: 'settings', route: '#/settings/base', desc: 'Manage the Shopify connection and checkout services.',
     children: [
       { id: 'settings-base', label: 'Shopify connection', route: '#/settings/base' },
-      { id: 'settings-payments', label: 'Payment services', route: '#/settings/payments' },
       { id: 'settings-domains', label: 'Checkout domain', route: '#/settings/domains' },
+      { id: 'settings-payments', label: 'Payment services', route: '#/settings/payments' },
+      { id: 'settings-advertising-analytics', label: 'Ad data', route: '#/settings/advertising-analytics' },
       { id: 'settings-notifications', label: 'Email notifications', route: '#/settings/notifications' },
       { id: 'settings-roles', label: 'Roles', route: '#/settings/roles' },
       { id: 'settings-staff', label: 'Staff', route: '#/settings/staff' },
@@ -36,8 +37,9 @@ window.NAV_CHANNELS = [];
 
 window.NAV_SETTINGS = [
   { id: 'base', label: 'Shopify connection', icon: 'settings', route: '#/settings/base' },
-  { id: 'payments', label: 'Payment services', icon: 'card', route: '#/settings/payments' },
   { id: 'domains', label: 'Checkout domain', icon: 'globe', route: '#/settings/domains' },
+  { id: 'payments', label: 'Payment services', icon: 'card', route: '#/settings/payments' },
+  { id: 'advertising-analytics', label: 'Ad data', icon: 'analytics', route: '#/settings/advertising-analytics' },
   { id: 'notifications', label: 'Email notifications', icon: 'bell', route: '#/settings/notifications' },
   {
     id: 'staffperms', label: 'Staff and permissions', icon: 'userPen', route: '#/settings/roles',

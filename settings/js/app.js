@@ -51,10 +51,255 @@
     grip:   svg('<circle cx="9" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="18" r="1"/>', 16),
     search: svg('<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>', 16),
     info:   svg('<circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/>', 16),
+    analytics: svg('<path d="M4 19V10M10 19V5M16 19v-7M22 19H2"/>', 18),
+    facebook:  svg('<path d="M14.5 4.5h-2.2A3.3 3.3 0 0 0 9 7.8V10H6v4h3v6h4v-6h3l.8-4H13V8.2c0-.8.3-1.2 1.3-1.2h2.5V3.2c-.7-.1-1.5-.2-2.3-.2Z"/>', 18),
+    google:    svg('<path d="M20.5 12.2c0 4.7-3.2 8-8.3 8A8.2 8.2 0 1 1 12 3.8c2.1 0 3.8.8 5.1 2L15 7.8A4.8 4.8 0 1 0 16 13h-3.8V10h8.1c.1.5.2 1.1.2 2.2Z"/>', 18),
   };
 
-  // ---- toast (same as orders) ----
-  const toast = (msg) => { const t = document.createElement('div'); t.textContent = msg; t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#242833;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;z-index:90;box-shadow:var(--float-shadow)'; document.body.appendChild(t); setTimeout(() => t.remove(), 1900); };
+  // The shared shell translates lazily rendered views at runtime. Register this
+  // page's copy here so the Chinese interface stays coherent without changing
+  // the English source strings used by the rest of the prototype.
+  if (window.I18N && window.I18N.extend) {
+    window.I18N.extend({
+      'Advertising & analytics': '广告数据',
+      'Keep your checkout conversion data connected to Meta and Google.': '让你的结账转化数据持续回传至 Meta 和 Google。',
+      'Automatic setup is active': '自动设置已启用',
+      'Existing verified configuration is used automatically for new BestCheckout sessions.': '已验证的现有配置会自动用于新的 BestCheckout 结账会话。',
+      'Check connection': '检查连接',
+      'No channels connected': '没有已连接的渠道',
+      '1 channel connected': '1 个渠道已连接',
+      'Meta browser events active': 'Meta 浏览器事件已启用',
+      'Meta needs attention': 'Meta 需要处理',
+      'Meta not connected': 'Meta 未连接',
+      'Connected automatically from your existing setup': '已根据现有设置自动连接',
+      'Automatically adopted from your existing setup': '已自动复用现有设置',
+      'No checkout events are sent to this destination.': '不会向此目标发送新的结账事件。',
+      'Browser events': '浏览器事件',
+      'Browser events active': '浏览器事件已启用',
+      'Browser Pixel': '浏览器 Pixel',
+      'Browser Pixel active': '浏览器 Pixel 已启用',
+      'Detected storefront Pixel': '前台检测到的 Pixel',
+      'Detected on your Shopify storefront': '已在 Shopify 店铺前台检测到',
+      'Meta authorization': 'Meta 授权',
+      'Authorized Meta data source': '已授权 Meta 数据源',
+      'Authorized': '已授权',
+      'Not needed': '无需授权',
+      'Connect Meta': '连接 Meta',
+      'Manage Meta': '管理 Meta',
+      'Manage CAPI': '管理 CAPI',
+      'Manage connection': '管理连接',
+      'Add access token': '添加 Access Token',
+      'Update access token': '更新 Access Token',
+      'Add Conversions API access token': '添加 Conversions API Access Token',
+      'Replace access token': '替换 Access Token',
+      'Replace Conversions API access token': '替换 Conversions API Access Token',
+      'Conversions API access token': 'Conversions API Access Token',
+      'Save and verify': '保存并验证',
+      'Update and verify': '更新并验证',
+      'Manual access token': '手动填写的 Access Token',
+      'Connected with a manually added access token': '已通过手动填写的 Access Token 连接',
+      'Detected Pixel matched': '已匹配前台检测到的 Pixel',
+      'Ready for access token': '可添加 Access Token',
+      'Conversions API': 'Conversions API',
+      'Conversions API connected': 'Conversions API 已连接',
+      'Needs connection': '需要连接',
+      'Browser only': '仅浏览器',
+      'Exact Pixel match': 'Pixel 完全匹配',
+      'Pixel match': 'Pixel 匹配',
+      'Automatically adopted': '已自动复用',
+      'Waiting for Meta authorization': '等待 Meta 授权',
+      'Pixel mismatch': 'Pixel 不匹配',
+      'Multiple Pixels detected': '检测到多个 Pixel',
+      'No Pixel detected': '未检测到 Pixel',
+      'Server events remain off until one matching Pixel is confirmed.': '在确认唯一匹配的 Pixel 前，服务端事件不会启用。',
+      'Browser Pixel is active. Connect Meta to add server events.': '浏览器 Pixel 已启用。连接 Meta 后即可增加服务端事件。',
+      'Browser Pixel is active. Add an access token to send server events.': '浏览器 Pixel 已启用。添加 Access Token 后即可发送服务端事件。',
+      'No Meta Pixel was detected on the storefront.': '未在店铺前台检测到 Meta Pixel。',
+      'A unique storefront Pixel is required before server events can be enabled.': '需先在店铺前台检测到唯一的 Pixel，才能启用服务端事件。',
+      'A unique Measurement ID is required before GA4 server events can be enabled.': '需在店铺前台检测到唯一的 Measurement ID，才能启用 GA4 服务端事件。',
+      'Storefront Pixel changed. Enter a new access token for the detected Pixel before server events can resume.': '店铺前台检测到的 Pixel 已变化；请为当前 Pixel 输入新的 Access Token，服务端事件才会恢复。',
+      'Storefront Measurement ID changed. Enter a new API secret for the detected Measurement ID before server events can resume.': '店铺前台检测到的 Measurement ID 已变化；请为当前 Measurement ID 输入新的 API Secret，服务端事件才会恢复。',
+      'Please enter a new access token for the detected Pixel.': '请为当前检测到的 Pixel 输入新的 Access Token。',
+      'Please enter a new API secret for the detected Measurement ID.': '请为当前检测到的 Measurement ID 输入新的 API Secret。',
+      'Add an access token to enable server events.': '添加 Access Token 后即可启用服务端事件。',
+      'Browser events continue. Add an access token to also send server-side Purchase and refund events.': '浏览器事件会继续发送。添加 Access Token 后还会发送服务端的 Purchase 和退款事件。',
+      'Paste the access token from Meta Events Manager. This is optional: browser events keep sending if you leave it blank.': '粘贴 Meta Events Manager 中的 Access Token。这是可选项；留空时浏览器事件会继续发送。',
+      'You can view and copy the saved access token in Manage CAPI.': '可在“管理 CAPI”中查看并复制已保存的 Access Token。',
+      'Select the access token to copy it.': '可选中 Access Token 后复制。',
+      'Please enter a Conversions API access token.': '请输入 Conversions API Access Token。',
+      'Access token saved. Server events are connected for the detected Pixel.': 'Access Token 已保存，服务端事件已连接到前台检测到的 Pixel。',
+      'Access token updated. Server events remain connected for the detected Pixel.': 'Access Token 已更新，服务端事件会继续连接到前台检测到的 Pixel。',
+      'Browser Pixel and server events use the same matched Pixel.': '浏览器 Pixel 与服务端事件使用同一个已匹配的 Pixel。',
+      'Browser events continue while server events are not connected.': '服务端事件未连接时，浏览器事件会继续发送。',
+      'Server event source': '服务端事件来源',
+      'Existing server connection': '现有服务端连接',
+      'Connected through Meta authorization': '已通过 Meta 授权连接',
+      'Last CAPI response': '最近 CAPI 响应',
+      'Meta connection': 'Meta 连接',
+      'Disconnect server events': '断开服务端事件',
+      'Disconnecting server events keeps the Browser Pixel active.': '断开服务端事件不会影响浏览器 Pixel。',
+      'Google measurement and container IDs are read from the active configuration.': 'Google 衡量 ID 和 GTM 容器 ID 来自当前启用的配置。',
+      'Connect a Meta Business and data source. BestCheckout enables server events only when one authorized Pixel matches the Pixel detected on your storefront.': '连接 Meta 商务资产和数据源。仅当一个已授权 Pixel 与店铺前台检测到的 Pixel 匹配时，BestCheckout 才会启用服务端事件。',
+      'Continue to Meta': '继续前往 Meta',
+      'Meta authorized. Pixel matched and server events are connected.': 'Meta 已授权，Pixel 已匹配，服务端事件已连接。',
+      'Connection check complete. Browser Pixel and server events match.': '连接检查完成，浏览器 Pixel 与服务端事件已匹配。',
+      'Pixel detected. Connect Meta to enable server events.': '已检测到 Pixel。连接 Meta 后可启用服务端事件。',
+      'Pixel detected. Add an access token to enable server events.': '已检测到 Pixel。添加 Access Token 后可启用服务端事件。',
+      'Meta authorization does not match the Pixel detected on your storefront.': 'Meta 授权资产与店铺前台检测到的 Pixel 不匹配。',
+      'Server events': '服务端事件',
+      'Server events connected': '服务端事件已连接',
+      'GA4 event delivery': 'GA4 事件投递',
+      'GTM event delivery': 'GTM 事件投递',
+      'GA4 measurement ID': 'GA4 衡量 ID',
+      'GTM container': 'GTM 容器',
+      'GA4 server events': 'GA4 服务端事件',
+      'Needs API secret': '需要 API Secret',
+      'Configured': '已配置',
+      'API secret (Measurement Protocol)': 'API Secret（Measurement Protocol）',
+      'Add API secret': '添加 API Secret',
+      'Update API secret': '更新 API Secret',
+      'Manage API secret': '管理 API Secret',
+      'Add GA4 Measurement Protocol API secret': '添加 GA4 Measurement Protocol API Secret',
+      'Replace GA4 Measurement Protocol API secret': '替换 GA4 Measurement Protocol API Secret',
+      'This enables GA4 server-side events through Measurement Protocol.': '配置后会通过 Measurement Protocol 启用 GA4 服务端事件。',
+      'Please enter a Measurement Protocol API secret.': '请输入 Measurement Protocol API Secret。',
+      'Measurement Protocol API secret saved. GA4 server-side events are connected.': 'Measurement Protocol API Secret 已保存，GA4 服务端事件已连接。',
+      'Measurement Protocol API secret updated. GA4 server-side events remain connected.': 'Measurement Protocol API Secret 已更新，GA4 服务端事件会继续连接。',
+      'GA4 browser events and GTM events are active separately. Add an API secret to send GA4 server-side events.': 'GA4 浏览器事件和 GTM 事件分别启用。添加 API Secret 后，可发送 GA4 服务端事件。',
+      'GA4 browser events, GA4 server-side events, and GTM events are active separately.': 'GA4 浏览器事件、GA4 服务端事件、GTM 事件均分别启用。',
+      'Events are sent directly to GA4': '事件直接发送至 GA4',
+      'Events are sent to GTM': '事件发送至 GTM',
+      'GA4 and GTM receive their own event streams from BestCheckout.': 'GA4 与 GTM 分别接收来自 BestCheckout 的独立事件流。',
+      'Last delivery': '最近投递',
+      'Test': '测试',
+      'Ready for a test event': '可发送测试事件',
+      'Connection is active for new checkout sessions.': '连接已对新的结账会话生效。',
+      'Send test event': '发送测试事件',
+      'Reconnect': '重新连接',
+      'Not connected': '未连接',
+      'Needs attention': '需要处理',
+      'Events sent by BestCheckout': '由 BestCheckout 发送的事件',
+      'Event mapping is managed automatically. You never need to select individual checkout events.': '事件映射由系统自动管理，无需逐项选择结账事件。',
+      'What BestCheckout sends': 'BestCheckout 会发送的事件',
+      'Once a tag is detected, BestCheckout automatically sends the checkout events shown below. You never need to configure events one by one.': '检测到标签后，BestCheckout 会自动发送下方所列的结账事件，无需逐项配置。',
+      'Browser events: Detected Meta Pixel, GA4, and GTM tags receive the matching browser events in the table.': '浏览器事件：检测到的 Meta Pixel、GA4 和 GTM 标签会接收下表对应的浏览器事件。',
+      'Server Purchase: After you save a Meta access token or GA4 API secret, BestCheckout also sends completed purchases (Purchase) from the server; other checkout events stay browser-only. Within each destination, browser and server copies of the same order are counted once. Meta, GA4, and GTM each receive their own events.': '服务端 Purchase：保存 Meta Access Token 或 GA4 API Secret 后，BestCheckout 还会从服务端发送已完成购买（Purchase）；其余结账事件仅由浏览器发送。同一渠道内，同一笔订单的浏览器与服务端 Purchase 只计一次；Meta、GA4 和 GTM 会分别收到各自的事件。',
+      'View coverage': '查看覆盖范围',
+      'Shopify storefront keeps browsing, product, search and cart events. BestCheckout owns the checkout journey. When browser and server events are both used, Purchase is counted once per order.': 'Shopify 店铺前台继续负责浏览、商品、搜索和购物车事件。BestCheckout 负责结账流程；同时使用浏览器和服务端事件时，每笔订单的 Purchase 只计为一次。',
+      'BestCheckout event': 'BestCheckout 事件',
+      'Delivery': '投递方式',
+      'Checkout started': '开始结账',
+      'Contact information': '联系信息',
+      'Shipping information': '配送信息',
+      'Payment information': '支付信息',
+      'Post-purchase offer': '购后优惠',
+      'Browser event': '浏览器事件',
+      'Server event': '服务端事件',
+      'Browser + server · once per order': '浏览器 + 服务端 · 每笔订单一次',
+      'Browser event · Meta CAPI not connected': '浏览器事件 · Meta CAPI 未连接',
+      'Meta not sent · CAPI not connected': 'Meta 不会发送 · CAPI 未连接',
+      'Meta not sent · No Pixel detected': 'Meta 不会发送 · 未检测到 Pixel',
+      'Checkout session · once': '结账会话 · 一次',
+      'Completed purchase': '购买',
+      'Shopify storefront keeps browsing, product, search and cart events. BestCheckout owns the checkout journey. Browser Pixel sends checkout events now. Connect Meta before Meta server-side Purchase and refund events are sent.': 'Shopify 店铺前台继续负责浏览、商品、搜索和购物车事件。BestCheckout 负责结账流程；当前由浏览器 Pixel 发送结账事件。连接 Meta 后，才会发送 Meta 服务端的 Purchase 和退款事件。',
+      'Shopify storefront keeps browsing, product, search and cart events. BestCheckout owns the checkout journey. Browser Pixel sends checkout events now. Add an access token before Meta server-side Purchase and refund events are sent.': 'Shopify 店铺前台继续负责浏览、商品、搜索和购物车事件。BestCheckout 负责结账流程；当前由浏览器 Pixel 发送结账事件。添加 Access Token 后，才会发送 Meta 服务端的 Purchase 和退款事件。',
+      'Shopify storefront keeps browsing, product, search and cart events. BestCheckout owns the checkout journey. No Meta events are sent until a storefront Pixel is detected and Meta is connected.': 'Shopify 店铺前台继续负责浏览、商品、搜索和购物车事件。需先检测到前台 Pixel 并连接 Meta，才会发送 Meta 事件。',
+      'Shopify storefront keeps browsing, product, search and cart events. BestCheckout owns the checkout journey. No Meta events are sent until a storefront Pixel is detected.': 'Shopify 店铺前台继续负责浏览、商品、搜索和购物车事件。需先检测到前台 Pixel，才会发送 Meta 事件。',
+      'Disconnect': '断开连接',
+      'Disconnecting this destination will stop sending new BestCheckout checkout events. This does not resend or change past orders.': '断开后将停止向此目标发送新的 BestCheckout 结账事件，不会补发或改变过去的订单。',
+      'Connection check complete. Existing setup remains active.': '连接检查完成，现有设置保持启用。',
+      'Multiple Pixels were detected. CAPI remains off until one matching Pixel is confirmed.': '检测到多个 Pixel。在确认唯一匹配的 Pixel 前，CAPI 不会启用。',
+      'No Meta Pixel was detected. No Meta events are being sent.': '未检测到 Meta Pixel。不会发送 Meta 事件。',
+      'Test event recorded just now': '测试事件刚刚记录',
+      'Connect Meta, GA4 and GTM for BestCheckout checkout events.': '分别连接 Meta、GA4 和 GTM，用于回传 BestCheckout 的结账事件。',
+      'Meta Pixel & Conversions API': 'Meta Pixel 与 Conversions API',
+      'Google Analytics 4': 'Google Analytics 4',
+      'Google Tag Manager': 'Google Tag Manager',
+      'Send checkout browser events through the detected Pixel. Add an access token for Conversions API.': '通过检测到的 Pixel 发送结账浏览器事件；添加 Access Token 后可启用 Conversions API。',
+      'Send checkout events directly to GA4. Add an API secret for Measurement Protocol.': '直接向 GA4 发送结账事件；添加 API Secret 后可启用 Measurement Protocol。',
+      'Send checkout events to the detected GTM container.': '向检测到的 GTM 容器发送结账事件。',
+      'Storefront detection': '店铺前台检测',
+      'Detected tag': '检测到的标签',
+      'Detected on your Shopify storefront': '已在 Shopify 店铺前台检测到',
+      'Detected from your Shopify storefront': '从 Shopify 店铺前台检测到',
+      'No tag detected on your Shopify storefront': '未在 Shopify 店铺前台检测到标签',
+      'Detected': '已检测到',
+      'Needs confirmation': '需要确认',
+      'Not detected': '未检测到',
+      'Meta tracking': 'Meta 数据回传',
+      'GA4 tracking': 'GA4 数据回传',
+      'GTM tracking': 'GTM 数据回传',
+      'Pixel ID': 'Pixel ID',
+      'Detected Pixel ID': '检测到的 Pixel ID',
+      'Storefront Pixel ID': '店铺前台 Pixel ID',
+      'Measurement ID': 'Measurement ID',
+      'Storefront Measurement ID': '店铺前台 Measurement ID',
+      'Container ID': 'Container ID',
+      'Storefront Container ID': '店铺前台 Container ID',
+      'CAPI access token': 'CAPI Access Token',
+      'CAPI not configured': 'CAPI 未配置',
+      'Access token configured': 'Access Token 已配置',
+      'API secret not configured': 'API Secret 未配置',
+      'API secret configured': 'API Secret 已配置',
+      'Browser events active': '浏览器事件已启用',
+      'Browser and server events active': '浏览器与服务端事件已启用',
+      'Server events off': '服务端事件未启用',
+      'Not configured': '未配置',
+      'Configure Meta': '配置 Meta',
+      'Configure GA4': '配置 GA4',
+      'Configure GTM': '配置 GTM',
+      'Manage Meta tracking': '管理 Meta 数据回传',
+      'Manage GA4': '管理 GA4',
+      'Manage GTM': '管理 GTM',
+      'Optional': '可选',
+      'BestCheckout sends checkout events only to the destinations configured below. Detection helps you match the saved IDs with your Shopify storefront.': 'BestCheckout 只会向下方已配置的目标发送结账事件；前台检测帮助你核对已保存的 ID 是否与 Shopify 店铺一致。',
+      'Detected and matched IDs are used for browser events. CAPI and GA4 server events start only after the corresponding credential is saved.': '前台检测且匹配的 ID 用于浏览器事件；CAPI 和 GA4 服务端事件仅在保存对应凭证后启用。',
+      'Detected IDs are used automatically for browser events. CAPI and GA4 server events start only after the corresponding credential is saved.': '前台检测到的 ID 会自动用于浏览器事件；CAPI 和 GA4 服务端事件仅在保存对应凭证后启用。',
+      'BestCheckout automatically sends checkout events to tags detected on your Shopify storefront.': 'BestCheckout 会自动向 Shopify 店铺前台检测到的标签发送结账事件。',
+      'BestCheckout uses the detected Pixel for browser events. CAPI is enabled only when the saved Pixel ID matches it.': 'BestCheckout 使用检测到的 Pixel 发送浏览器事件；仅当已保存的 Pixel ID 与其一致时，才会启用 CAPI。',
+      'BestCheckout uses the detected Pixel for browser events. Add an access token to also enable Conversions API.': 'BestCheckout 使用检测到的 Pixel 发送浏览器事件；添加 Access Token 后即可启用 Conversions API。',
+      'BestCheckout uses the detected Measurement ID for checkout browser events. Add an API secret to also send GA4 server-side events.': 'BestCheckout 使用检测到的 Measurement ID 发送结账浏览器事件；添加 API Secret 后还会发送 GA4 服务端事件。',
+      'BestCheckout uses the detected container for checkout events.': 'BestCheckout 使用检测到的容器发送结账事件。',
+      'Please enter a Measurement ID.': '请输入 Measurement ID。',
+      'Please enter a Container ID.': '请输入 Container ID。',
+      'Please enter a Pixel ID.': '请输入 Pixel ID。',
+      'This ID must match one of the IDs detected on your Shopify storefront.': '该 ID 必须与店铺前台检测到的任一 ID 匹配。',
+      'The saved Pixel ID must match the unique Pixel detected on your storefront.': '已保存的 Pixel ID 必须与店铺前台唯一检测到的 Pixel 一致。',
+      'Meta configuration saved.': 'Meta 配置已保存。',
+      'GA4 configuration saved.': 'GA4 配置已保存。',
+      'GTM configuration saved.': 'GTM 配置已保存。',
+      'Disconnect Meta configuration?': '断开 Meta 配置？',
+      'Disconnect GA4 configuration?': '断开 GA4 配置？',
+      'Disconnect GTM configuration?': '断开 GTM 配置？',
+      'Disconnecting this configuration keeps storefront detection visible.': '断开配置不会影响店铺前台检测结果。',
+      'Meta configuration disconnected.': 'Meta 配置已断开。',
+      'GA4 configuration disconnected.': 'GA4 配置已断开。',
+      'GTM configuration disconnected.': 'GTM 配置已断开。',
+    }).addRules([
+      { re: /^(\d+) channels active$/, zh: function (m) { return m[1] + ' 个渠道已启用'; } },
+      { re: /^(\d+) channels connected$/, zh: function (m) { return m[1] + ' 个渠道已连接'; } },
+      { re: /^(\d+) min ago$/, zh: function (m) { return m[1] + ' 分钟前'; } },
+      { re: /^Disconnect (Meta|Google)\?$/, zh: function (m) { return '断开 ' + m[1] + '？'; } },
+      { re: /^(Meta|Google) is disconnected in this prototype\.$/, zh: function (m) { return m[1] + ' 已在此原型中断开连接。'; } },
+      { re: /^(Meta|Google) is active for new checkout sessions\.$/, zh: function (m) { return m[1] + ' 已对新的结账会话启用。'; } },
+      { re: /^(Meta|Google) test event recorded in this prototype\.$/, zh: function (m) { return m[1] + ' 测试事件已在此原型中记录。'; } },
+    ]);
+  }
+
+  // ---- toast — use the same top-centred notification pattern as Purchase flows ----
+  const toast = (msg, type) => {
+    const level = type || (/failed|error|失败/i.test(String(msg)) ? 'error' : 'success');
+    const tone = level === 'error' ? '#ff4d4f' : level === 'warning' ? '#faad14' : '#52c41a';
+    const glyph = level === 'error' ? '×' : level === 'warning' ? '!' : '✓';
+    document.querySelectorAll('.set-message').forEach((message) => message.remove());
+    const t = document.createElement('div');
+    t.className = 'set-message ' + level;
+    t.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);display:inline-flex;align-items:center;gap:8px;max-width:min(560px,calc(100vw - 48px));padding:9px 16px;background:#fff;color:rgba(0,0,0,.88);border-radius:8px;font-size:14px;line-height:1.45;z-index:300;box-shadow:0 6px 16px rgb(0 0 0 / 8%),0 3px 6px -4px rgb(0 0 0 / 12%),0 9px 28px 8px rgb(0 0 0 / 5%)';
+    t.innerHTML = '<span aria-hidden="true" style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:' + tone + ';color:#fff;font-size:12px;font-weight:700;line-height:1;flex:none">' + glyph + '</span><span></span>';
+    t.lastElementChild.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2000);
+  };
 
   // ---- confirm dialog (mirrors Ant Modal.confirm) ----
   const confirm = (opts) => modal({
@@ -1357,6 +1602,7 @@
     const backdrop = h('<div class="modal-backdrop"></div>');
     const m = h('<div class="modal"></div>');
     if (width) m.style.width = width + 'px';
+    m.style.maxWidth = 'calc(100vw - 24px)';
     m.innerHTML =
       '<div class="modal-head flex items-center justify-between"><span>' + esc(title) + '</span>' +
         '<span class="drawer-x" data-x style="cursor:pointer">' + I.x + '</span></div>' +
@@ -1996,7 +2242,7 @@
     setupPath += sslAssurance;
     paint(
       '<style>' + DOMAIN_STYLES +
-        '.domain-stack{display:flex;flex-direction:column;gap:16px}.domain-card{border:1px solid var(--hair);border-radius:12px;background:#fff;padding:20px}.domain-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.domain-card-main{display:flex;gap:12px;min-width:0;flex:1}.domain-card-actions{display:flex;align-items:center;gap:8px;flex:none;white-space:nowrap}.domain-card-actions .pill,.domain-card-actions .btn{flex:none;white-space:nowrap}.domain-card-icon{width:40px;height:40px;border-radius:10px;background:#eef3ff;color:var(--brand);display:grid;place-items:center;flex:none}.domain-card-icon.is-default{background:#edf8f2;color:#16875b}.domain-eyebrow{font-size:12px;font-weight:650;color:var(--ink-muted);margin-bottom:5px}.domain-address{font-size:16px;line-height:1.4;font-weight:650;color:var(--ink);overflow-wrap:anywhere}.domain-note{font-size:12.5px;line-height:1.55;color:var(--ink-muted);margin-top:5px}.domain-scope-note{font-size:12px;line-height:1.5;color:var(--ink-muted);margin-top:6px}.domain-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px;padding-top:15px;border-top:1px solid var(--hair)}.domain-fact small{display:block;color:var(--ink-muted);font-size:11px;margin-bottom:4px}.domain-fact strong{display:block;color:var(--ink-body);font-size:13px;font-weight:600;line-height:1.45;overflow-wrap:anywhere}.domain-path-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:18px}.domain-path{display:flex;min-height:222px;flex-direction:column;border:1px solid var(--hair);border-radius:10px;padding:16px;background:#fff}.domain-path-primary{border-color:#b9d2ff;background:#fbfdff}.domain-path-head{display:flex;align-items:flex-start;gap:10px}.domain-path-icon{width:32px;height:32px;display:grid;place-items:center;border-radius:8px;background:#eaf2ff;color:var(--brand);flex:none}.domain-path-icon-muted{background:#f2f4f7;color:var(--ink-muted)}.domain-path-head strong{display:block;color:var(--ink);font-size:14px;line-height:1.35}.domain-path-head small{display:block;color:var(--ink-muted);font-size:12px;margin-top:2px;line-height:1.4}.domain-recommended{margin-left:auto;border-radius:999px;background:#eaf2ff;color:var(--brand);font-size:10.5px;font-weight:650;padding:3px 7px;white-space:nowrap}.domain-path p{color:var(--ink-muted);font-size:12.5px;line-height:1.55;margin:13px 0}.domain-path .btn{margin-top:auto;align-self:flex-start}.domain-provider-list{display:flex;flex-wrap:wrap;gap:6px;margin:-2px 0 14px}.domain-provider-list span{border:1px solid #dce5f5;border-radius:5px;background:#fff;color:var(--ink-body);font-size:11.5px;font-weight:600;padding:4px 7px}.domain-progress{display:flex;align-items:flex-start;gap:10px;margin-top:18px;padding:13px;border:1px solid #c9d9f7;border-radius:8px;background:#f7faff;color:var(--ink-body);font-size:12.5px;line-height:1.55}.domain-progress.is-error{align-items:center;border-color:#fecaca;background:#fff7f7;color:#a13b2b}.domain-progress>span{color:var(--brand);display:inline-flex;flex:none}.domain-progress.is-error>span{color:#b42318}.domain-progress .ssl-spin{margin-top:3px}.domain-progress-actions{display:flex;align-items:center;gap:8px;margin-left:auto;flex:none;white-space:nowrap}.domain-progress-actions .btn{flex:none;white-space:nowrap}@media(max-width:760px){.domain-card-top{flex-direction:column}.domain-card-actions{width:100%;justify-content:flex-end}.domain-facts,.domain-path-grid{grid-template-columns:1fr}.domain-progress{flex-wrap:wrap}.domain-progress-actions{margin-left:0;width:100%;justify-content:flex-end}}' +
+        '.domain-stack{display:flex;flex-direction:column;gap:16px}.domain-stack>.flex:first-child{margin-bottom:0}.domain-card{border:1px solid var(--hair);border-radius:12px;background:#fff;padding:20px}.domain-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.domain-card-main{display:flex;gap:12px;min-width:0;flex:1}.domain-card-actions{display:flex;align-items:center;gap:8px;flex:none;white-space:nowrap}.domain-card-actions .pill,.domain-card-actions .btn{flex:none;white-space:nowrap}.domain-card-icon{width:40px;height:40px;border-radius:10px;background:#eef3ff;color:var(--brand);display:grid;place-items:center;flex:none}.domain-card-icon.is-default{background:#edf8f2;color:#16875b}.domain-eyebrow{font-size:12px;font-weight:650;color:var(--ink-muted);margin-bottom:5px}.domain-address{font-size:16px;line-height:1.4;font-weight:650;color:var(--ink);overflow-wrap:anywhere}.domain-note{font-size:12.5px;line-height:1.55;color:var(--ink-muted);margin-top:5px}.domain-scope-note{font-size:12px;line-height:1.5;color:var(--ink-muted);margin-top:6px}.domain-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px;padding-top:15px;border-top:1px solid var(--hair)}.domain-fact small{display:block;color:var(--ink-muted);font-size:11px;margin-bottom:4px}.domain-fact strong{display:block;color:var(--ink-body);font-size:13px;font-weight:600;line-height:1.45;overflow-wrap:anywhere}.domain-path-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:18px}.domain-path{display:flex;min-height:222px;flex-direction:column;border:1px solid var(--hair);border-radius:10px;padding:16px;background:#fff}.domain-path-primary{border-color:#b9d2ff;background:#fbfdff}.domain-path-head{display:flex;align-items:flex-start;gap:10px}.domain-path-icon{width:32px;height:32px;display:grid;place-items:center;border-radius:8px;background:#eaf2ff;color:var(--brand);flex:none}.domain-path-icon-muted{background:#f2f4f7;color:var(--ink-muted)}.domain-path-head strong{display:block;color:var(--ink);font-size:14px;line-height:1.35}.domain-path-head small{display:block;color:var(--ink-muted);font-size:12px;margin-top:2px;line-height:1.4}.domain-recommended{margin-left:auto;border-radius:999px;background:#eaf2ff;color:var(--brand);font-size:10.5px;font-weight:650;padding:3px 7px;white-space:nowrap}.domain-path p{color:var(--ink-muted);font-size:12.5px;line-height:1.55;margin:13px 0}.domain-path .btn{margin-top:auto;align-self:flex-start}.domain-provider-list{display:flex;flex-wrap:wrap;gap:6px;margin:-2px 0 14px}.domain-provider-list span{border:1px solid #dce5f5;border-radius:5px;background:#fff;color:var(--ink-body);font-size:11.5px;font-weight:600;padding:4px 7px}.domain-progress{display:flex;align-items:flex-start;gap:10px;margin-top:18px;padding:13px;border:1px solid #c9d9f7;border-radius:8px;background:#f7faff;color:var(--ink-body);font-size:12.5px;line-height:1.55}.domain-progress.is-error{align-items:center;border-color:#fecaca;background:#fff7f7;color:#a13b2b}.domain-progress>span{color:var(--brand);display:inline-flex;flex:none}.domain-progress.is-error>span{color:#b42318}.domain-progress .ssl-spin{margin-top:3px}.domain-progress-actions{display:flex;align-items:center;gap:8px;margin-left:auto;flex:none;white-space:nowrap}.domain-progress-actions .btn{flex:none;white-space:nowrap}@media(max-width:760px){.domain-card-top{flex-direction:column}.domain-card-actions{width:100%;justify-content:flex-end}.domain-facts,.domain-path-grid{grid-template-columns:1fr}.domain-progress{flex-wrap:wrap}.domain-progress-actions{margin-left:0;width:100%;justify-content:flex-end}}' +
         '</style><div class="dom-wrap domain-stack">' +
         pageHead('Checkout domain', 'Every connected Shopify store receives a secure BestCheckout checkout address. Add your own branded subdomain whenever you are ready.') +
         '<section class="domain-card"><div class="domain-card-top"><div class="domain-card-main"><span class="domain-card-icon is-default">' + I.check + '</span><div><div class="domain-eyebrow">Default checkout address</div><div class="domain-address">' + esc(checkoutDomain.platform) + '</div><div class="domain-note">Created automatically when you connect Shopify. Use it immediately for previews and buyer traffic while your branded domain is being prepared.</div></div></div><div class="domain-card-actions"><span class="pill pill-green"><span class="dot"></span>Active · SSL managed</span><button class="btn btn-gray" data-copy-default-domain>Copy</button></div></div><div class="domain-facts"><div class="domain-fact"><small>Used on</small><strong>Checkout · Upsell · Downsell · Thank you</strong></div><div class="domain-fact"><small>SSL</small><strong>Enabled and renewed automatically</strong></div><div class="domain-fact"><small>Fallback</small><strong>Always available if a branded domain is not ready</strong></div></div></section>' +
@@ -2756,11 +3002,489 @@
   .nf-tpl-thumb { width: 40px; height: 40px; border-radius: 8px; background: #e6f0ff; color: var(--brand); font-weight: 700; display: grid; place-items: center; flex: none; }
   `;
 
+  // ===========================================================================
+  // ADVERTISING & ANALYTICS — store-level checkout event delivery
+  // Existing verified configuration is active automatically. This page is an
+  // exception-driven health surface, not a merchant-facing event editor.
+  // ===========================================================================
+  function resolveMetaConnection(meta) {
+    const detected = (meta.detectedPixels || []).map((pixel) => typeof pixel === 'string' ? pixel : pixel.id).filter(Boolean);
+    const authorization = meta.authorization || { status: 'Not connected', authorizedPixelIds: [] };
+    const authorized = authorization.authorizedPixelIds || [];
+    const matches = Array.from(new Set(detected.filter((pixelId) => authorized.includes(pixelId))));
+    const singleDetected = detected.length === 1;
+    const existing = meta.silentExistingCapi || {};
+    const manual = meta.manualCapi || {};
+    const existingMatch = Boolean(existing.valid && singleDetected && existing.pixelId === detected[0]);
+    const manualToken = typeof manual.token === 'string' ? manual.token.trim() : '';
+    const manualMatch = Boolean(manual.valid && manualToken && singleDetected && manual.pixelId === detected[0]);
+    const authorizedMatch = Boolean(authorization.status === 'Connected' && singleDetected && matches.length === 1);
+
+    if (!detected.length) {
+      return { status: 'no_pixel', state: 'Not connected', detected, authorization: authorization.status, match: 'No Pixel detected', browser: 'No Pixel detected', server: 'Needs connection', serverConnected: false, canConnect: false };
+    }
+    if (existingMatch) {
+      return { status: 'matched', state: 'Active', detected, authorization: 'Not needed', match: 'Automatically adopted', browser: 'Browser Pixel active', server: 'Conversions API connected', serverConnected: true, source: meta.source, credentialSource: 'Existing server connection', lastCapiResponse: meta.lastCapiResponse, authorizedPixelId: detected[0] };
+    }
+    if (manualMatch) {
+      return { status: 'matched', state: 'Active', detected, authorization: 'Not needed', match: 'Detected Pixel matched', browser: 'Browser Pixel active', server: 'Conversions API connected', serverConnected: true, source: 'Connected with a manually added access token', credentialSource: 'Manual access token', lastCapiResponse: meta.lastCapiResponse, authorizedPixelId: detected[0] };
+    }
+    if (authorizedMatch) {
+      return { status: 'matched', state: 'Active', detected, authorization: 'Authorized', match: 'Exact Pixel match', browser: 'Browser Pixel active', server: 'Conversions API connected', serverConnected: true, source: 'Connected through Meta authorization', credentialSource: 'Connected through Meta authorization', lastCapiResponse: meta.lastCapiResponse, authorizedPixelId: matches[0] };
+    }
+    if (detected.length > 1) {
+      return { status: 'multiple', state: 'Needs attention', detected, authorization: authorization.status, match: 'Multiple Pixels detected', browser: 'Browser Pixel active', server: 'Needs connection', serverConnected: false, canConnect: false };
+    }
+    if (authorization.status === 'Connected') {
+      return { status: 'mismatch', state: 'Needs attention', detected, authorization: 'Authorized', match: 'Pixel mismatch', browser: 'Browser Pixel active', server: 'Needs connection', serverConnected: false, canConnect: true };
+    }
+    return { status: 'browser_only', state: 'Browser only', detected, authorization: authorization.status, match: 'Ready for access token', browser: 'Browser Pixel active', server: 'Needs connection', serverConnected: false, canConnect: true, source: 'Detected on your Shopify storefront' };
+  }
+
+  function renderAdvertisingAnalytics() {
+    const a = D.advertisingAnalytics;
+    const metaConnection = resolveMetaConnection(a.meta);
+    const connectedChannelCount = (metaConnection.serverConnected ? 1 : 0) + (a.google.state === 'Active' ? 1 : 0);
+    const connectedChannelText = connectedChannelCount === 0 ? 'No channels connected' : connectedChannelCount === 1 ? '1 channel connected' : connectedChannelCount + ' channels connected';
+    const metaOverview = metaConnection.status === 'browser_only' ? 'Meta browser events active' : (metaConnection.status === 'multiple' || metaConnection.status === 'mismatch') ? 'Meta needs attention' : metaConnection.status === 'no_pixel' ? 'Meta not connected' : '';
+    const channelTitle = (channel) => channel === 'meta' ? 'Meta' : 'Google';
+    const channelIcon = (channel) => channel === 'meta' ? I.facebook : I.google;
+    const isActive = (channel) => channel === 'meta' ? resolveMetaConnection(a.meta).state !== 'Not connected' : a[channel].state === 'Active';
+    const localize = (text) => window.I18N && typeof window.I18N.t === 'function' ? window.I18N.t(text) : text;
+    const ga4S2SConnected = (item) => {
+      const config = item.measurementProtocol || {};
+      return Boolean(config.valid && typeof config.apiSecret === 'string' && config.apiSecret.trim());
+    };
+    const status = (value) => {
+      const tone = value === 'Active' ? ' active' : value === 'Browser only' ? ' browser-only' : value === 'Needs attention' ? ' attention' : '';
+      return '<span class="aa-status' + tone + '"><i></i>' + esc(value) + '</span>';
+    };
+    const metaCard = () => {
+      const item = a.meta;
+      const connection = resolveMetaConnection(item);
+      const detected = connection.detected;
+      const detectedLabel = detected.length === 1 ? detected[0] : detected.length + ' Pixels';
+      const identifiers = '<div class="aa-id"><span>Detected storefront Pixel</span><strong>' + esc(detectedLabel || '—') + '</strong></div>';
+      const stateRows = '<div><span>Browser Pixel</span><b>' + esc(connection.browser) + '</b></div>' +
+        '<div><span>Conversions API</span><b>' + esc(connection.server) + '</b></div>' +
+        '<div><span>Pixel match</span><b>' + esc(connection.match) + '</b></div>' +
+        (connection.serverConnected ? '<div><span>Server event source</span><b>' + esc(connection.credentialSource) + '</b></div>' : '');
+      const footerCopy = connection.serverConnected ? 'Browser Pixel and server events use the same matched Pixel.' : connection.status === 'no_pixel' ? 'No Meta Pixel was detected on the storefront.' : connection.status === 'multiple' ? 'A unique storefront Pixel is required before server events can be enabled.' : 'Browser events continue. Add an access token to also send server-side Purchase and refund events.';
+      const action = connection.serverConnected ? 'manage-meta' : 'configure-capi';
+      const actionLabel = connection.serverConnected ? 'Manage CAPI' : connection.canConnect ? 'Add access token' : 'Manage connection';
+      return '<section class="aa-channel-card' + (connection.serverConnected ? ' is-active' : ' is-off') + '">' +
+        '<header><span class="aa-channel-icon meta">' + channelIcon('meta') + '</span><div><h2>Meta</h2><p>' + esc(connection.source || footerCopy) + '</p></div>' + status(connection.state) + '</header>' +
+        '<div class="aa-identifiers">' + identifiers + '</div>' +
+        '<dl class="aa-state-list">' + stateRows + '</dl>' +
+        '<footer><small>' + esc(footerCopy) + '</small><div><button class="btn btn-default" type="button" data-aa-action="' + action + '" data-aa-channel="meta">' + actionLabel + '</button></div></footer>' +
+      '</section>';
+    };
+    const card = (channel) => {
+      if (channel === 'meta') return metaCard();
+      const item = a[channel];
+      const active = isActive(channel);
+      const ga4ServerConnected = ga4S2SConnected(item) && active;
+      const ga4ServerState = ga4ServerConnected ? 'Server events connected' : active ? 'Needs API secret' : 'Not connected';
+      const inactiveMessage = localize('No checkout events are sent to this destination.');
+      const identifiers = '<div class="aa-id"><span>GTM</span><strong>' + esc(item.gtmId) + '</strong></div><div class="aa-id"><span>GA4</span><strong>' + esc(item.ga4Id) + '</strong></div>';
+      const stateRows = '<div><span>GA4 event delivery</span><b>' + esc(active ? item.ga4Route : 'Not connected') + '</b></div>' +
+        '<div><span>GA4 server events</span><b>' + esc(ga4ServerState) + '</b></div>' +
+        '<div><span>GTM event delivery</span><b>' + esc(active ? item.gtmRoute : 'Not connected') + '</b></div>';
+      const primaryAction = active ? (ga4ServerConnected ? 'manage' : 'configure-ga4-s2s') : 'reconnect';
+      const primaryLabel = active ? (ga4ServerConnected ? 'Manage' : 'Add API secret') : 'Reconnect';
+      const footerCopy = active
+        ? (ga4ServerConnected ? 'GA4 browser events, GA4 server-side events, and GTM events are active separately.' : 'GA4 browser events and GTM events are active separately. Add an API secret to send GA4 server-side events.')
+        : inactiveMessage;
+      return '<section class="aa-channel-card' + (active ? ' is-active' : ' is-off' ) + '">' +
+        '<header><span class="aa-channel-icon ' + channel + '">' + channelIcon(channel) + '</span><div><h2>' + channelTitle(channel) + '</h2><p>' + esc(active ? item.source : inactiveMessage) + '</p></div>' + status(item.state) + '</header>' +
+        '<div class="aa-identifiers">' + identifiers + '</div>' +
+        '<dl class="aa-state-list">' + stateRows + '</dl>' +
+        '<footer><small>' + esc(footerCopy) + '</small><div><button class="btn btn-default" type="button" data-aa-action="' + primaryAction + '" data-aa-channel="' + channel + '">' + primaryLabel + '</button></div></footer>' +
+      '</section>';
+    };
+    const eventDelivery = (event) => {
+      if (metaConnection.serverConnected) return event.delivery;
+      if (event.id === 'purchase') return metaConnection.status === 'no_pixel' ? 'Meta not sent · No Pixel detected' : 'Browser event · Meta CAPI not connected';
+      if (event.id === 'refund') return 'Meta not sent · CAPI not connected';
+      return event.delivery;
+    };
+    const eventNote = metaConnection.serverConnected
+      ? 'Shopify storefront keeps browsing, product, search and cart events. BestCheckout owns the checkout journey. When browser and server events are both used, Purchase is counted once per order.'
+      : metaConnection.status === 'no_pixel'
+        ? 'Shopify storefront keeps browsing, product, search and cart events. BestCheckout owns the checkout journey. No Meta events are sent until a storefront Pixel is detected.'
+        : 'Shopify storefront keeps browsing, product, search and cart events. BestCheckout owns the checkout journey. Browser Pixel sends checkout events now. Add an access token before Meta server-side Purchase and refund events are sent.';
+    const googleStreamsNote = localize('GA4 and GTM receive their own event streams from BestCheckout.');
+    const ga4S2SNote = ga4S2SConnected(a.google) && a.google.state === 'Active'
+      ? localize('GA4 browser events, GA4 server-side events, and GTM events are active separately.')
+      : localize('GA4 browser events and GTM events are active separately. Add an API secret to send GA4 server-side events.');
+    const eventRows = a.events.map((event) =>
+      '<tr><td><code>' + esc(event.id) + '</code><span>' + esc(event.label) + '</span></td><td>' + esc(event.meta) + '</td><td><code>' + esc(event.ga4) + '</code></td><td><code>' + esc(event.gtm) + '</code></td><td>' + esc(eventDelivery(event)) + '</td></tr>'
+    ).join('');
+    const styles = `
+      .aa-page{display:grid;gap:18px;max-width:1120px}.aa-overview{display:grid;gap:18px;align-items:center;padding:20px;border:1px solid #cce5d9;border-radius:12px;background:linear-gradient(135deg,#f1faf5 0%,#f8fcff 100%)}.aa-overview-main{display:flex;gap:12px;align-items:flex-start}.aa-overview-icon,.aa-channel-icon{display:grid;place-items:center;flex:none}.aa-overview-icon{width:38px;height:38px;border-radius:10px;color:#137a48;background:#d8f1e3}.aa-overview h2,.aa-channel-card h2{margin:0;color:var(--ink);font-size:16px;line-height:1.35}.aa-overview p,.aa-channel-card header p{margin:4px 0 0;color:var(--ink-muted);font-size:12px;line-height:1.5}.aa-overview-meta{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.aa-overview-meta span{padding:4px 8px;border:1px solid #d7e8df;border-radius:999px;color:#477260;background:#fff;font-size:11px;font-weight:600}.aa-channel-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.aa-channel-card{overflow:hidden;border:1px solid var(--hair);border-radius:12px;background:#fff}.aa-channel-card.is-active{border-color:#cde5d8}.aa-channel-card>header{display:grid;grid-template-columns:38px minmax(0,1fr) auto;gap:10px;align-items:start;padding:17px 17px 14px;border-bottom:1px solid #eef1f4}.aa-channel-icon{width:38px;height:38px;border-radius:10px}.aa-channel-icon.meta{color:#1466d9;background:#eaf2ff}.aa-channel-icon.google{color:#3374d9;background:#edf5ff}.aa-status{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;color:#8a6108;background:#fff6dc;font-size:11px;font-weight:700;white-space:nowrap}.aa-status i{width:6px;height:6px;border-radius:50%;background:#b88719}.aa-status.active{color:#167447;background:#e6f6ec}.aa-status.active i{background:#1a9b56}.aa-status.browser-only{color:#185e9d;background:#eaf4ff}.aa-status.browser-only i{background:#3585d6}.aa-status.attention{color:#aa5410;background:#fff0df}.aa-status.attention i{background:#d97706}.aa-identifiers{display:flex;flex-wrap:wrap;gap:8px;padding:14px 17px 4px}.aa-id{display:flex;align-items:center;gap:7px;padding:6px 8px;border:1px solid #e7ebef;border-radius:7px;background:#fafbfc}.aa-id span{color:var(--ink-muted);font-size:11px}.aa-id strong{color:var(--ink);font-size:12px;letter-spacing:.01em}.aa-state-list{display:grid;gap:0;margin:8px 17px 12px}.aa-state-list>div{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:8px 0;border-bottom:1px solid #f0f2f4}.aa-state-list>div:last-child{border-bottom:0}.aa-state-list span{color:var(--ink-muted);font-size:12px}.aa-state-list b{max-width:62%;color:var(--ink);font-size:12px;font-weight:600;line-height:1.35;text-align:right}.aa-channel-card footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 17px;border-top:1px solid #eef1f4;background:#fbfcfd}.aa-channel-card footer small{max-width:46%;color:var(--ink-muted);font-size:11px;line-height:1.4}.aa-channel-card footer>div{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:7px}.aa-channel-card .btn{height:32px;font-size:12px}.aa-event-coverage{overflow:hidden;border:1px solid var(--hair);border-radius:12px;background:#fff}.aa-event-coverage-head{display:grid;gap:3px;padding:16px 18px}.aa-event-coverage-head strong{color:var(--ink);font-size:14px}.aa-event-coverage-head small{color:var(--ink-muted);font-size:12px;line-height:1.45}.aa-event-note{display:flex;gap:10px;margin:0 18px 14px;padding:10px 11px;border:1px solid #dbe8fb;border-radius:8px;color:#365675;background:#f7faff;font-size:12px;line-height:1.5}.aa-event-note svg{flex:none;margin-top:1px}.aa-event-table{width:100%;border-collapse:collapse;border-top:1px solid #edf0f3}.aa-event-table th,.aa-event-table td{padding:10px 16px;border-bottom:1px solid #edf0f3;color:var(--ink-body);font-size:12px;text-align:left;vertical-align:top}.aa-event-table th{color:var(--ink-muted);background:#fafbfc;font-size:11px;font-weight:650}.aa-event-table td:first-child{display:grid;gap:4px}.aa-event-table code{width:max-content;max-width:100%;overflow:hidden;padding:2px 4px;border-radius:4px;color:#3e5774;background:#eff3f7;font:11px/1.25 ui-monospace,Menlo,Consolas,monospace;text-overflow:ellipsis;white-space:nowrap}.aa-modal-list{display:grid;gap:9px;margin:4px 0}.aa-modal-list>div{display:flex;justify-content:space-between;gap:16px;padding-bottom:9px;border-bottom:1px solid #edf0f3;color:var(--ink-muted);font-size:12px}.aa-modal-list>div:last-child{border-bottom:0}.aa-modal-list b{color:var(--ink);font-weight:600;text-align:right}.aa-modal-note{margin:14px 0 0;padding:10px 11px;border:1px solid #dbe8fb;border-radius:8px;background:#f7faff;color:#365675;font-size:12px;line-height:1.5}.aa-token-field{display:grid;gap:7px;margin-top:14px;color:var(--ink);font-size:12px;font-weight:650}.aa-token-field .input{width:100%;height:38px}.aa-disconnect{border:0;background:transparent;color:var(--err);font:inherit;font-size:12px;font-weight:650;cursor:pointer}@media(max-width:860px){.aa-channel-grid{grid-template-columns:1fr}}@media(max-width:620px){.aa-overview,.aa-channel-card footer{grid-template-columns:1fr;display:grid}.aa-channel-card footer small{max-width:none}.aa-channel-card footer>div{justify-content:flex-start}.aa-event-table th:nth-child(2),.aa-event-table td:nth-child(2){display:none}.aa-event-table th,.aa-event-table td{padding:9px 11px}}
+    `;
+    paint(
+      '<style>' + styles + '</style>' +
+      '<div class="aa-page">' +
+        pageHead('Advertising & analytics', 'Keep your checkout conversion data connected to Meta and Google.') +
+        '<section class="aa-overview"><div class="aa-overview-main"><span class="aa-overview-icon">' + I.analytics + '</span><div><h2>Automatic setup is active</h2><p>Existing verified configuration is used automatically for new BestCheckout sessions.</p><div class="aa-overview-meta"><span>' + esc(connectedChannelText) + '</span>' + (metaOverview ? '<span>' + esc(metaOverview) + '</span>' : '') + '</div></div></div></section>' +
+        '<div class="aa-channel-grid">' + card('meta') + card('google') + '</div>' +
+        '<section class="aa-event-coverage" id="aa-event-coverage"><div class="aa-event-coverage-head"><strong>Events sent by BestCheckout</strong><small>Event mapping is managed automatically. You never need to select individual checkout events.</small></div><div class="aa-event-note">' + I.info + '<span>' + esc(localize(eventNote) + ' ' + googleStreamsNote + ' ' + ga4S2SNote) + '</span></div><div class="tbl-wrap"><table class="aa-event-table"><thead><tr><th>BestCheckout event</th><th>Meta</th><th>GA4</th><th>GTM</th><th>Delivery</th></tr></thead><tbody>' + eventRows + '</tbody></table></div></section>' +
+      '</div>',
+      false
+    );
+
+    const configureCapi = (existingToken) => {
+      const item = a.meta;
+      const connection = resolveMetaConnection(item);
+      if (connection.canConnect === false) {
+        modal({
+          title: 'Manage CAPI',
+          width: 520,
+          body: '<p class="muted" style="margin:0;font-size:12.5px;line-height:1.55">' + esc(connection.status === 'multiple' ? 'A unique storefront Pixel is required before server events can be enabled.' : 'No Meta Pixel was detected on the storefront.') + '</p>',
+          okText: 'Done',
+          onOk: function (_, close) { close(); },
+        });
+        return;
+      }
+      const replacing = Boolean(existingToken);
+      const dialog = modal({
+        title: replacing ? 'Replace Conversions API access token' : 'Add Conversions API access token',
+        width: 540,
+        body: '<p class="muted" style="margin:0 0 14px;font-size:12.5px;line-height:1.55">Paste the access token from Meta Events Manager. This is optional: browser events keep sending if you leave it blank.</p><div class="aa-modal-list"><div><span>Detected storefront Pixel</span><b>' + esc(connection.detected[0]) + '</b></div><div><span>Browser Pixel</span><b>' + esc(connection.browser) + '</b></div></div><label class="aa-token-field"><span>Conversions API access token</span><input class="input" type="text" autocomplete="off" spellcheck="false" data-capi-token placeholder="Paste access token" value="' + esc(existingToken || '') + '" /></label><p class="aa-modal-note">You can view and copy the saved access token in Manage CAPI.</p>',
+        okText: replacing ? 'Update and verify' : 'Save and verify',
+        onOk: function (m, close) {
+          const input = m.querySelector('[data-capi-token]');
+          const token = input ? input.value.trim() : '';
+          if (!token) {
+            if (input) input.focus();
+            toast('Please enter a Conversions API access token.', 'warning');
+            return;
+          }
+          item.manualCapi = { valid: true, pixelId: connection.detected[0], token };
+          close();
+          renderAdvertisingAnalytics();
+          toast(replacing ? 'Access token updated. Server events remain connected for the detected Pixel.' : 'Access token saved. Server events are connected for the detected Pixel.');
+        },
+      });
+      const tokenInput = dialog.m.querySelector('[data-capi-token]');
+      if (tokenInput) tokenInput.focus();
+    };
+    const configureGa4S2S = (existingSecret) => {
+      const item = a.google;
+      const replacing = Boolean(existingSecret);
+      const dialog = modal({
+        title: replacing ? 'Replace GA4 Measurement Protocol API secret' : 'Add GA4 Measurement Protocol API secret',
+        width: 540,
+        body: '<p class="muted" style="margin:0 0 14px;font-size:12.5px;line-height:1.55">This enables GA4 server-side events through Measurement Protocol.</p><div class="aa-modal-list"><div><span>GA4 measurement ID</span><b>' + esc(item.ga4Id) + '</b></div><div><span>GA4 event delivery</span><b>' + esc(item.ga4Route) + '</b></div></div><label class="aa-token-field"><span>API secret (Measurement Protocol)</span><input class="input" type="password" autocomplete="off" spellcheck="false" data-ga4-api-secret placeholder="Paste API secret" /></label>',
+        okText: replacing ? 'Update and verify' : 'Save and verify',
+        onOk: function (m, close) {
+          const input = m.querySelector('[data-ga4-api-secret]');
+          const apiSecret = input ? input.value.trim() : '';
+          if (!apiSecret) {
+            if (input) input.focus();
+            toast('Please enter a Measurement Protocol API secret.', 'warning');
+            return;
+          }
+          item.measurementProtocol = { valid: true, apiSecret };
+          close();
+          renderAdvertisingAnalytics();
+          toast(replacing ? 'Measurement Protocol API secret updated. GA4 server-side events remain connected.' : 'Measurement Protocol API secret saved. GA4 server-side events are connected.');
+        },
+      });
+      const apiSecretInput = dialog.m.querySelector('[data-ga4-api-secret]');
+      if (apiSecretInput) apiSecretInput.focus();
+    };
+    const openConnection = (channel) => {
+      if (channel === 'meta') {
+        const item = a.meta;
+        const connection = resolveMetaConnection(item);
+        const rows = '<div><span>Detected storefront Pixel</span><b>' + esc(connection.detected.length === 1 ? connection.detected[0] : connection.detected.length + ' Pixels') + '</b></div>' +
+          '<div><span>Browser Pixel</span><b>' + esc(connection.browser) + '</b></div>' +
+          '<div><span>Pixel match</span><b>' + esc(connection.match) + '</b></div>' +
+          '<div><span>Conversions API</span><b>' + esc(connection.server) + '</b></div>' +
+          (connection.serverConnected ? '<div><span>Server event source</span><b>' + esc(connection.credentialSource) + '</b></div>' : '');
+        const tokenField = item.manualCapi && item.manualCapi.token
+          ? '<label class="aa-token-field"><span>Conversions API access token</span><input class="input" type="text" readonly autocomplete="off" spellcheck="false" value="' + esc(item.manualCapi.token) + '" data-capi-token-display /></label><p class="aa-modal-note">Select the access token to copy it.</p>'
+          : '';
+        const dialog = modal({
+          title: 'Manage CAPI',
+          width: 540,
+          body: '<p class="muted" style="margin:0 0 14px;font-size:12.5px;line-height:1.55">' + esc(connection.source || 'Browser Pixel is active. Add an access token to send server events.') + '</p><div class="aa-modal-list">' + rows + '</div>' + tokenField,
+          okText: 'Done',
+          onOk: function (_, close) { close(); },
+          extraLeft: connection.serverConnected ? '<div class="flex gap-2">' + (item.manualCapi && item.manualCapi.token ? '<button type="button" class="btn btn-default" data-replace-token>Replace access token</button>' : '') + '<button type="button" class="aa-disconnect" data-disc>Disconnect server events</button></div>' : '',
+          onExtra: function (_, close) {
+            close();
+            confirm({
+              title: 'Disconnect server events?',
+              content: 'Disconnecting server events keeps the Browser Pixel active.',
+              okText: 'Disconnect',
+              danger: true,
+              onOk: function () {
+                item.silentExistingCapi = { valid: false, pixelId: '' };
+                item.manualCapi = { valid: false, pixelId: '', token: '' };
+                item.authorization = { status: 'Not connected', authorizedPixelIds: [] };
+                item.source = '';
+                renderAdvertisingAnalytics();
+                toast('Browser Pixel is active. Add an access token to send server events.');
+              },
+            });
+          },
+        });
+        const savedTokenInput = dialog.m.querySelector('[data-capi-token-display]');
+        if (savedTokenInput) {
+          savedTokenInput.addEventListener('focus', () => savedTokenInput.select());
+          savedTokenInput.addEventListener('click', () => savedTokenInput.select());
+        }
+        const replaceTokenButton = dialog.m.querySelector('[data-replace-token]');
+        if (replaceTokenButton) replaceTokenButton.onclick = () => {
+          dialog.close();
+          configureCapi(item.manualCapi.token);
+        };
+        return;
+      }
+      const item = a[channel];
+      const active = isActive(channel);
+      const ga4ServerConnected = ga4S2SConnected(item) && active;
+      const googleConfigNote = localize('Google measurement and container IDs are read from the active configuration.') + ' ' + googleStreamsNote + ' ' + (ga4ServerConnected ? localize('GA4 browser events, GA4 server-side events, and GTM events are active separately.') : localize('GA4 browser events and GTM events are active separately. Add an API secret to send GA4 server-side events.'));
+      const rows = channel === 'meta'
+        ? '<div><span>Pixel</span><b>' + esc(item.pixelId) + '</b></div><div><span>Browser events</span><b>' + esc(item.browser) + '</b></div><div><span>Server events</span><b>' + esc(item.server) + '</b></div>'
+        : '<div><span>GA4 measurement ID</span><b>' + esc(item.ga4Id) + '</b></div><div><span>GA4 event delivery</span><b>' + esc(item.ga4Route) + '</b></div><div><span>GA4 server events</span><b>' + esc(ga4ServerConnected ? 'Server events connected' : 'Needs API secret') + '</b></div><div><span>API secret (Measurement Protocol)</span><b>' + esc(ga4ServerConnected ? 'Configured' : 'Needs API secret') + '</b></div><div><span>GTM container</span><b>' + esc(item.gtmId) + '</b></div><div><span>GTM event delivery</span><b>' + esc(item.gtmRoute) + '</b></div>';
+      const dialog = modal({
+        title: channelTitle(channel) + ' connection',
+        width: 520,
+        body: '<p class="muted" style="margin:0 0 14px;font-size:12.5px;line-height:1.55">' + esc(item.source) + '</p><div class="aa-modal-list">' + rows + '</div><p class="aa-modal-note">' + esc(googleConfigNote) + '</p>',
+        okText: 'Done',
+        onOk: function (_, close) { close(); },
+        extraLeft: active ? '<div class="flex gap-2"><button type="button" class="btn btn-default" data-manage-ga4-s2s>' + (ga4ServerConnected ? 'Manage API secret' : 'Add API secret') + '</button><button type="button" class="aa-disconnect" data-disc>Disconnect</button></div>' : '',
+        onExtra: function (_, close) {
+          close();
+          confirm({
+            title: 'Disconnect ' + channelTitle(channel) + '?',
+            content: 'Disconnecting this destination will stop sending new BestCheckout checkout events. This does not resend or change past orders.',
+            okText: 'Disconnect',
+            danger: true,
+            onOk: function () {
+              item.state = 'Not connected';
+              item.testState = 'Not connected';
+              renderAdvertisingAnalytics();
+              toast(channelTitle(channel) + ' is disconnected in this prototype.');
+            },
+          });
+        },
+      });
+      const manageGa4S2SButton = dialog.m.querySelector('[data-manage-ga4-s2s]');
+      if (manageGa4S2SButton) manageGa4S2SButton.onclick = () => {
+        dialog.close();
+        configureGa4S2S(item.measurementProtocol && item.measurementProtocol.apiSecret);
+      };
+    };
+    root.querySelectorAll('[data-aa-action]').forEach((button) => {
+      button.onclick = () => {
+        const action = button.getAttribute('data-aa-action');
+        const channel = button.getAttribute('data-aa-channel');
+        if (action === 'manage-meta') { openConnection('meta'); return; }
+        if (action === 'configure-capi') { configureCapi(); return; }
+        if (action === 'configure-ga4-s2s') { configureGa4S2S(); return; }
+        if (action === 'manage') { openConnection(channel); return; }
+        if (action === 'reconnect') {
+          a[channel].state = 'Active';
+          a[channel].source = 'Connected automatically from your existing setup';
+          renderAdvertisingAnalytics();
+          toast(channelTitle(channel) + ' is active for new checkout sessions.');
+          return;
+        }
+      };
+    });
+  }
+
+  // ===========================================================================
+  // ADVERTISING & ANALYTICS V2 — three independent configuration adapters
+  // Meta, GA4 and GTM map to separate BestShopio configuration APIs. Runtime
+  // storefront detection is deliberately kept outside saved credentials.
+  // ===========================================================================
+  function renderAdvertisingAnalyticsV2() {
+    const a = D.advertisingAnalytics;
+    const localize = (text) => {
+      const i18n = window.I18N;
+      return i18n && i18n.lang === 'zh' && typeof i18n.t === 'function'
+        ? i18n.t(text)
+        : text;
+    };
+    const values = (list) => [...new Set((list || []).map((value) => String(value || '').trim()).filter(Boolean))];
+    const meta = a.meta || {};
+    const ga4 = a.ga4 || {};
+    const gtm = a.gtm || {};
+    const metaIds = values(meta.detection && meta.detection.pixelIds);
+    const ga4Ids = values(ga4.detection && ga4.detection.measurementIds);
+    const gtmIds = values(gtm.detection && gtm.detection.containerIds);
+    const metaConfig = meta.config || { pixelId: '', accessToken: '', enabled: false };
+    const ga4Config = ga4.config || { measurementId: '', apiSecret: '', enabled: false };
+    const single = (list) => list.length === 1 ? list[0] : '';
+    const metaDetected = single(metaIds);
+    const ga4Detected = single(ga4Ids);
+    const metaMatch = Boolean(metaDetected && metaConfig.pixelId && metaConfig.pixelId === metaDetected);
+    const ga4Match = Boolean(ga4Detected && ga4Config.measurementId === ga4Detected);
+    const metaBrowser = Boolean(metaIds.length);
+    const metaServer = Boolean(metaConfig.enabled && metaConfig.accessToken && metaMatch);
+    const ga4Browser = Boolean(ga4Ids.length);
+    const ga4Server = Boolean(ga4Config.enabled && ga4Browser && ga4Config.apiSecret && ga4Match);
+    const gtmBrowser = Boolean(gtmIds.length);
+    const detectTone = (ids) => ids.length ? 'detected' : 'neutral';
+    const detectLabel = (ids) => ids.length ? 'Detected' : 'Not detected';
+    const status = (label, tone) => '<span class="aa-status ' + (tone || 'neutral') + '"><i></i>' + esc(localize(label)) + '</span>';
+    const toolCard = (opts) =>
+      '<section class="aa-tool-card">' +
+        '<header><span class="aa-tool-icon ' + esc(opts.kind) + '">' + opts.icon + '</span><div><h2>' + esc(localize(opts.title)) + '</h2><p>' + esc(localize(opts.description)) + '</p></div>' + status(opts.detectLabel, opts.detectTone) + '</header>' +
+        '<div class="aa-connector-row' + (opts.action ? '' : ' no-action') + '"><span class="aa-connector-badge ' + esc(opts.kind) + '">' + esc(opts.badge) + '</span><div class="aa-connector-copy"><strong>' + esc(localize(opts.connectorTitle)) + '</strong><small>' + opts.summary + '</small></div><div class="aa-connector-state">' + status(opts.deliveryLabel, opts.deliveryTone) + '</div>' + (opts.action ? '<button class="btn btn-default" type="button" data-aa-v2="' + esc(opts.action) + '">' + esc(localize(opts.actionLabel)) + '</button>' : '') + '</div>' +
+      '</section>';
+    const idsText = (ids) => ids.join(', ') || '—';
+    const metaCredentialStatus = metaServer ? 'Access token configured' : metaIds.length > 1 ? 'A unique storefront Pixel is required before server events can be enabled.' : metaConfig.accessToken ? 'Needs confirmation' : 'CAPI not configured';
+    const ga4CredentialStatus = ga4Server ? 'API secret configured' : ga4Ids.length > 1 ? 'A unique Measurement ID is required before GA4 server events can be enabled.' : ga4Config.apiSecret ? 'Needs confirmation' : 'API secret not configured';
+    const metaSummary = '<span>' + esc(localize('Storefront Pixel ID')) + '</span>: <b>' + esc(idsText(metaIds)) + '</b><em>·</em>' + esc(localize(metaCredentialStatus));
+    const ga4Summary = '<span>' + esc(localize('Storefront Measurement ID')) + '</span>: <b>' + esc(idsText(ga4Ids)) + '</b><em>·</em>' + esc(localize(ga4CredentialStatus));
+    const gtmSummary = '<span>' + esc(localize('Storefront Container ID')) + '</span>: <b>' + esc(idsText(gtmIds)) + '</b>';
+    const metaCard = toolCard({
+      kind: 'meta',
+      icon: I.facebook,
+      badge: 'Meta',
+      title: 'Meta Pixel & Conversions API',
+      description: 'Send checkout browser events through the detected Pixel. Add an access token for Conversions API.',
+      connectorTitle: 'Meta tracking',
+      detectLabel: detectLabel(metaIds),
+      detectTone: detectTone(metaIds),
+      summary: metaSummary,
+      deliveryLabel: metaServer ? 'Browser and server events active' : metaBrowser ? 'Browser events active' : (metaIds.length ? 'Needs confirmation' : 'Not configured'),
+      deliveryTone: metaServer || metaBrowser ? 'active' : (metaIds.length ? 'attention' : 'neutral'),
+      action: metaDetected ? 'meta' : '',
+      actionLabel: metaConfig.accessToken ? 'Update access token' : 'Add access token',
+    });
+    const ga4Card = toolCard({
+      kind: 'ga4',
+      icon: I.google,
+      badge: 'GA4',
+      title: 'Google Analytics 4',
+      description: 'Send checkout events directly to GA4. Add an API secret for Measurement Protocol.',
+      connectorTitle: 'GA4 tracking',
+      detectLabel: detectLabel(ga4Ids),
+      detectTone: detectTone(ga4Ids),
+      summary: ga4Summary,
+      deliveryLabel: ga4Server ? 'Browser and server events active' : ga4Browser ? 'Browser events active' : (ga4Ids.length ? 'Needs confirmation' : 'Not configured'),
+      deliveryTone: ga4Server || ga4Browser ? 'active' : (ga4Ids.length ? 'attention' : 'neutral'),
+      action: ga4Detected ? 'ga4' : '',
+      actionLabel: ga4Config.apiSecret ? 'Update API secret' : 'Add API secret',
+    });
+    const gtmCard = toolCard({
+      kind: 'gtm',
+      icon: I.google,
+      badge: 'GTM',
+      title: 'Google Tag Manager',
+      description: 'Send checkout events to the detected GTM container.',
+      connectorTitle: 'GTM tracking',
+      detectLabel: detectLabel(gtmIds),
+      detectTone: detectTone(gtmIds),
+      summary: gtmSummary,
+      deliveryLabel: gtmBrowser ? 'Browser events active' : (gtmIds.length ? 'Needs confirmation' : 'Not configured'),
+      deliveryTone: gtmBrowser ? 'active' : (gtmIds.length ? 'attention' : 'neutral'),
+      action: '',
+      actionLabel: '',
+    });
+    const eventRows = (a.events || []).map((event) =>
+      '<tr><td><code>' + esc(event.id) + '</code><span>' + esc(event.label) + '</span></td><td>' + esc(event.meta) + '</td><td><code>' + esc(event.ga4) + '</code></td><td><code>' + esc(event.gtm) + '</code></td></tr>'
+    ).join('');
+    const styles =
+      '.aa-page{display:grid;gap:16px;max-width:1080px}.aa-page>.flex:first-child{margin-bottom:0}.aa-config-stack{display:grid;gap:14px}.aa-tool-card{overflow:hidden;border:1px solid var(--hair);border-radius:12px;background:#fff}.aa-tool-card>header{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:12px;align-items:start;padding:17px 18px 14px;border-bottom:1px solid #eef1f4}.aa-tool-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:10px}.aa-tool-icon.meta{color:#1466d9;background:#eaf2ff}.aa-tool-icon.ga4{color:#d97706;background:#fff4df}.aa-tool-icon.gtm{color:#246fdb;background:#edf5ff}.aa-tool-card h2{margin:0;color:var(--ink);font-size:16px;line-height:1.35}.aa-tool-card header p{margin:4px 0 0;color:var(--ink-muted);font-size:12px;line-height:1.5}.aa-status{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;color:#6b7280;background:#f4f5f7;font-size:11px;font-weight:700;white-space:nowrap}.aa-status i{width:6px;height:6px;border-radius:50%;background:#8a94a6}.aa-status.active{color:#167447;background:#e6f6ec}.aa-status.active i{background:#1a9b56}.aa-status.detected{color:#185e9d;background:#eaf4ff}.aa-status.detected i{background:#3585d6}.aa-status.attention{color:#aa5410;background:#fff0df}.aa-status.attention i{background:#d97706}.aa-detection{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 18px;border-bottom:1px solid #eef1f4;background:#fbfcfd}.aa-detection>div:first-child{display:grid;gap:2px}.aa-detection span{color:var(--ink);font-size:12px;font-weight:650}.aa-detection small{color:var(--ink-muted);font-size:11px}.aa-detect-tags{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px}.aa-detect-tag{padding:4px 7px;border:1px solid #d9e8fb;border-radius:6px;color:#245c9e;background:#f3f8ff;font:600 11px/1.2 ui-monospace,Menlo,Consolas,monospace}.aa-detect-empty{color:var(--ink-muted)!important;font-weight:500!important}.aa-connector-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:12px;align-items:center;margin:14px 18px;padding:12px 14px;border-radius:9px;background:#f6f8fb}.aa-connector-row.no-action{grid-template-columns:auto minmax(0,1fr) auto}.aa-connector-badge{display:grid;place-items:center;min-width:40px;height:32px;padding:0 8px;border-radius:7px;font-size:12px;font-weight:750}.aa-connector-badge.meta{color:#1466d9;background:#eaf2ff}.aa-connector-badge.ga4{color:#bc7500;background:#fff1cf}.aa-connector-badge.gtm{color:#fff;background:#246fdb}.aa-connector-copy{display:grid;min-width:0;gap:3px}.aa-connector-copy strong{color:var(--ink);font-size:13px}.aa-connector-copy small{display:flex;flex-wrap:wrap;gap:4px;color:var(--ink-muted);font-size:12px;line-height:1.4}.aa-connector-copy small b{color:var(--ink);font-weight:650}.aa-connector-copy small em{font-style:normal;color:#aab2bd}.aa-connector-row .btn{height:32px;font-size:12px}.aa-event-coverage{overflow:hidden;border:1px solid var(--hair);border-radius:12px;background:#fff}.aa-event-coverage-head{display:grid;gap:3px;padding:16px 18px}.aa-event-coverage-head strong{color:var(--ink);font-size:14px}.aa-event-coverage-head small{color:var(--ink-muted);font-size:12px;line-height:1.45}.aa-event-note{display:flex;gap:10px;margin:0 18px 14px;padding:10px 11px;border:1px solid #dbe8fb;border-radius:8px;color:#365675;background:#f7faff;font-size:12px;line-height:1.5}.aa-event-note svg{flex:none;margin-top:1px}.aa-event-note-copy{display:grid;gap:5px;min-width:0}.aa-event-note-copy p{margin:0}.aa-event-table{width:100%;border-collapse:collapse;border-top:1px solid #edf0f3}.aa-event-table th,.aa-event-table td{padding:10px 16px;border-bottom:1px solid #edf0f3;color:var(--ink-body);font-size:12px;text-align:left;vertical-align:top}.aa-event-table th{color:var(--ink-muted);background:#fafbfc;font-size:11px;font-weight:650}.aa-event-table td:first-child{display:grid;gap:4px}.aa-event-table code{width:max-content;max-width:100%;overflow:hidden;padding:2px 4px;border-radius:4px;color:#3e5774;background:#eff3f7;font:11px/1.25 ui-monospace,Menlo,Consolas,monospace;text-overflow:ellipsis;white-space:nowrap}.aa-token-field{display:grid;gap:7px;margin-top:14px;color:var(--ink);font-size:12px;font-weight:650}.aa-token-field .input{width:100%;height:38px}@media(max-width:700px){.aa-tool-card>header{grid-template-columns:40px minmax(0,1fr)}.aa-tool-card>header .aa-status{grid-column:2}.aa-detection{align-items:flex-start;display:grid}.aa-detect-tags{justify-content:flex-start}.aa-connector-row{grid-template-columns:auto minmax(0,1fr)}.aa-connector-row.no-action{grid-template-columns:auto minmax(0,1fr)}.aa-connector-state{grid-column:2}.aa-connector-row .btn{grid-column:1/-1;width:100%}.aa-event-table th,.aa-event-table td{padding:9px 11px}.aa-event-table th:nth-child(2),.aa-event-table td:nth-child(2){display:none}}';
+    paint(
+      '<style>' + styles + '.aa-token-field .input{font-weight:400}.aa-token-field .input::placeholder{font-weight:400}.aa-detected-source{display:grid;gap:7px;margin:0 0 14px;padding:12px 13px;border:1px solid #e1e8f0;border-radius:9px;background:#f8fafc}.aa-detected-source-label{color:var(--ink-muted);font-size:11px;font-weight:650}.aa-detected-source-details{display:flex;align-items:center;gap:10px;min-width:0}.aa-detected-source-details strong{color:var(--ink);font-size:13px}.aa-detected-source-id{display:flex;align-items:center;gap:5px;margin-left:auto;min-width:0;color:var(--ink-muted);font-size:11px}.aa-detected-source-id code{overflow:hidden;padding:3px 6px;border:1px solid #dfe7f0;border-radius:5px;color:#344054;background:#fff;font:600 11px/1.2 ui-monospace,Menlo,Consolas,monospace;text-overflow:ellipsis;white-space:nowrap}@media(max-width:520px){.aa-detected-source-details{align-items:flex-start;flex-wrap:wrap}.aa-detected-source-id{flex-basis:100%;margin-left:0}}@media(max-width:700px){.aa-event-coverage .tbl-wrap{overflow-x:auto}.aa-event-table{min-width:720px}.aa-event-table th:nth-child(2),.aa-event-table td:nth-child(2){display:table-cell}}</style>' +
+      '<div class="aa-page">' +
+        pageHead('Advertising & analytics', 'BestCheckout automatically sends checkout events to tags detected on your Shopify storefront.') +
+        '<div class="aa-config-stack">' + metaCard + ga4Card + gtmCard + '</div>' +
+        '<section class="aa-event-coverage"><div class="aa-event-coverage-head"><strong>' + esc(localize('What BestCheckout sends')) + '</strong><small>' + esc(localize('Once a tag is detected, BestCheckout automatically sends the checkout events shown below. You never need to configure events one by one.')) + '</small></div><div class="aa-event-note">' + I.info + '<div class="aa-event-note-copy"><p>' + esc(localize('Browser events: Detected Meta Pixel, GA4, and GTM tags receive the matching browser events in the table.')) + '</p><p>' + esc(localize('Server Purchase: After you save a Meta access token or GA4 API secret, BestCheckout also sends completed purchases (Purchase) from the server; other checkout events stay browser-only. Within each destination, browser and server copies of the same order are counted once. Meta, GA4, and GTM each receive their own events.')) + '</p></div></div><div class="tbl-wrap"><table class="aa-event-table"><thead><tr><th>BestCheckout event</th><th>Meta</th><th>GA4</th><th>GTM</th></tr></thead><tbody>' + eventRows + '</tbody></table></div></section>' +
+      '</div>',
+      false
+    );
+
+    const field = (label, attr, value, placeholder, opts) =>
+      '<label class="aa-token-field"><span>' + esc(localize(label)) + (opts && opts.optional ? ' <b class="muted" style="font-weight:500">(' + esc(localize('Optional')) + ')</b>' : '') + '</span><input class="input" type="' + ((opts && opts.secret) ? 'password' : 'text') + '" autocomplete="off" spellcheck="false" ' + ((opts && opts.readOnly) ? 'readonly ' : '') + attr + ' placeholder="' + esc(placeholder) + '" value="' + esc(value || '') + '" /></label>';
+    const detectionInfo = (detectedTag, identifierLabel, ids) =>
+      '<div class="aa-detected-source">' +
+        '<span class="aa-detected-source-label">' + esc(localize('Detected from your Shopify storefront')) + '</span>' +
+        '<div class="aa-detected-source-details"><strong>' + esc(localize(detectedTag)) + '</strong><span class="aa-detected-source-id"><span>' + esc(localize(identifierLabel)) + '</span><code>' + esc(ids.join(', ') || localize('No tag detected on your Shopify storefront')) + '</code></span></div>' +
+      '</div>';
+    const openMeta = () => {
+      if (!metaDetected) {
+        toast(localize('A unique storefront Pixel is required before server events can be enabled.'), 'warning');
+        return;
+      }
+      const hasToken = Boolean(metaConfig.accessToken);
+      const staleToken = Boolean(hasToken && !metaMatch);
+      const dialog = modal({
+        title: hasToken ? 'Manage Meta tracking' : 'Configure Meta',
+        width: 540,
+        body: '<p class="muted" style="margin:0 0 14px;font-size:12.5px;line-height:1.55">' + esc(localize('BestCheckout uses the detected Pixel for browser events. Add an access token to also enable Conversions API.')) + '</p>' + detectionInfo('Meta Pixel', 'Pixel ID', metaIds) + (staleToken ? '<p class="muted" style="margin:14px 0 0;font-size:12px;line-height:1.55;color:#aa5410">' + esc(localize('Storefront Pixel changed. Enter a new access token for the detected Pixel before server events can resume.')) + '</p>' : '') + field('CAPI access token', 'data-aa-v2-meta-token', staleToken ? '' : metaConfig.accessToken, 'Paste access token', { optional: true }),
+        okText: 'Save',
+        onOk: (m, close) => {
+          const accessToken = (m.querySelector('[data-aa-v2-meta-token]') || {}).value || '';
+          if (staleToken && !accessToken.trim()) {
+            toast(localize('Please enter a new access token for the detected Pixel.'), 'warning');
+            return;
+          }
+          if (accessToken.trim() && metaIds.length !== 1) {
+            toast(localize('A unique storefront Pixel is required before server events can be enabled.'), 'warning');
+            return;
+          }
+          meta.config = { pixelId: metaDetected, accessToken: accessToken.trim(), enabled: Boolean(accessToken.trim()) };
+          close();
+          renderAdvertisingAnalyticsV2();
+          toast(localize('Meta configuration saved.'));
+        },
+      });
+      const input = dialog.m.querySelector('[data-aa-v2-meta-token]');
+      if (input) input.focus();
+    };
+    const openGa4 = () => {
+      if (!ga4Detected) {
+        toast(localize('No tag detected on your Shopify storefront'), 'warning');
+        return;
+      }
+      const hasSecret = Boolean(ga4Config.apiSecret);
+      const staleSecret = Boolean(hasSecret && !ga4Match);
+      const dialog = modal({
+        title: hasSecret ? 'Manage GA4' : 'Configure GA4',
+        width: 540,
+        body: '<p class="muted" style="margin:0 0 14px;font-size:12.5px;line-height:1.55">' + esc(localize('BestCheckout uses the detected Measurement ID for checkout browser events. Add an API secret to also send GA4 server-side events.')) + '</p>' + detectionInfo('Google Analytics 4', 'Measurement ID', ga4Ids) + (staleSecret ? '<p class="muted" style="margin:14px 0 0;font-size:12px;line-height:1.55;color:#aa5410">' + esc(localize('Storefront Measurement ID changed. Enter a new API secret for the detected Measurement ID before server events can resume.')) + '</p>' : '') + field('API secret (Measurement Protocol)', 'data-aa-v2-ga4-secret', staleSecret ? '' : ga4Config.apiSecret, 'Paste API secret', { optional: true, secret: true }),
+        okText: 'Save',
+        onOk: (m, close) => {
+          const apiSecret = (m.querySelector('[data-aa-v2-ga4-secret]') || {}).value || '';
+          if (staleSecret && !apiSecret.trim()) {
+            toast(localize('Please enter a new API secret for the detected Measurement ID.'), 'warning');
+            return;
+          }
+          ga4.config = { measurementId: ga4Detected, apiSecret: apiSecret.trim(), enabled: Boolean(apiSecret.trim()) };
+          close();
+          renderAdvertisingAnalyticsV2();
+          toast(localize('GA4 configuration saved.'));
+        },
+      });
+      const input = dialog.m.querySelector('[data-aa-v2-ga4-secret]');
+      if (input) input.focus();
+    };
+    root.querySelectorAll('[data-aa-v2]').forEach((button) => {
+      button.onclick = () => {
+        const action = button.getAttribute('data-aa-v2');
+        if (action === 'meta') openMeta();
+        if (action === 'ga4') openGa4();
+      };
+    });
+  }
+
   const ROUTES = {
     notifications: renderNotifications,
     base: renderShopifyStore,
     domains: renderDomains,
     payments: renderPayments,
+    'advertising-analytics': renderAdvertisingAnalyticsV2,
     currency: renderCurrency,
     metafields: renderMetafields,
     'shippable-locations': renderLocations,
