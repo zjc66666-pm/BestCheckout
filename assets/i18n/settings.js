@@ -830,3 +830,57 @@ window.I18N.addRules([
   ,{ re: /^At your domain provider \((.+)\), add this DNS record\. We detect it automatically and issue SSL for the checkout domain\.$/, zh: function (m) { return '请在域名服务商（' + m[1] + '）处添加这条 DNS 记录。BestCheckout 会自动检测，并为结账域名签发 SSL。'; } }
   ,{ re: /^Remove any old DNS record on (.+) that points elsewhere\.$/, zh: function (m) { return '请移除 ' + m[1] + ' 上指向其他位置的旧 DNS 记录。'; } }
 ]);
+
+window.I18N.extend({
+  "Manage the transactional messages your store sends automatically.": "管理店铺自动发送的事务邮件。",
+  "Sender identity": "发件身份",
+  "Manage sender identity": "管理发件身份",
+  "Verified": "已验证",
+  "Waiting for DNS": "等待 DNS",
+  "Active sender domain": "当前发件域名",
+  "Use as active": "设为当前域名",
+  "View DNS records": "查看 DNS 记录",
+  "Remove": "移除",
+  "From identity": "发件身份信息",
+  "From name": "发件人名称",
+  "Sender address": "发件地址",
+  "Save sender identity": "保存发件身份",
+  "Sending domains": "发件域名",
+  "Add domain": "添加域名",
+  "Add sending domain": "添加发件域名",
+  "Create DNS records": "生成 DNS 记录",
+  "Domain": "域名",
+  "Done": "完成",
+  "Manage": "管理",
+  "Email title": "邮件标题",
+  "Message": "邮件正文",
+  "Record test preview": "记录测试预览",
+  "Record a test preview": "记录测试预览",
+  "Add to local log": "加入本地记录",
+  "Recipient": "收件人",
+  "Checkout customer emails": "结账顾客邮件",
+  "Final order confirmation": "最终订单确认",
+  "Sent once after payment and every Upsell or Downsell decision are complete.": "付款成功且所有 Upsell / Downsell 决策完成后，仅发送一次。",
+  "One From identity and reply-to address for this store’s transactional email.": "此店铺全部事务邮件共用一个发件身份和回复地址。",
+  "Complete the sender identity fields": "请填写完整的发件身份信息",
+  "Sender identity saved": "发件身份已保存",
+  "Active sender domain updated": "当前发件域名已更新",
+  "Remove sending domain?": "移除发件域名？",
+  "Remove domain": "移除域名",
+  "Sending domain removed": "发件域名已移除",
+  "Enter a valid domain": "请输入有效域名",
+  "This sending domain is already added": "该发件域名已添加",
+  "Record a test preview": "记录测试预览",
+  "Test preview recorded": "测试预览已记录",
+  "One From identity and reply-to address shared by BestCheckout and BestShopio for this store.": "此店铺的 BestCheckout 与 BestShopio 共用一个发件身份和回复地址。",
+  "Set the From identity once for this store. BestCheckout and BestShopio share it, while each module controls only its own events. The sender domain is verified through Bestreach; your store domains and SSL stay managed in ": "每个店铺只需配置一次发件身份。BestCheckout 与 BestShopio 共用该身份，但各自只控制归属的邮件事件。发件域由 Bestreach 验证；店铺域名与 SSL 仍由 "
+});
+window.I18N.addRules([
+  { re: /^Reply-to (.+) · Verified sending domain (.+)$/, zh: function (m) { return '回复地址 ' + m[1] + ' · 已验证发件域名 ' + m[2]; } },
+  { re: /^Used by (.+)$/, zh: function (m) { return '当前用于 ' + m[1]; } },
+  { re: /^Waiting for Bestreach verification$/, zh: function () { return '等待 Bestreach 验证'; } },
+  { re: /^Bestreach DNS records required for this candidate domain$/, zh: function () { return '此候选域名需要配置 Bestreach DNS 记录'; } },
+  { re: /^DNS records for (.+)$/, zh: function (m) { return m[1] + ' 的 DNS 记录'; } },
+  { re: /^DNS records created for (.+)$/, zh: function (m) { return '已为 ' + m[1] + ' 生成 DNS 记录'; } },
+  { re: /^Test preview recorded for (.+)$/, zh: function (m) { return '已为 ' + m[1] + ' 记录测试预览'; } }
+]);

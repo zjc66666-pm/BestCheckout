@@ -61,6 +61,50 @@
   // the English source strings used by the rest of the prototype.
   if (window.I18N && window.I18N.extend) {
     window.I18N.extend({
+      'Manage the transactional messages your store sends automatically.': '管理店铺自动发送的事务邮件。',
+      'Sender identity': '发件身份',
+      'Manage sender identity': '管理发件身份',
+      'Verified': '已验证',
+      'Reply-to': '回复地址',
+      'Verified sending domain': '已验证发件域名',
+      'Used by': '当前用于',
+      'Waiting for Bestreach verification': '等待 Bestreach 验证',
+      'Bestreach DNS records required for this candidate domain': '此候选域名需要配置 Bestreach DNS 记录',
+      'Checkout customer emails': '结账顾客邮件',
+      'Final order confirmation': '最终订单确认',
+      'Sent once after payment and every Upsell or Downsell decision are complete.': '付款成功且所有 Upsell / Downsell 决策完成后，仅发送一次。',
+      'Set the From identity once for this store. BestCheckout and BestShopio share it, while each module controls only its own events. The sender domain is verified through Bestreach; your store domains and SSL stay managed in': '每个店铺只需配置一次发件身份。BestCheckout 与 BestShopio 共用该身份，但各自只控制归属的邮件事件。发件域由 Bestreach 验证；店铺域名与 SSL 仍由',
+      'One From identity and reply-to address shared by BestCheckout and BestShopio for this store.': '此店铺的 BestCheckout 与 BestShopio 共用一个发件身份和回复地址。',
+      'From identity': '发件身份信息',
+      'Sender address': '发件地址',
+      'Sending domains': '发件域名',
+      'Add domain': '添加域名',
+      'Waiting for DNS': '等待 DNS',
+      'Active sender domain': '当前发件域名',
+      'Use as active': '设为当前域名',
+      'View DNS records': '查看 DNS 记录',
+      'Email title': '邮件标题',
+      'Message': '邮件正文',
+      'Record test preview': '记录测试预览',
+      'Record a test preview': '记录测试预览',
+      'Add to local log': '加入本地记录',
+      'Recipient': '收件人',
+      'Shown in the customer inbox for every transactional message.': '显示在每一封事务邮件的顾客收件箱中。',
+      'Customer replies go to this address.': '顾客回复会发送到此地址。',
+      'Save sender identity': '保存发件身份',
+      'Bestreach supplies the DNS records when you add a candidate domain. Domains cannot be edited; add a new candidate, verify it, then make it active.': '添加候选域名后，Bestreach 会提供 DNS 记录。域名创建后不可编辑；如需修改，请新建候选域名、完成验证后再设为当前域名。',
+      'Add sending domain': '添加发件域名',
+      'Create DNS records': '生成 DNS 记录',
+      'Domain': '域名',
+      'Remove sending domain?': '移除发件域名？',
+      'Remove domain': '移除域名',
+      'Complete the sender identity fields': '请填写完整的发件身份信息',
+      'Sender identity saved': '发件身份已保存',
+      'Active sender domain updated': '当前发件域名已更新',
+      'Sending domain removed': '发件域名已移除',
+      'Enter a valid domain': '请输入有效域名',
+      'This sending domain is already added': '该发件域名已添加',
+      'This prototype does not send an email. It records a local preview entry with sample order data so you can review the recipient and message flow.': '此原型不会真实发送邮件，只会记录包含示例订单数据的本地预览，供你核对收件人和消息流程。',
       'Advertising & analytics': '广告数据',
       'Keep your checkout conversion data connected to Meta and Google.': '让你的结账转化数据持续回传至 Meta 和 Google。',
       'Automatic setup is active': '自动设置已启用',
@@ -285,6 +329,14 @@
       { re: /^(Meta|Google) test event recorded in this prototype\.$/, zh: function (m) { return m[1] + ' 测试事件已在此原型中记录。'; } },
     ]);
   }
+  if (window.I18N && window.I18N.addRules) {
+    window.I18N.addRules([
+      { re: /^The address uses the active verified domain: @(.+)\.$/, zh: function (m) { return '发件地址使用当前已验证域名：@' + m[1] + '。'; } },
+      { re: /^DNS records for (.+)$/, zh: function (m) { return m[1] + ' 的 DNS 记录'; } },
+      { re: /^DNS records created for (.+)$/, zh: function (m) { return '已为 ' + m[1] + ' 生成 DNS 记录'; } },
+      { re: /^Test preview recorded for (.+)$/, zh: function (m) { return '已为 ' + m[1] + ' 记录测试预览'; } }
+    ]);
+  }
 
   // ---- toast — use the same top-centred notification pattern as Purchase flows ----
   const toast = (msg, type) => {
@@ -338,6 +390,7 @@
     root.innerHTML =
       '<style>' + STYLES + '</style>' +
       '<div class="set-page' + (centered ? ' set-narrow' : '') + '">' + bodyHtml + '</div>';
+    if (window.I18N && window.I18N.apply) window.I18N.apply(root);
     // wire generic toggles (visual only)
     root.querySelectorAll('[data-toggle]').forEach((el) => el.onclick = () => el.classList.toggle('on'));
     // image upload tiles → open the OS file chooser (Store logo/ico/no-data, Checkout logo)
@@ -2647,6 +2700,19 @@
     return null;
   }
   const nfSwitch = (on, code) => '<label class="set-switch' + (on ? ' on' : '') + '" data-nf-toggle="' + code + '"><span class="set-knob"></span></label>';
+  function nfActiveDomain() {
+    const s = D.notifications.sender;
+    return (s.domains || []).find((d) => d.id === s.activeDomainId) || (s.domains || [])[0];
+  }
+  function nfSenderAddress() {
+    const s = D.notifications.sender, d = nfActiveDomain();
+    return (s.profile.localPart || 'orders') + '@' + (d ? d.domain : '');
+  }
+  function nfBuildBody(ev, headline, copy) {
+    const opening = '<h2 class="nf-h">' + esc(headline || '') + '</h2><p class="nf-lead">' + esc(copy || '') + '</p>';
+    if (ev.code === 'order_shipped') return opening + '{{block.tracking}}\n{{block.shipment_items}}\n{{block.cta_button}}';
+    return opening + '{{block.cta_button}}\n{{block.order_summary}}\n{{block.shipping_address}}';
+  }
 
   // resolve a scalar merge tag against brand + sample data
   function nfResolve(key, b) {
@@ -2726,10 +2792,11 @@
     const g = (id) => { const el = root.querySelector('#' + id); return el ? el.value : ''; };
     return {
       device: notifDevice,
-      fromName: g('nf-fromname') || ev.config.fromName,
-      fromEmail: g('nf-fromemail') || ev.config.fromEmail,
+      fromName: D.notifications.sender.profile.fromName,
+      fromEmail: nfSenderAddress(),
       subject: g('nf-subject') || ev.config.subject,
-      body: (root.querySelector('#nf-body') ? root.querySelector('#nf-body').value : ev.config.body),
+      preheader: g('nf-preheader') || ev.config.preheader,
+      body: nfBuildBody(ev, g('nf-headline') || ev.config.headline, g('nf-copy') || ev.config.copy),
     };
   }
   function nfUpdatePreview(ev) {
@@ -2738,7 +2805,8 @@
     const inbox = root.querySelector('#nf-inbox');
     if (inbox) inbox.innerHTML =
       '<div><span class="l">From </span><span class="v">' + esc(st.fromName) + '</span> <span class="l">&lt;' + esc(st.fromEmail) + '&gt;</span></div>' +
-      '<div style="margin-top:3px"><span class="l">Subject </span><span class="v">' + esc(nfText(st.subject, b)) + '</span></div>';
+      '<div style="margin-top:3px"><span class="l">Subject </span><span class="v">' + esc(nfText(st.subject, b)) + '</span></div>' +
+      '<div style="margin-top:3px"><span class="l">Preview </span><span class="v">' + esc(nfText(st.preheader, b)) + '</span></div>';
     const stage = root.querySelector('#nf-stage');
     if (stage) { stage.innerHTML = nfCardHtml(b, st); nfFit(); }
   }
@@ -2755,19 +2823,15 @@
       stage.style.height = (card.offsetHeight * s + 36) + 'px';
     } catch (e) {}
   }
-  function insertAtCursor(el, text) {
-    const s = el.selectionStart || 0, e = el.selectionEnd || 0;
-    el.value = el.value.slice(0, s) + text + el.value.slice(e);
-    el.selectionStart = el.selectionEnd = s + text.length; el.focus();
-  }
-
   function renderNotifications() {
+    if (notifSub === 'sender') return renderNotifSender();
     if (notifSub) { const f = nfFindEvent(notifSub); if (f && !f.group.locked) return renderNotifEditor(f.ev); notifSub = null; }
     return renderNotifList();
   }
 
   function renderNotifList() {
     const n = D.notifications;
+    const sender = n.sender, activeDomain = nfActiveDomain(), senderAddress = nfSenderAddress();
     const groupsHtml = n.groups.map((g) => {
       const rows = g.events.map((ev) => {
         if (g.locked) {
@@ -2793,9 +2857,16 @@
 
     paint(
       '<style>' + NOTIF_STYLES + '</style>' +
-      pageHead('Notifications', 'Email your customers when key order events happen. These settings belong to this store only.') +
+      pageHead('Notifications', 'Manage the transactional messages your store sends automatically.') +
+      '<div class="nf-sender-card mb-4">' +
+        '<div class="nf-sender-ico">' + I.globe + '</div>' +
+        '<div class="nf-main"><div class="nf-name">Sender identity <span class="pill pill-green"><span class="dot"></span>Verified</span></div>' +
+          '<div class="nf-sender-address">' + esc(sender.profile.fromName) + ' &lt;' + esc(senderAddress) + '&gt;</div>' +
+          '<div class="nf-desc"><span>Reply-to</span> ' + esc(sender.profile.replyTo) + ' · <span>Verified sending domain</span> ' + esc(activeDomain ? activeDomain.domain : '') + '</div></div>' +
+        '<button class="btn btn-default" data-sender-open>Manage sender identity</button>' +
+      '</div>' +
       '<div class="set-note mb-4" style="display:flex;gap:10px;align-items:flex-start"><span style="color:var(--brand);flex:none;display:inline-flex">' + I.info + '</span>' +
-        '<div class="muted" style="font-size:12.5px;line-height:1.5">Turn a notification on to start sending it. Edit the sender, subject and content — the live preview shows exactly what your customer receives. The logo, brand color and store name come from your <a class="lnk" href="#/settings/base">store settings</a>.</div></div>' +
+        '<div class="muted" style="font-size:12.5px;line-height:1.5">Set the From identity once for this store. BestCheckout and BestShopio share it, while each module controls only its own events. The sender domain is verified through Bestreach; your store domains and SSL stay managed in <a class="lnk" href="#/settings/domains">Domains</a>.</div></div>' +
       groupsHtml,
       false
     );
@@ -2808,14 +2879,111 @@
       renderNotifList();
     });
     root.querySelectorAll('[data-edit]').forEach((el) => el.onclick = () => { notifSub = el.getAttribute('data-edit'); renderNotifications(); });
+    const senderOpen = root.querySelector('[data-sender-open]');
+    if (senderOpen) senderOpen.onclick = () => { notifSub = 'sender'; renderNotifications(); };
+  }
+
+  function renderNotifSender() {
+    const n = D.notifications, sender = n.sender, profile = sender.profile, active = nfActiveDomain();
+    const domainRows = sender.domains.map((d) => {
+      const isActive = d.id === sender.activeDomainId;
+      const status = d.status === 'verified'
+        ? '<span class="pill pill-green"><span class="dot"></span>Verified</span>'
+        : '<span class="pill pill-gray"><span class="dot"></span>Waiting for DNS</span>';
+      const primaryAction = isActive
+        ? '<span class="nf-active">Active sender domain</span>'
+        : d.status === 'verified'
+          ? '<button class="btn btn-default" data-domain-active="' + esc(d.id) + '">Use as active</button>'
+          : '<span class="nf-pending">Waiting for Bestreach verification</span>';
+      return '<div class="nf-domain-row">' +
+        '<div class="nf-main"><div class="nf-name">' + esc(d.domain) + ' ' + status + '</div>' +
+          '<div class="nf-desc">' + (isActive ? '<span>Used by</span> ' + esc(nfSenderAddress()) : '<span>Bestreach DNS records required for this candidate domain</span>') + '</div></div>' +
+        '<div class="nf-domain-actions">' + primaryAction +
+          '<button class="btn btn-default" data-domain-records="' + esc(d.id) + '">View DNS records</button>' +
+          (isActive ? '' : '<button class="btn btn-default" data-domain-remove="' + esc(d.id) + '">Remove</button>') +
+        '</div></div>';
+    }).join('');
+    const input = (label, id, value, hint) =>
+      '<div style="margin-bottom:14px"><label class="nf-label" for="' + id + '">' + label + '</label>' +
+      '<input class="input" id="' + id + '" value="' + esc(value || '') + '" style="width:100%" />' +
+      (hint ? '<div class="nf-hint">' + hint + '</div>' : '') + '</div>';
+
+    paint(
+      '<style>' + NOTIF_STYLES + '</style>' +
+      '<div class="flex items-center gap-3 mb-4"><button class="back-btn" data-back title="Back">' + I.chevL + '</button>' +
+        '<div><div class="page-title" style="font-size:18px">Sender identity</div><div class="muted" style="font-size:12.5px;margin-top:2px">One From identity and reply-to address shared by BestCheckout and BestShopio for this store.</div></div></div>' +
+      '<div class="nf-sender-layout">' +
+        '<div class="panel card-pad"><div class="nf-section-title">From identity</div>' +
+          input('From name', 'nf-sender-name', profile.fromName, 'Shown in the customer inbox for every transactional message.') +
+          input('Sender address', 'nf-sender-local', profile.localPart, 'The address uses the active verified domain: @' + esc(active ? active.domain : '') + '.') +
+          input('Reply-to', 'nf-sender-reply', profile.replyTo, 'Customer replies go to this address.') +
+          '<button class="btn btn-primary" data-sender-save>Save sender identity</button></div>' +
+        '<div class="panel card-pad"><div class="flex items-center justify-between" style="gap:12px;margin-bottom:5px"><div class="nf-section-title" style="margin:0">Sending domains</div><button class="btn btn-default" data-domain-add>Add domain</button></div>' +
+          '<div class="nf-hint" style="margin:0 0 14px">Bestreach supplies the DNS records when you add a candidate domain. Domains cannot be edited; add a new candidate, verify it, then make it active.</div>' +
+          '<div class="nf-domain-list">' + domainRows + '</div></div>' +
+      '</div>',
+      false
+    );
+
+    root.querySelector('[data-back]').onclick = () => { notifSub = null; renderNotifications(); };
+    root.querySelector('[data-sender-save]').onclick = () => {
+      const get = (id) => (root.querySelector('#' + id).value || '').trim();
+      const name = get('nf-sender-name'), rawLocalPart = get('nf-sender-local'), replyTo = get('nf-sender-reply');
+      const localPart = rawLocalPart.replace(/[^a-z0-9._+-]/gi, '').toLowerCase();
+      if (!name || !localPart || !replyTo) return toast('Complete the sender identity fields');
+      profile.fromName = name;
+      profile.localPart = localPart;
+      profile.replyTo = replyTo;
+      toast('Sender identity saved');
+      if (window.SettingsChrome) window.SettingsChrome.setDirty(false);
+      renderNotifSender();
+    };
+    root.querySelector('[data-domain-add]').onclick = () => openNotifDomainModal();
+    root.querySelectorAll('[data-domain-records]').forEach((el) => el.onclick = () => {
+      const d = sender.domains.find((x) => x.id === el.getAttribute('data-domain-records')); if (d) openNotifDnsModal(d);
+    });
+    root.querySelectorAll('[data-domain-active]').forEach((el) => el.onclick = () => {
+      const d = sender.domains.find((x) => x.id === el.getAttribute('data-domain-active'));
+      if (!d || d.status !== 'verified') return;
+      sender.activeDomainId = d.id; toast('Active sender domain updated'); renderNotifSender();
+    });
+    root.querySelectorAll('[data-domain-remove]').forEach((el) => el.onclick = () => {
+      const d = sender.domains.find((x) => x.id === el.getAttribute('data-domain-remove')); if (!d) return;
+      modal({ title: 'Remove sending domain?', width: 460, okText: 'Remove domain',
+        body: '<div class="muted" style="font-size:13px;line-height:1.6">Bestreach verification for <b>' + esc(d.domain) + '</b> will be deleted. This cannot be used as a sender domain unless it is added again.</div>',
+        onOk: (m, close) => { sender.domains = sender.domains.filter((x) => x.id !== d.id); close(); toast('Sending domain removed'); renderNotifSender(); } });
+    });
+  }
+
+  function openNotifDomainModal() {
+    const sender = D.notifications.sender;
+    modal({ title: 'Add sending domain', width: 500, okText: 'Create DNS records',
+      body: '<div class="muted mb-4" style="font-size:13px;line-height:1.6">Bestreach will return the DNS records required to verify this sender domain. Domain edits are not supported after creation.</div>' +
+        '<label class="nf-label" for="nf-domain-input">Domain</label><input class="input" id="nf-domain-input" placeholder="mail.example.com" style="width:100%" />',
+      onOk: (m, close) => {
+        const domain = ((m.querySelector('#nf-domain-input') || {}).value || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+        if (!/^[a-z0-9][a-z0-9.-]*\.[a-z]{2,}$/i.test(domain)) return toast('Enter a valid domain');
+        if (sender.domains.some((d) => d.domain === domain)) return toast('This sending domain is already added');
+        const slug = domain.replace(/[^a-z0-9]/gi, '-');
+        sender.domains.push({ id: 'domain-' + Date.now(), domain: domain, status: 'pending', records: [
+          { type: 'CNAME', host: 'bestreach._domainkey', value: 'dkim.bestreach.example' },
+          { type: 'TXT', host: '@', value: 'v=spf1 include:spf.bestreach.example ~all' },
+        ] });
+        close(); toast('DNS records created for ' + domain); renderNotifSender();
+      } });
+  }
+
+  function openNotifDnsModal(domain) {
+    const rows = (domain.records || []).map((r) => '<div class="nf-dns-row"><div class="nf-dns-cell">' + esc(r.type) + '</div><div class="nf-dns-cell nf-mono">' + esc(r.host) + '</div><div class="nf-dns-cell nf-mono">' + esc(r.value) + '</div></div>').join('');
+    modal({ title: 'DNS records for ' + domain.domain, width: 720, hideCancel: true, okText: 'Done',
+      body: '<div class="muted mb-4" style="font-size:13px;line-height:1.6">Add these records exactly at your DNS provider. Bestreach will verify them asynchronously; this prototype does not mark a pending domain as verified.</div>' +
+        '<div class="nf-dns-table"><div class="nf-dns-row nf-dns-head"><div class="nf-dns-cell">Type</div><div class="nf-dns-cell">Host</div><div class="nf-dns-cell">Value</div></div>' + rows + '</div>',
+      onOk: (m, close) => close() });
   }
 
   function renderNotifEditor(ev) {
     const n = D.notifications, c = ev.config, b = n.brand;
-    const tags = (n.mergeTags.common || []).concat(n.mergeTags[ev.code] || []);
-    const varOpts = '<option value="">Insert variable</option>' + tags.map((t) => '<option value="' + t + '">{{' + t + '}}</option>').join('');
-    const blockList = n.blocks[ev.code] || [];
-    const blockOpts = '<option value="">Insert block</option>' + blockList.map((bl) => '<option value="' + bl.tag + '">' + esc(bl.label) + '</option>').join('');
+    const sender = n.sender, activeDomain = nfActiveDomain(), senderAddress = nfSenderAddress();
 
     const fld = (label, id, value, hint, ph) =>
       '<div style="margin-bottom:14px"><label class="nf-label" for="' + id + '">' + esc(label) + '</label>' +
@@ -2828,19 +2996,13 @@
           '<div><div class="nf-label" style="margin:0">Status</div><div class="nf-hint">' + (c.enabled ? 'This notification is being sent.' : 'Turn on to start sending.') + '</div></div>' +
           nfSwitch(c.enabled, '__editor') +
         '</div>' +
-        fld('From name', 'nf-fromname', c.fromName, '', 'Sender name') +
-        fld('From email', 'nf-fromemail', c.fromEmail, 'Must be an address on your verified sending domain (' + n.sendingDomain + '). Custom domains are on the roadmap.', 'orders@' + n.sendingDomain) +
-        fld('Reply-to', 'nf-replyto', c.replyTo, 'Customer replies go here.', 'service@example.com') +
+        '<div class="nf-sender-ref"><div><div class="nf-label" style="margin:0">Sender identity</div><div class="nf-hint" style="margin-top:3px">' + esc(sender.profile.fromName) + ' &lt;' + esc(senderAddress) + '&gt; · <span>Reply-to</span> ' + esc(sender.profile.replyTo) + '</div></div><button class="btn btn-default" data-sender-open>Manage</button></div>' +
         fld('Subject', 'nf-subject', c.subject, '', 'Subject line') +
         fld('Preheader', 'nf-preheader', c.preheader, 'The short preview text shown in the inbox after the subject.', 'Preview text') +
-        '<div><label class="nf-label">Email body</label>' +
-          '<div class="nf-toolbar">' +
-            '<select class="nf-insert input" data-no-ui id="nf-ins-var">' + varOpts + '</select>' +
-            (blockList.length ? '<select class="nf-insert input" data-no-ui id="nf-ins-block">' + blockOpts + '</select>' : '') +
-            '<button class="btn btn-gray" data-tpl type="button">Start from template</button>' +
-          '</div>' +
-          '<textarea class="nf-body" id="nf-body" spellcheck="false">' + esc(c.body) + '</textarea>' +
-          '<div class="nf-hint">Edit the HTML and insert variables. Dynamic blocks (order summary, tracking…) render order data safely — you never write the loop.</div>' +
+        fld('Email title', 'nf-headline', c.headline, '', 'Thank you, {{customer.first_name}}') +
+        '<div><label class="nf-label" for="nf-copy">Message</label>' +
+          '<textarea class="nf-copy" id="nf-copy" spellcheck="true">' + esc(c.copy || '') + '</textarea>' +
+          '<div class="nf-hint">The order summary, order link and address are included automatically. You can use {{customer.first_name}} and {{order.number}} in this copy.</div>' +
         '</div>' +
       '</div>';
 
@@ -2865,7 +3027,7 @@
             '<div class="muted" style="font-size:12.5px;margin-top:2px">' + (NF_CLS[ev.cls] || '') + ' · Email · sent automatically</div></div>' +
         '</div>' +
         '<div class="flex items-center gap-2">' +
-          '<button class="btn btn-default" data-test>Send test email</button>' +
+          '<button class="btn btn-default" data-test>Record test preview</button>' +
           '<button class="btn btn-primary" data-save>Save</button>' +
         '</div>' +
       '</div>' +
@@ -2888,14 +3050,9 @@
       nfUpdatePreview(ev);
     });
     // live preview on edits
-    ['nf-fromname', 'nf-fromemail', 'nf-subject', 'nf-body'].forEach((id) => { const el = root.querySelector('#' + id); if (el) el.addEventListener('input', () => nfUpdatePreview(ev)); });
-    // variable / block inserters
-    const insVar = root.querySelector('#nf-ins-var');
-    if (insVar) insVar.onchange = () => { if (insVar.value) { insertAtCursor(root.querySelector('#nf-body'), '{{' + insVar.value + '}}'); insVar.selectedIndex = 0; nfUpdatePreview(ev); } };
-    const insBlk = root.querySelector('#nf-ins-block');
-    if (insBlk) insBlk.onchange = () => { if (insBlk.value) { insertAtCursor(root.querySelector('#nf-body'), '\n{{' + insBlk.value + '}}\n'); insBlk.selectedIndex = 0; nfUpdatePreview(ev); } };
-    // start from template
-    const tpl = root.querySelector('[data-tpl]'); if (tpl) tpl.onclick = () => openNotifTemplateModal(ev);
+    ['nf-subject', 'nf-preheader', 'nf-headline', 'nf-copy'].forEach((id) => { const el = root.querySelector('#' + id); if (el) el.addEventListener('input', () => nfUpdatePreview(ev)); });
+    const senderOpen = root.querySelector('[data-sender-open]');
+    if (senderOpen) senderOpen.onclick = () => { notifSub = 'sender'; renderNotifications(); };
     // test send
     root.querySelector('[data-test]').onclick = () => openNotifTestModal(ev);
     // save — the Status toggle controls sending; Save persists everything
@@ -2910,38 +3067,20 @@
   function nfSaveFromForm(ev) {
     const g = (id) => { const el = root.querySelector('#' + id); return el ? el.value : undefined; };
     const c = ev.config;
-    ['fromName|nf-fromname', 'fromEmail|nf-fromemail', 'replyTo|nf-replyto', 'subject|nf-subject', 'preheader|nf-preheader'].forEach((p) => { const [k, id] = p.split('|'); const v = g(id); if (v !== undefined) c[k] = v; });
-    const body = root.querySelector('#nf-body'); if (body) c.body = body.value;
-    c.updatedAt = '2026-06-10';
-  }
-
-  function openNotifTemplateModal(ev) {
-    const presets = (D.notifications.presets[ev.code] || []);
-    const cards = presets.map((p, i) =>
-      '<label class="nf-tpl" data-tpl-pick="' + i + '">' +
-        '<div class="nf-tpl-thumb">' + esc(p.name.charAt(0)) + '</div>' +
-        '<div><div class="text-sm" style="font-weight:600;color:var(--ink)">' + esc(p.name) + '</div>' +
-          '<div class="muted" style="font-size:12px;margin-top:2px">' + esc(p.subject) + '</div></div>' +
-      '</label>').join('');
-    const ctrl = modal({
-      title: 'Start from a template', width: 520, hideCancel: false, okText: 'Cancel',
-      body: '<div class="muted mb-4" style="font-size:13px">Pick a starting point. You can edit everything afterwards — this replaces the current subject and body.</div><div class="nf-tpl-list">' + cards + '</div>',
-      onOk: (m, close) => close(),
-    });
-    ctrl.m.querySelectorAll('[data-tpl-pick]').forEach((el) => el.onclick = () => {
-      const p = presets[Number(el.getAttribute('data-tpl-pick'))];
-      const sub = root.querySelector('#nf-subject'); if (sub) sub.value = p.subject;
-      const body = root.querySelector('#nf-body'); if (body) body.value = p.body;
-      ctrl.close(); toast('Template applied'); nfUpdatePreview(ev);
-    });
+    ['subject|nf-subject', 'preheader|nf-preheader', 'headline|nf-headline', 'copy|nf-copy'].forEach((p) => { const [k, id] = p.split('|'); const v = g(id); if (v !== undefined) c[k] = v; });
+    c.updatedAt = '2026-07-27';
   }
 
   function openNotifTestModal(ev) {
     modal({
-      title: 'Send a test email', width: 460, okText: 'Send test',
-      body: '<div class="muted mb-4" style="font-size:13px">We’ll send this notification with sample order data so you can check how it looks in a real inbox.</div>' +
-        field('Send to', window.SITE && window.SITE.email ? window.SITE.email : '', 'you@example.com'),
-      onOk: (m, close) => { const inp = m.querySelector('input'); const to = inp ? inp.value : ''; close(); toast(to ? 'Test email sent to ' + to : 'Test email sent'); },
+      title: 'Record a test preview', width: 460, okText: 'Add to local log',
+      body: '<div class="muted mb-4" style="font-size:13px;line-height:1.6">This prototype does not send an email. It records a local preview entry with sample order data so you can review the recipient and message flow.</div>' +
+        field('Recipient', window.SITE && window.SITE.email ? window.SITE.email : '', 'you@example.com'),
+      onOk: (m, close) => {
+        const inp = m.querySelector('input'); const to = inp ? inp.value : '';
+        D.notifications.deliveryLog.push({ event: ev.code, recipient: to, recordedAt: new Date().toISOString() });
+        close(); toast(to ? 'Test preview recorded for ' + to : 'Test preview recorded');
+      },
     });
   }
 
@@ -2968,16 +3107,34 @@
   .nf-right { display: flex; align-items: center; gap: 12px; flex: none; }
   .nf-chev { color: var(--ink-muted); display: inline-flex; }
   @media (max-width: 760px) { .nf-meta { display: none; } }
+  .nf-sender-card { display: flex; align-items: center; gap: 14px; padding: 16px; border: 1px solid #cfe0ff; border-radius: 10px; background: #f8fbff; }
+  .nf-sender-ico { width: 36px; height: 36px; display: grid; place-items: center; flex: none; border-radius: 8px; background: #e6f0ff; color: var(--brand); }
+  .nf-sender-address { font-size: 13px; color: var(--ink); margin-top: 3px; }
+  .nf-sender-card .btn { flex: none; }
+  .nf-sender-layout { display: grid; grid-template-columns: minmax(300px, .9fr) minmax(420px, 1.4fr); gap: 20px; align-items: start; }
+  .nf-section-title { font-size: 14px; font-weight: 650; color: var(--ink); margin-bottom: 16px; }
+  .nf-sender-ref { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; margin: 0 0 14px; border: 1px solid var(--hair); border-radius: 8px; background: var(--panel); }
+  .nf-copy { width: 100%; min-height: 150px; padding: 10px 12px; border: 1px solid var(--ctl); border-radius: 8px; resize: vertical; color: var(--ink); background: #fff; font: 13px/1.6 inherit; }
+  .nf-copy:focus { outline: none; border-color: var(--brand); }
+  .nf-domain-list { display: flex; flex-direction: column; gap: 10px; }
+  .nf-domain-row { display: flex; align-items: center; gap: 14px; padding: 13px 14px; border: 1px solid var(--hair); border-radius: 9px; }
+  .nf-domain-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; flex: none; }
+  .nf-active { color: #00684a; font-size: 12px; font-weight: 600; }
+  .nf-pending { color: var(--ink-muted); font-size: 12px; }
+  .nf-dns-table { border: 1px solid var(--hair); border-radius: 8px; overflow: hidden; }
+  .nf-dns-row { display: grid; grid-template-columns: 88px 160px minmax(0, 1fr); border-top: 1px solid var(--hair); }
+  .nf-dns-row:first-child { border-top: 0; }
+  .nf-dns-head { background: var(--panel); font-size: 12px; font-weight: 600; color: var(--ink-muted); }
+  .nf-dns-cell { min-width: 0; padding: 10px 12px; font-size: 12.5px; overflow-wrap: anywhere; }
+  .nf-mono { font-family: ui-monospace, Menlo, Consolas, monospace; }
+  @media (max-width: 840px) { .nf-sender-layout { grid-template-columns: 1fr; } .nf-domain-row { align-items: flex-start; flex-direction: column; } .nf-domain-actions { justify-content: flex-start; } }
+  @media (max-width: 620px) { .nf-sender-card { align-items: flex-start; flex-wrap: wrap; } .nf-sender-card .btn { width: 100%; } .nf-sender-ref { align-items: flex-start; flex-direction: column; } .nf-dns-row { grid-template-columns: 68px 104px minmax(0, 1fr); } .nf-dns-cell { padding: 9px; font-size: 11.5px; } }
 
   /* editor */
   .nf-editor { display: grid; grid-template-columns: minmax(360px, 440px) minmax(0, 1fr); gap: 20px; align-items: start; }
   @media (max-width: 1080px) { .nf-editor { grid-template-columns: 1fr; } }
   .nf-label { display: block; font-size: 13px; font-weight: 600; color: var(--ink); margin: 0 0 6px; }
   .nf-hint { font-size: 11.5px; color: var(--ink-muted); margin-top: 5px; line-height: 1.5; }
-  .nf-toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
-  .nf-insert { height: 32px; width: auto; min-width: 140px; padding: 0 10px; }
-  .nf-body { width: 100%; min-height: 220px; font: 12.5px/1.6 ui-monospace, Menlo, Consolas, monospace; padding: 10px 12px; border: 1px solid var(--ctl); border-radius: 8px; resize: vertical; color: var(--ink); background: #fff; }
-  .nf-body:focus { outline: none; border-color: var(--brand); }
 
   /* preview */
   .nf-preview { position: sticky; top: 8px; }
@@ -2995,11 +3152,6 @@
   .email-card .nf-fine { margin: 18px 0 0; font-size: 13px; color: #9aa3b2; line-height: 1.7; }
   .nf-unktag { background: #fff4d6; color: #92660a; border-radius: 4px; padding: 0 4px; font-size: .92em; }
 
-  /* template picker */
-  .nf-tpl-list { display: flex; flex-direction: column; gap: 10px; }
-  .nf-tpl { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--hair); border-radius: 10px; cursor: pointer; }
-  .nf-tpl:hover { border-color: var(--brand); background: #fcfdff; }
-  .nf-tpl-thumb { width: 40px; height: 40px; border-radius: 8px; background: #e6f0ff; color: var(--brand); font-weight: 700; display: grid; place-items: center; flex: none; }
   `;
 
   // ===========================================================================

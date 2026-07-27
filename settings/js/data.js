@@ -12,12 +12,9 @@
    or empty. App.js reads this global; nothing here is sent anywhere. */
 window.DATA_SETTINGS = {
   // =========================================================================
-  // NOTIFICATIONS (V1.141) — transactional email config, per store.
-  //   Mirrors the PRD: shared brand tokens (eb_notification_brand) + per-event
-  //   editable templates (eb_notification_template) + a starter template library
-  //   (eb_notification_preset). Merge tags expand against order data; dynamic
-  //   "block" tags render structured sections so the body can't be broken.
-  //   Editing here is local-only (prototype) — nothing is sent anywhere.
+  // NOTIFICATIONS — store-level sender identity + checkout transactional email.
+  // Bestreach returns the verification records. This surface never owns the
+  // storefront/checkout domain, DNS, or SSL lifecycle.
   // =========================================================================
   notifications: {
     // shared brand — injected into every notification (set once, applies to all)
@@ -31,71 +28,33 @@ window.DATA_SETTINGS = {
     },
     // store languages — single language for now (Silixwear-ES retired). Framework keeps locale capability.
     locales: [ { code: 'en', label: 'English' } ],
-    // verified sending domain (custom domain DKIM is a roadmap item — see PRD §10)
-    sendingDomain: 'mail.lavenderlabs.co',
-    // merge tags offered by the "Insert variable" picker, by scope
-    mergeTags: {
-      common: ['store.name', 'store.url', 'store.contact_email', 'customer.name', 'customer.first_name', 'order.number', 'order.detail_url'],
-      order_paid: ['order.subtotal', 'order.shipping', 'order.total', 'order.currency', 'order.shipping_address', 'order.payment_method'],
-      order_shipped: ['shipment.tracking_number', 'shipment.carrier', 'shipment.tracking_url'],
-    },
-    // dynamic blocks (render to safe HTML — merchant inserts, never hand-codes the loop)
-    blocks: {
-      order_paid: [ { tag: 'block.order_summary', label: 'Order summary (items + totals)' }, { tag: 'block.shipping_address', label: 'Shipping address' }, { tag: 'block.line_items', label: 'Line items only' }, { tag: 'block.cta_button', label: 'Buttons (View order / Visit store)' } ],
-      order_shipped: [ { tag: 'block.tracking', label: 'Tracking module' }, { tag: 'block.shipment_items', label: 'Items in this shipment' }, { tag: 'block.cta_button', label: 'Buttons (View order / Visit store)' } ],
-    },
-    // starter template library (platform-provided presets)
-    presets: {
-      order_paid: [
-        { code: 'order_paid_minimal', name: 'Minimal', subject: 'Order #{{order.number}} confirmed',
-          body: '<h2 class="nf-h">Order confirmed</h2>\n<p class="nf-lead">Hi {{customer.first_name}}, we’ve received your order and payment. We’ll email you tracking the moment it ships.</p>\n{{block.order_summary}}' },
-        { code: 'order_paid_branded', name: 'Branded + thank-you', subject: 'Thank you for your order, {{customer.first_name}}!',
-          body: '<h2 class="nf-h">Thank you, {{customer.first_name}}</h2>\n<p class="nf-lead">Your {{store.name}} order is confirmed and being packed with care. We’ll be in touch the moment it’s on its way — we can’t wait for you to receive it.</p>\n{{block.cta_button}}\n{{block.order_summary}}\n{{block.shipping_address}}\n<p class="nf-fine">Questions about your order? Just reply to this email — a real person on our team will help you out.</p>' },
-      ],
-      order_shipped: [
-        { code: 'order_shipped_minimal', name: 'Minimal', subject: 'Your order #{{order.number}} is on its way',
-          body: '<h2 class="nf-h">Your order has shipped</h2>\n<p class="nf-lead">Good news {{customer.first_name}} — your order is on its way. Track it anytime with the link below.</p>\n{{block.tracking}}\n{{block.cta_button}}' },
-        { code: 'order_shipped_branded', name: 'Branded + items', subject: 'It’s on the way! Order #{{order.number}}',
-          body: '<h2 class="nf-h">Your order has shipped</h2>\n<p class="nf-lead">Your {{store.name}} order is on its way. We’ll let you know the moment it’s delivered.</p>\n{{block.tracking}}\n{{block.shipment_items}}\n{{block.cta_button}}' },
-      ],
-    },
-    // event catalog (grouped). config = the editable per-event template instance.
-    groups: [
-      { key: 'orders', label: 'Orders', events: [
-        { code: 'order_paid', name: 'Order confirmation', cls: 'Transactional', priority: 'P0',
-          desc: 'Sent to the customer right after payment succeeds.',
-          config: { enabled: true, fromName: 'Lavender Labs', fromEmail: 'orders@lavenderlabs.co', replyTo: 'support@lavenderlabs.co',
-            subject: 'Order #{{order.number}} confirmed', preheader: 'Thanks for your purchase — here are your order details.', updatedAt: '2026-06-09',
-            body: '<h2 class="nf-h">Order confirmed</h2>\n<p class="nf-lead">Hi {{customer.first_name}}, thanks for your order. We’re getting it ready and will email you tracking as soon as it ships.</p>\n{{block.cta_button}}\n{{block.order_summary}}\n{{block.shipping_address}}' } },
-        { code: 'order_shipped', name: 'Shipping confirmation', cls: 'Transactional', priority: 'P0',
-          desc: 'Sent when the order is fulfilled, with tracking details.',
-          config: { enabled: true, fromName: 'Lavender Labs', fromEmail: 'orders@lavenderlabs.co', replyTo: 'support@lavenderlabs.co',
-            subject: 'Your order #{{order.number}} is on its way', preheader: 'Your order has shipped — track it here.', updatedAt: '2026-06-09',
-            body: '<h2 class="nf-h">Your order has shipped</h2>\n<p class="nf-lead">Good news {{customer.first_name}} — your order is on its way. Track it anytime with the link below.</p>\n{{block.tracking}}\n{{block.cta_button}}' } },
-        { code: 'order_refunded', name: 'Refund processed', cls: 'Transactional', priority: 'P1',
-          desc: 'Sent when a refund is approved for the customer.',
-          config: { enabled: false, fromName: 'Lavender Labs', fromEmail: 'orders@lavenderlabs.co', replyTo: 'support@lavenderlabs.co',
-            subject: 'Your refund for order #{{order.number}}', preheader: 'We’ve processed your refund.', updatedAt: '',
-            body: '<h2 class="nf-h">Refund processed</h2>\n<p class="nf-lead">Hi {{customer.first_name}}, we’ve processed a refund for order #{{order.number}}. It may take 3–5 business days to appear on your statement.</p>\n{{block.cta_button}}' } },
-      ] },
-      { key: 'account', label: 'Account', events: [
-        { code: 'account_welcome', name: 'Welcome', cls: 'Transactional', priority: 'P1',
-          desc: 'Sent after a customer creates an account.',
-          config: { enabled: false, fromName: 'Lavender Labs', fromEmail: 'hello@lavenderlabs.co', replyTo: 'support@lavenderlabs.co',
-            subject: 'Welcome to {{store.name}}', preheader: 'Your account is ready.', updatedAt: '',
-            body: '<h2 class="nf-h">Welcome!</h2>\n<p class="nf-lead">Hi {{customer.first_name}}, welcome to {{store.name}}. Your account is ready — start exploring whenever you like.</p>\n{{block.cta_button}}' } },
-        { code: 'email_verification', name: 'Email verification code', cls: 'Transactional', priority: 'P1',
-          desc: 'One-time code for sign-up and password reset.',
-          config: { enabled: false, fromName: 'Lavender Labs', fromEmail: 'hello@lavenderlabs.co', replyTo: 'support@lavenderlabs.co',
-            subject: 'Your {{store.name}} verification code', preheader: 'Use this code to continue.', updatedAt: '',
-            body: '<h2 class="nf-h">Verification code</h2>\n<p class="nf-lead">Hi {{customer.first_name}}, use the code below to verify your email. It expires in 10 minutes.</p>' } },
-      ] },
-      { key: 'marketing', label: 'Marketing', locked: true,
-        note: 'Marketing emails need consent management and an unsubscribe center. Coming in a later release.',
-        events: [
-          { code: 'abandoned_cart', name: 'Abandoned cart', cls: 'Marketing', priority: 'P2', desc: 'Remind shoppers who left items in their cart.' },
-          { code: 'review_request', name: 'Review request', cls: 'Marketing', priority: 'P2', desc: 'Ask for a review after delivery.' },
+    // One sender identity is shared by all shop transactional messages.
+    sender: {
+      activeDomainId: 'lavender-main',
+      profile: { fromName: 'Lavender Labs', localPart: 'orders', replyTo: 'support@lavenderlabs.co' },
+      domains: [
+        { id: 'lavender-main', domain: 'lavenderlabs.co', status: 'verified', records: [
+          { type: 'TXT', host: 'bestreach._domainkey', value: 'k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A…' },
+          { type: 'TXT', host: '@', value: 'v=spf1 include:spf.bestreach.example ~all' },
         ] },
+        { id: 'lavender-mail', domain: 'mail.lavenderlabs.co', status: 'verified', records: [
+          { type: 'CNAME', host: 'bestreach._domainkey.mail', value: 'dkim.bestreach.example' },
+          { type: 'TXT', host: 'mail', value: 'v=spf1 include:spf.bestreach.example ~all' },
+        ] },
+        { id: 'lavender-pending', domain: 'send.lavenderlabs.co', status: 'pending', records: [
+          { type: 'CNAME', host: 'bestreach._domainkey.send', value: 'dkim.bestreach.example' },
+          { type: 'TXT', host: 'send', value: 'v=spf1 include:spf.bestreach.example ~all' },
+        ] },
+      ],
+    },
+    deliveryLog: [],
+    groups: [
+      { key: 'checkout', label: 'Checkout customer emails', events: [
+        { code: 'checkout_purchase_finalized', name: 'Final order confirmation', cls: 'Transactional', priority: 'P0',
+          desc: 'Sent once after payment and every Upsell or Downsell decision are complete.',
+          config: { enabled: true, subject: 'Order #{{order.number}} confirmed', preheader: 'Your final order details are ready.',
+            headline: 'Thank you, {{customer.first_name}}', copy: 'Your payment is confirmed and your final order is now being prepared. We’ll send any fulfilment updates separately.', updatedAt: '2026-07-27' } },
+      ] },
     ],
   },
 
