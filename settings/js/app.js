@@ -72,10 +72,15 @@
       'Store default sending domain': '店铺默认发件域名',
       'Branded sending domain': '品牌发件域名',
       'Add branded sending domain': '添加品牌发件域名',
+      'Use a subdomain such as <b>mail.yourdomain.com</b>. We will show the verification records after you add it.': '使用如 <b>mail.yourdomain.com</b> 的子域名。添加后，我们会展示需要配置的验证记录。',
       'This domain is created for your store and is ready to send transactional email.': '此域名由系统为你的店铺生成，可立即发送事务邮件。',
       'Use your own domain to make your sender easier for customers to recognize. When it is verified, it replaces the default sender automatically.': '使用自己的域名，提高顾客对发件人的品牌识别度。验证成功后，会自动替换默认发件域名。',
       'This domain is used automatically for transactional email.': '此域名当前自动用于发送事务邮件。',
       'Correct the DNS records, then verify again.': '请修正 DNS 记录后重新验证。',
+      'DNS records were not found. Correct them, then check again.': '未检测到 DNS 记录。请修正后再次验证。',
+      'DNS verification failed.': 'DNS 验证失败。',
+      'We could not find the DNS records. Review them, then try again.': '未检测到 DNS 记录。请检查记录后再次验证。',
+      'Sending domain verified and activated': '发件域名已验证并自动启用。',
       'Add the DNS records to complete verification.': '请添加 DNS 记录以完成验证。',
       'Status': '状态',
       'Used for transactional email': '用于发送事务邮件',
@@ -156,6 +161,9 @@
       'Domain': '域名',
       'Remove sending domain?': '移除发件域名？',
       'Remove domain': '移除域名',
+      'Remove': '移除',
+      'Remove this sending domain?': '移除此发件域名？',
+      'Removing this domain cancels its verification. You can add a different domain afterwards.': '移除后会取消该域名的验证。随后可以添加其他发件域名。',
       'Complete the sender identity fields': '请填写完整的发件身份信息',
       'Sender identity saved': '发件身份已保存',
       'Active sender domain updated': '当前发件域名已更新',
@@ -2414,11 +2422,12 @@
 
   function openEmailSendingDomainModal(afterAdd) {
     const sender = D.notifications.sender;
+    const tx = (text) => window.I18N && typeof window.I18N.t === 'function' ? window.I18N.t(text) : text;
     modal({
       title: 'Add branded sending domain',
       width: 520,
       okText: 'Add domain',
-      body: '<div class="muted mb-4" style="font-size:13px;line-height:1.6">Use a subdomain such as <b>mail.yourdomain.com</b>. We will show the verification records after you add it.</div><label class="nf-label" for="email-sending-domain-input">Sending domain</label><input class="input" id="email-sending-domain-input" placeholder="mail.yourdomain.com" style="width:100%" />',
+      body: '<div class="muted mb-4" style="font-size:13px;line-height:1.6">' + tx('Use a subdomain such as <b>mail.yourdomain.com</b>. We will show the verification records after you add it.') + '</div><label class="nf-label" for="email-sending-domain-input">Sending domain</label><input class="input" id="email-sending-domain-input" placeholder="mail.yourdomain.com" style="width:100%" />',
       onOk: (m, close) => {
         const domain = ((m.querySelector('#email-sending-domain-input') || {}).value || '')
           .trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
@@ -2433,6 +2442,7 @@
           domain: domain,
           verificationId: verificationId,
           status: 'pending',
+          verificationAttempt: 0,
           dnsManagedByBestShopio: false,
           records: [
             { type: 'CNAME', host: 'br.' + token + '._domainkey', value: 'br.' + token + '.dkim.sender-validation.net' },
@@ -3251,7 +3261,7 @@
     const brandedStatus = !brandedDomain
       ? ''
       : brandedDomain.status === 'verified'
-        ? '<span class="pill pill-green"><span class="dot"></span>Verified</span>'
+        ? '<span class="pill pill-green"><span class="dot"></span>' + tx('Active sender domain') + '</span>'
         : brandedDomain.status === 'dns_error'
           ? '<span class="pill pill-red"><span class="dot"></span>DNS error</span>'
           : '<span class="pill pill-orange"><span class="dot"></span>Pending verification</span>';
@@ -3262,26 +3272,30 @@
         : brandedDomain.status === 'dns_error'
           ? 'Correct the DNS records, then verify again.'
           : 'Add the DNS records to complete verification.';
-    const brandedDomainCard = '<article class="nf-sender-domain-card is-branded' + (brandedDomain ? ' has-domain' : '') + '"><div class="nf-sender-domain-card-head"><span class="nf-sender-domain-icon is-branded">' + I.globe + '</span><div class="nf-sender-domain-card-main"><div class="nf-sender-domain-card-title">' + (brandedDomain ? 'Branded sending domain' : 'Add branded sending domain') + '</div>' + (brandedDomain ? '<div class="nf-sender-domain-card-address">' + esc(senderAddressFor(brandedDomain)) + '</div>' : '<p class="nf-sender-domain-card-copy is-inline">' + brandedCopy + '</p>') + '</div>' + brandedStatus + '</div>' + (brandedDomain ? '<p class="nf-sender-domain-card-copy">' + brandedCopy + '</p>' : '') + (brandedDomain ? '' : '<div class="nf-sender-domain-card-actions"><button class="btn btn-primary" data-manage-sending-domain>Add branded sending domain</button></div>') + '</article>';
+    const brandedDomainControls = brandedDomain
+      ? '<div class="nf-sender-domain-card-controls">' + brandedStatus + '<button type="button" class="nf-sender-domain-remove" data-remove-sending-domain="' + esc(brandedDomain.id) + '">' + tx('Delete') + '</button></div>'
+      : '';
+    const brandedDomainCard = '<article class="nf-sender-domain-card is-branded' + (brandedDomain ? ' has-domain' : '') + '"><div class="nf-sender-domain-card-head"><span class="nf-sender-domain-icon is-branded">' + I.globe + '</span><div class="nf-sender-domain-card-main"><div class="nf-sender-domain-card-title">' + (brandedDomain ? 'Branded sending domain' : 'Add branded sending domain') + '</div>' + (brandedDomain ? '<div class="nf-sender-domain-card-address">' + esc(senderAddressFor(brandedDomain)) + '</div>' : '<p class="nf-sender-domain-card-copy is-inline">' + brandedCopy + '</p>') + '</div>' + brandedDomainControls + '</div>' + (brandedDomain ? '<p class="nf-sender-domain-card-copy">' + brandedCopy + '</p>' : '') + (brandedDomain ? '' : '<div class="nf-sender-domain-card-actions"><button class="btn btn-primary" data-manage-sending-domain>Add branded sending domain</button></div>') + '</article>';
     const brandedDomainSetup = brandedDomain && brandedDomain.status !== 'verified'
       ? (function () {
           const records = brandedDomain.records || [];
           const recordsList = records.map((record) =>
             '<div class="nf-email-dns-row"><code>' + esc(record.type) + '</code><code>' + esc(record.host) + '</code><code>' + esc(record.value) + '</code><button class="nf-dns-copy" data-copy-sender-dns="' + esc(record.type + ' ' + record.host + ' ' + record.value) + '">' + tx('Copy') + '</button></div>'
           ).join('');
+          const verificationError = (source) => brandedDomain.status === 'dns_error' && brandedDomain.lastVerificationSource === source
+            ? '<div class="nf-email-verification-error" role="alert">' + I.info + '<div><strong>' + tx('DNS verification failed.') + '</strong><span>' + tx('We could not find the DNS records. Review them, then try again.') + '</span></div></div>'
+            : '';
           const recordsPanel = sender.emailDnsGuideOpen
-            ? '<div class="nf-email-dns-records"><div class="nf-email-dns-records-title">' + tx('Verification records') + '</div>' + recordsList + '</div><div class="nf-email-setup-actions"><button class="btn btn-default" data-email-hide-dns>' + tx('Hide DNS records') + '</button><button class="btn btn-primary" data-email-check-domain="' + esc(brandedDomain.id) + '">' + tx('Check verification') + '</button></div>'
+            ? '<div class="nf-email-dns-records"><div class="nf-email-dns-records-title">' + tx('Verification records') + '</div>' + recordsList + '</div><div class="nf-email-setup-actions"><button class="btn btn-default" data-email-hide-dns>' + tx('Hide DNS records') + '</button><button class="btn btn-primary" data-email-check-domain="' + esc(brandedDomain.id) + '" data-email-check-source="manual">' + tx('Check verification') + '</button></div>' + verificationError('manual')
             : '<button class="btn btn-gray" data-email-show-dns>' + tx('View DNS records') + '</button>';
           const providerList = '<div class="nf-email-provider-list"><span>GoDaddy</span><span>Cloudflare</span><span>Namecheap</span></div>';
           const automaticAction = brandedDomain.dnsManagedByBestShopio
-            ? '<div class="nf-email-setup-connected">' + I.check + '<span>' + tx('DNS provider connected') + '</span></div><button class="btn btn-primary" data-email-check-domain="' + esc(brandedDomain.id) + '">' + tx('Check verification') + '</button>'
+            ? '<div class="nf-email-setup-connected">' + I.check + '<span>' + tx('DNS provider connected') + '</span></div><button class="btn btn-primary" data-email-check-domain="' + esc(brandedDomain.id) + '" data-email-check-source="automatic">' + tx('Check verification') + '</button>' + verificationError('automatic')
             : providerList + '<button class="btn btn-primary" data-email-auto-dns="' + esc(brandedDomain.id) + '">' + tx('Connect DNS provider') + '</button>';
           return '<section class="nf-email-domain-setup" data-sender-domain-setup><div class="nf-email-domain-setup-head"><div><div class="nf-email-domain-setup-title">' + tx('Set up your sending domain') + '</div><div class="nf-email-domain-setup-copy">' + esc(brandedDomain.domain) + '</div></div></div><div class="nf-email-setup-grid"><article class="nf-email-setup-path is-primary"><div class="nf-email-setup-path-head"><span class="nf-email-setup-icon">' + I.globe + '</span><div><strong>' + tx('Automatic setup') + '</strong><small>' + tx('Recommended · no records to copy') + '</small></div><span class="nf-email-setup-recommended">' + tx('Recommended') + '</span></div><p>' + tx('Connect a supported DNS provider and BestCheckout adds the verification records automatically.') + '</p><div class="nf-email-setup-path-action">' + automaticAction + '</div></article><article class="nf-email-setup-path"><div class="nf-email-setup-path-head"><span class="nf-email-setup-icon is-muted">' + I.info + '</span><div><strong>' + tx('Manual setup') + '</strong><small>' + tx('For another DNS provider') + '</small></div></div><p>' + tx('Add the CNAME and TXT records yourself. We’ll verify the domain after the records are found.') + '</p><div class="nf-email-setup-path-action">' + recordsPanel + '</div></article></div></section>';
         })()
       : '';
-    const brandedDomainFlow = brandedDomain
-      ? '<div class="nf-branded-domain-flow">' + brandedDomainCard + brandedDomainSetup + '</div>'
-      : brandedDomainCard;
+    const brandedDomainFlow = '<div class="nf-branded-domain-flow">' + brandedDomainCard + brandedDomainSetup + '</div>';
 
     paint(
       '<style>' + NOTIF_STYLES + '</style>' +
@@ -3317,6 +3331,27 @@
     };
     const manageSendingDomain = root.querySelector('[data-manage-sending-domain]');
     if (manageSendingDomain) manageSendingDomain.onclick = () => openEmailSendingDomainModal(renderNotifSender);
+    root.querySelectorAll('[data-remove-sending-domain]').forEach((button) => {
+      button.onclick = () => {
+        const domain = sender.domains.find((item) => item.id === button.getAttribute('data-remove-sending-domain'));
+        if (!domain || domain.default) return;
+        modal({
+          title: tx('Remove this sending domain?'),
+          width: 440,
+          okText: tx('Remove'),
+          danger: true,
+          body: '<div class="muted" style="font-size:13px;line-height:1.6"><b>' + esc(domain.domain) + '</b><br/>' + tx('Removing this domain cancels its verification. You can add a different domain afterwards.') + '</div>',
+          onOk: (_, close) => {
+            sender.domains = sender.domains.filter((item) => item.id !== domain.id);
+            if (sender.activeDomainId === domain.id) sender.activeDomainId = (sender.domains.find((item) => item.default) || {}).id || '';
+            sender.emailDnsGuideOpen = false;
+            close();
+            toast(tx('Sending domain removed'));
+            renderNotifSender();
+          },
+        });
+      };
+    });
     root.querySelectorAll('[data-email-auto-dns]').forEach((button) => {
       button.onclick = () => openEmailDnsProviderModal(button.getAttribute('data-email-auto-dns'));
     });
@@ -3337,10 +3372,20 @@
       button.onclick = () => {
         const domain = sender.domains.find((d) => d.id === button.getAttribute('data-email-check-domain'));
         if (!domain) return;
+        const source = button.getAttribute('data-email-check-source') || 'manual';
+        domain.lastVerificationSource = source;
+        domain.verificationAttempt = (domain.verificationAttempt || 0) + 1;
+        if (domain.verificationAttempt === 1) {
+          domain.status = 'dns_error';
+          sender.emailDnsGuideOpen = source === 'manual';
+          toast(tx('DNS records were not found. Correct them, then check again.'));
+          renderNotifSender();
+          return;
+        }
         domain.status = 'verified';
         sender.activeDomainId = domain.id;
         sender.emailDnsGuideOpen = false;
-        toast('Sending domain verified and activated');
+        toast(tx('Sending domain verified and activated'));
         renderNotifSender();
       };
     });
@@ -3475,8 +3520,8 @@
   .nf-sender-domain-section .nf-section-title { margin: 0 2px 2px; }
   .nf-sender-domain-card { border: 1px solid var(--hair); border-radius: 12px; padding: 17px 18px; background: #fff; box-shadow: 0 1px 2px rgb(21 32 51 / 3%); }
   .nf-sender-domain-card.is-default { background: #fbfcff; }
-  .nf-sender-domain-card.is-branded { border-color: #cfe0ff; background: linear-gradient(135deg, #fbfdff 0%, #f5f9ff 100%); }
-  .nf-sender-domain-card.is-branded.has-domain { border-color: #cce9d9; background: linear-gradient(135deg, #fcfffd 0%, #f4fbf7 100%); }
+  .nf-sender-domain-card.is-branded { border: 0; background: transparent; box-shadow: none; }
+  .nf-sender-domain-card.is-branded.has-domain { background: transparent; }
   .nf-sender-domain-card-head { display: flex; align-items: flex-start; gap: 12px; }
   .nf-sender-domain-icon { display: grid; place-items: center; width: 36px; height: 36px; flex: none; border-radius: 9px; background: #eef2f6; color: #64748b; }
   .nf-sender-domain-icon.is-branded { background: #e6f0ff; color: var(--brand); }
@@ -3487,7 +3532,12 @@
   .nf-sender-domain-card-main .nf-sender-domain-card-copy.is-inline { margin: 3px 0 0; }
   .nf-sender-domain-card-actions { display: flex; margin: 14px 0 0 48px; }
   .nf-sender-domain-card-actions .btn { min-width: 132px; }
-  .nf-branded-domain-flow { display: flex; flex-direction: column; gap: 16px; padding: 14px; border: 1px solid #dfe5ec; border-radius: 12px; background: #fbfcfe; }
+  .nf-sender-domain-card-controls { display: flex; align-items: center; gap: 10px; flex: none; margin-left: auto; }
+  .nf-sender-domain-remove { border: 0; padding: 3px 0; color: #b42318; background: transparent; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+  .nf-sender-domain-remove:hover { color: #8f1d14; text-decoration: underline; }
+  .nf-branded-domain-flow { display: flex; flex-direction: column; gap: 12px; padding: 16px; border: 1px solid #cfe0ff; border-radius: 12px; background: linear-gradient(135deg, #fbfdff 0%, #f5f9ff 100%); }
+  .nf-branded-domain-flow > .nf-sender-domain-card { padding: 0; }
+  .nf-branded-domain-flow > .nf-email-domain-setup { margin: 0; }
   .nf-sender-ref { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; margin: 0 0 14px; border: 1px solid var(--hair); border-radius: 8px; background: var(--panel); }
   .nf-copy { width: 100%; min-height: 150px; padding: 10px 12px; border: 1px solid var(--ctl); border-radius: 8px; resize: vertical; color: var(--ink); background: #fff; font: 13px/1.6 inherit; }
   .nf-copy:focus { outline: none; border-color: var(--brand); }
@@ -3521,11 +3571,11 @@
   .nf-dns-copy { padding: 4px 8px; border: 1px solid var(--ctl); border-radius: 6px; background: #fff; color: var(--brand); font: inherit; font-size: 12px; cursor: pointer; }
   .nf-dns-copy:hover { border-color: var(--brand); background: #f7faff; }
   .nf-email-domain-setup { margin-top: 2px; }
-  .nf-email-domain-setup-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin: 0 2px; }
+  .nf-email-domain-setup-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin: 0; }
   .nf-email-domain-setup-title { color: var(--ink); font-size: 14px; font-weight: 650; line-height: 1.4; }
   .nf-email-domain-setup-copy { margin-top: 3px; color: var(--ink-muted); font-size: 12.5px; line-height: 1.45; overflow-wrap: anywhere; }
-  .nf-email-setup-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
-  .nf-email-setup-path { display: flex; flex-direction: column; min-height: 220px; padding: 16px; border: 1px solid var(--hair); border-radius: 10px; background: #fff; }
+  .nf-email-setup-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 12px; }
+  .nf-email-setup-path { display: flex; flex-direction: column; min-height: 0; padding: 16px; border: 1px solid var(--hair); border-radius: 10px; background: #fff; }
   .nf-email-setup-path.is-primary { border-color: #b9d2ff; background: #fbfdff; }
   .nf-email-setup-path-head { display: flex; align-items: flex-start; gap: 10px; }
   .nf-email-setup-icon { display: grid; place-items: center; width: 32px; height: 32px; flex: none; border-radius: 8px; color: var(--brand); background: #eaf2ff; }
@@ -3547,9 +3597,14 @@
   .nf-email-dns-row:first-of-type { border-top: 0; }
   .nf-email-dns-row code { min-width: 0; overflow-wrap: anywhere; color: var(--ink-body); font: 11.5px/1.45 ui-monospace, Menlo, Consolas, monospace; }
   .nf-email-setup-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .nf-email-verification-error { display: flex; flex-basis: 100%; align-items: flex-start; gap: 8px; margin-top: 2px; padding: 10px 11px; border: 1px solid #f7c7c3; border-radius: 8px; color: #b42318; background: #fff1f0; font-size: 12px; line-height: 1.45; }
+  .nf-email-verification-error svg { width: 15px; height: 15px; flex: none; margin-top: 1px; }
+  .nf-email-verification-error div { display: grid; gap: 1px; }
+  .nf-email-verification-error strong { font-weight: 700; }
+  .nf-email-verification-error span { color: #c23b32; }
   @media (max-width: 840px) { .nf-domain-facts { grid-template-columns: 1fr; } .nf-domain-cell + .nf-domain-cell { border-left: 0; border-top: 1px solid #e8edf3; } }
   @media (max-width: 620px) { .nf-email-setup-grid { grid-template-columns: 1fr; } .nf-email-setup-path { min-height: 0; } .nf-email-dns-row { grid-template-columns: 54px minmax(0, 1fr) auto; } .nf-email-dns-row code:nth-child(3) { grid-column: 2; grid-row: 2; } .nf-email-dns-row .nf-dns-copy { grid-column: 3; grid-row: 1 / 3; } }
-  @media (max-width: 620px) { .nf-sender-card { align-items: flex-start; flex-wrap: wrap; } .nf-sender-card .btn { width: 100%; } .nf-sender-ref { align-items: flex-start; flex-direction: column; } .nf-sender-domain-card { padding: 15px; } .nf-branded-domain-flow { padding: 10px; gap: 12px; } .nf-sender-domain-card-head { gap: 10px; } .nf-sender-domain-card-copy, .nf-sender-domain-card-actions { margin-left: 0; } .nf-sender-domain-card-actions .btn { width: 100%; } .nf-dns-row { grid-template-columns: 68px 104px minmax(0, 1fr); } .nf-dns-row.nf-dns-inline { grid-template-columns: 58px minmax(0, 1fr) 54px; } .nf-dns-inline-head { display: none; } .nf-dns-row.nf-dns-inline > :nth-child(1) { grid-column: 1; grid-row: 1; } .nf-dns-row.nf-dns-inline > :nth-child(2) { grid-column: 2 / 4; grid-row: 1; } .nf-dns-row.nf-dns-inline > :nth-child(3) { grid-column: 2; grid-row: 2; } .nf-dns-row.nf-dns-inline > :nth-child(4) { grid-column: 3; grid-row: 2; } .nf-dns-cell { padding: 9px; font-size: 11.5px; } }
+  @media (max-width: 620px) { .nf-sender-card { align-items: flex-start; flex-wrap: wrap; } .nf-sender-card .btn { width: 100%; } .nf-sender-ref { align-items: flex-start; flex-direction: column; } .nf-sender-domain-card { padding: 15px; } .nf-branded-domain-flow { gap: 12px; padding: 15px; } .nf-sender-domain-card-head { gap: 10px; flex-wrap: wrap; } .nf-sender-domain-card-controls { width: calc(100% - 46px); margin-left: 46px; justify-content: space-between; } .nf-sender-domain-card-copy, .nf-sender-domain-card-actions { margin-left: 0; } .nf-sender-domain-card-actions .btn { width: 100%; } .nf-dns-row { grid-template-columns: 68px 104px minmax(0, 1fr); } .nf-dns-row.nf-dns-inline { grid-template-columns: 58px minmax(0, 1fr) 54px; } .nf-dns-inline-head { display: none; } .nf-dns-row.nf-dns-inline > :nth-child(1) { grid-column: 1; grid-row: 1; } .nf-dns-row.nf-dns-inline > :nth-child(2) { grid-column: 2 / 4; grid-row: 1; } .nf-dns-row.nf-dns-inline > :nth-child(3) { grid-column: 2; grid-row: 2; } .nf-dns-row.nf-dns-inline > :nth-child(4) { grid-column: 3; grid-row: 2; } .nf-dns-cell { padding: 9px; font-size: 11.5px; } }
 
   /* Shopify-style notification editor */
   .nf-shop-shell { width: min(860px, 100%); margin: 0 auto; }
