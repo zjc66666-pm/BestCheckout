@@ -30,30 +30,25 @@ window.DATA_SETTINGS = {
     locales: [ { code: 'en', label: 'English' } ],
     // One sender identity is shared by all shop transactional messages.
     sender: {
-      activeDomainId: 'lavender-main',
-      profile: { fromName: 'Lavender Labs', localPart: 'orders', replyTo: 'support@lavenderlabs.co' },
+      activeDomainId: 'lavender-bestcheckout-default',
+      // The platform domain is shared. This store-owned prefix is provisioned once and cannot be edited.
+      platformLocalPart: 'lavenderlabs',
+      profile: { fromName: 'Lavender Labs', localPart: 'lavenderlabs', replyTo: '' },
       domains: [
-        { id: 'lavender-main', domain: 'lavenderlabs.co', status: 'verified', records: [
-          { type: 'TXT', host: 'bestreach._domainkey', value: 'k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A…' },
-          { type: 'TXT', host: '@', value: 'v=spf1 include:spf.bestreach.example ~all' },
-        ] },
-        { id: 'lavender-mail', domain: 'mail.lavenderlabs.co', status: 'verified', records: [
-          { type: 'CNAME', host: 'bestreach._domainkey.mail', value: 'dkim.bestreach.example' },
-          { type: 'TXT', host: 'mail', value: 'v=spf1 include:spf.bestreach.example ~all' },
-        ] },
-        { id: 'lavender-pending', domain: 'send.lavenderlabs.co', status: 'pending', records: [
-          { type: 'CNAME', host: 'bestreach._domainkey.send', value: 'dkim.bestreach.example' },
-          { type: 'TXT', host: 'send', value: 'v=spf1 include:spf.bestreach.example ~all' },
-        ] },
+        { id: 'lavender-bestcheckout-default', domain: 'mail.bestcheckout.com', status: 'platform', default: true, records: [] },
       ],
     },
     deliveryLog: [],
     groups: [
       { key: 'checkout', label: 'Checkout customer emails', events: [
-        { code: 'checkout_purchase_finalized', name: 'Final order confirmation', cls: 'Transactional', priority: 'P0',
+        { code: 'checkout_purchase_finalized', name: 'Order confirmation', cls: 'Transactional', priority: 'P0',
           desc: 'Sent once after payment and every Upsell or Downsell decision are complete.',
-          config: { enabled: true, subject: 'Order #{{order.number}} confirmed', preheader: 'Your final order details are ready.',
-            headline: 'Thank you, {{customer.first_name}}', copy: 'Your payment is confirmed and your final order is now being prepared. We’ll send any fulfilment updates separately.', updatedAt: '2026-07-27' } },
+          config: { enabled: true, subject: 'Order #{{order.number}} confirmed', preheader: 'Thanks for your purchase — here are your order details.',
+            headline: 'Thank you for your order!', copy: 'We’ve received your payment and your order is being prepared. We’ll send tracking details when it ships.', updatedAt: '2026-07-28' } },
+        { code: 'checkout_refunded', name: 'Order refund', cls: 'Transactional', priority: 'P1',
+          desc: 'Sent when a refund is approved for the customer.',
+          config: { enabled: false, subject: 'Refund notification', preheader: 'Total amount refunded: {{refund.amount}}. It may take up to 10 days for this refund to appear in your account.',
+            headline: 'Your order has been refunded', copy: 'Total amount refunded: {{refund.amount}}. It may take up to 10 days for this refund to appear in your account.', updatedAt: '' } },
       ] },
     ],
   },
