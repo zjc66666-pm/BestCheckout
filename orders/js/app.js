@@ -37,6 +37,7 @@
     sending:       { text: 'Sending to Shopify',  cls: 'pill-orange' },
     attention:     { text: 'Needs attention',     cls: 'pill-red' },
     after_payment: { text: 'Sync after payment',  cls: 'pill-gray' },
+    subscription_history: { text: 'Subscription managed', cls: 'pill-blue' },
     shopify_order: { text: 'Created in Shopify',  cls: 'pill-gray' },
   };
 
@@ -65,6 +66,9 @@
   }
 
   function shopifySyncState(o) {
+    if (o && o.order_origin === 'subscription_renewal') {
+      return { key: 'subscription_history', detail: 'This recurring charge is managed by its subscription contract. Shopify fulfillment is not recorded on this billing history entry.' };
+    }
     if (!isBestCheckoutOrder(o)) return { key: 'shopify_order', detail: 'This order was created in Shopify.' };
     if (o.shopify_writeback_status === 'synced') return { key: 'in_shopify', detail: 'This order is in Shopify and can follow your usual fulfillment process.' };
     if (o.shopify_writeback_status === 'pending') return { key: 'sending', detail: 'This paid order is being sent to Shopify. Fulfillment starts after it appears there.' };
@@ -73,6 +77,7 @@
   }
 
   function orderSourceDetail(o) {
+    if (o && o.order_origin === 'subscription_renewal') return '<span>BestCheckout</span><span class="muted" style="margin-left:6px;font-size:12px">Subscription renewal</span>';
     return isBestCheckoutOrder(o) ? '<span>BestCheckout</span><span class="muted" style="margin-left:6px;font-size:12px">Purchase flow</span>' : '<span>Shopify checkout</span>';
   }
 
@@ -443,12 +448,17 @@
     const userId = Number((String(contract.id).match(/\d+/) || ['0'])[0]);
     const shipping = subscriptionShipping(contract);
     const paymentEvent = isPaid ? 'Recurring payment captured' : (chargeStatus === 'retrying' ? 'Recurring payment retry scheduled' : 'Recurring payment failed');
+    const processor = contract.gateway ? String(contract.gateway).slice(0, 1).toUpperCase() + String(contract.gateway).slice(1) : 'Not selected';
     return {
       order_id: 'subscription-' + sn,
       order_sn: sn,
       status: orderStatus,
       paid: isPaid ? 1 : 0,
       order_type: 0,
+      source: 'BestCheckout',
+      order_origin: 'subscription_renewal',
+      shopify_writeback_status: 'subscription_history',
+      shopify_writeback_detail: 'This recurring charge is managed by its subscription contract. Shopify fulfillment is not recorded on this billing history entry.',
       payment_status: isPaid ? 'paid' : 'unpaid',
       verify_code: '',
       create_time: date ? date + ' 09:00' : '',
@@ -458,6 +468,16 @@
       user: { nickname: contract.customer || 'Customer', uid: userId },
       shipping,
       note: 'Recurring charge from ' + contract.id + '.',
+      checkout: {
+        flowName: 'Subscription renewal automation', pageName: 'Recurring charge · no checkout page', entry: 'Subscription contract',
+        sessionId: 'bc_rnw_' + sn, attribution: 'Existing subscriber', postPurchase: 'Not shown on renewal',
+      },
+      payment: {
+        status: chargeStatus === 'refunded' ? 'refunded' : (isPaid ? 'captured' : 'not_paid'),
+        processor, method: contract.method || 'Not selected', transactionId: isPaid ? 'txn_' + sn.toLowerCase() : '',
+        capturedAt: isPaid && date ? date + ' 09:01' : '', risk: isPaid ? 'Subscription charge confirmed' : 'Not evaluated',
+        refund: chargeStatus === 'refunded' ? 'Fully refunded' : '',
+      },
       sub: { id: contract.id, cycle: charge.cycle || contract.cyclesDone || 1, next: contract.next || '', deliveryLabel: subscriptionScheduleLabel(contract) },
       total_num: qty, subtotal: amount, shipping_fee: 0, total: amount, paid_amount: isPaid ? amount : 0,
       order_discounts: [], shipping_discounts: [], total_savings: 0,
@@ -495,6 +515,8 @@
           '<div class="detail-main">' +
             productsCard(o) +
             amountCard(o) +
+            checkoutAndPaymentCards(o) +
+            purchaseSnapshotCards(o) +
             shippingAddressCard(o) +
             integrationCard(o) +
             timelineCard(o) +
@@ -586,7 +608,7 @@
       '<div style="grid-column:1 / -1;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-bottom:2px">' + subscriptionDiscounts.map((d) =>
         '<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-muted);line-height:1.45"><span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;flex:none">' + I.tag + '</span><span>' + esc(subscriptionDiscountLabel(d)) + ' (-' + money(d.amount) + ')</span></span>').join('') +
       '</div>' : '';
-    return '<div style="display:grid;grid-template-columns:minmax(0,1fr) 44px 104px;gap:14px;align-items:flex-start;padding:14px 0' +
+    return '<div class="order-item-row" style="display:grid;grid-template-columns:minmax(0,1fr) 44px 104px;gap:14px;align-items:flex-start;padding:14px 0' +
         (topBorder ? ';border-top:1px solid var(--hair)' : '') + '">' +
       '<div class="flex items-center gap-3" style="min-width:0">' +
         '<img src="' + it.image + '" alt="" style="width:40px;height:40px;border-radius:6px;flex:none" />' +
@@ -746,6 +768,138 @@
       '<div class="subtle" style="display:flex;align-items:center;min-height:22px;font-size:13px;min-width:0;word-break:break-word">' + (val || '--') + '</div></div>';
   }
 
+  function operationFact(label, value) {
+    return '<div style="min-width:0;padding:9px 0;border-top:1px solid var(--hair)">' +
+      '<div class="muted" style="font-size:11.5px;font-weight:600;letter-spacing:.02em;margin-bottom:4px">' + esc(label) + '</div>' +
+      '<div class="subtle" style="font-size:13px;line-height:1.45;min-width:0;overflow-wrap:anywhere">' + (value || '--') + '</div>' +
+    '</div>';
+  }
+
+  function operationCard(title, body) {
+    return '<section class="panel card-pad" style="margin:0;min-width:0">' +
+      '<div class="card-title" style="margin-bottom:4px">' + title + '</div>' + body +
+    '</section>';
+  }
+
+  function paymentStatusPill(status) {
+    const state = String(status || '').toLowerCase();
+    const styles = state === 'captured'
+      ? { label: 'Captured', bg: '#e8f8ef', color: '#14834c', dot: '#14834c' }
+      : state === 'refunded'
+        ? { label: 'Refunded', bg: '#fff2e8', color: '#b54708', dot: '#f79009' }
+        : { label: 'Not paid', bg: '#f2f4f7', color: '#667085', dot: '#98a2b3' };
+    return '<span style="display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 8px;background:' + styles.bg + ';color:' + styles.color + ';font-size:12px;font-weight:600"><span style="width:6px;height:6px;border-radius:50%;background:' + styles.dot + '"></span>' + styles.label + '</span>';
+  }
+
+  function checkoutCard(o) {
+    const c = o.checkout || {};
+    const facts = [
+      operationFact('Purchase flow', esc(c.flowName)),
+      operationFact('Checkout page', esc(c.pageName)),
+      operationFact('Buyer entry', esc(c.entry)),
+      operationFact('Checkout session', '<span style="font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px">' + esc(c.sessionId) + '</span>'),
+      operationFact('Attribution', esc(c.attribution)),
+      operationFact('Post-purchase offer', esc(c.postPurchase)),
+    ];
+    return operationCard('BestCheckout checkout', '<div class="order-operation-facts" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:18px">' + facts.join('') + '</div>');
+  }
+
+  function paymentCard(o) {
+    const p = o.payment || {};
+    const facts = [
+      operationFact('Payment status', paymentStatusPill(p.status)),
+      operationFact('Processor', esc(p.processor)),
+      operationFact('Payment method', esc(p.method)),
+      operationFact('Transaction reference', p.transactionId ? '<span style="font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px">' + esc(p.transactionId) + '</span>' : '--'),
+      operationFact(p.status === 'captured' ? 'Captured at' : 'Payment time', esc(p.capturedAt)),
+      operationFact('Risk check', esc(p.risk)),
+    ];
+    if (p.refund) facts.push(operationFact('Refund', esc(p.refund)));
+    return operationCard('Payment', '<div class="order-operation-facts" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:18px">' + facts.join('') + '</div>');
+  }
+
+  function checkoutAndPaymentCards(o) {
+    return '<div class="order-operation-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-bottom:16px">' + checkoutCard(o) + paymentCard(o) + '</div>';
+  }
+
+  function subscriptionContracts(o) {
+    const contracts = [];
+    const seen = {};
+    const add = (sub, item) => {
+      if (!sub && !item) return;
+      const reference = sub || {};
+      const id = reference.id || '';
+      const schedule = reference.deliveryLabel || (item && item.subLabel) || '';
+      const key = id || [schedule, item && item.title].join('|');
+      if (seen[key]) return;
+      seen[key] = true;
+      contracts.push({ id, schedule, cycle: reference.cycle, next: reference.next, product: item && item.title });
+    };
+    if (o.sub) add(o.sub, null);
+    (o.items || []).forEach((item) => {
+      if (item.subLine || item.subscription) add(item.subscription || o.sub, item);
+    });
+    return contracts;
+  }
+
+  function subscriptionSnapshotCard(o) {
+    const selected = !!(o.sub || o.has_subscription || (o.items || []).some((item) => item.subLine || item.subscription));
+    if (!selected) return '';
+    const contracts = subscriptionContracts(o);
+    if (!contracts.length || !contracts.some((contract) => contract.id)) {
+      const status = o.status === 'cancel' ? 'Order canceled before payment' : 'Awaiting successful payment';
+      return operationCard('Subscription', '<div style="margin-top:12px;padding:12px;border:1px solid #d6e4ff;background:#f5f8ff;border-radius:8px"><div style="font-size:13px;font-weight:600;color:var(--ink)">Subscription selected at checkout</div><div class="muted" style="font-size:12.5px;line-height:1.5;margin-top:4px"><span>' + esc(status) + '</span><span> · no subscription contract was created.</span></div></div>');
+    }
+    const rows = contracts.map((contract, index) => {
+      const cycle = Number(contract.cycle || 1);
+      const stage = cycle > 1 ? 'Renewal · cycle ' + cycle : 'Initial order · cycle 1';
+      const schedule = contract.schedule ? String(contract.schedule).replace(/\s*\([^)]*\)\s*$/, '') : 'Delivery schedule recorded';
+      return '<div style="padding:12px 0' + (index ? ';border-top:1px solid var(--hair)' : '') + '">' +
+        '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px"><div style="min-width:0"><div style="font-size:13px;font-weight:600;color:var(--ink)">' + esc(contract.id || 'Subscription contract') + '</div><div class="muted" style="font-size:12px;line-height:1.5;margin-top:3px">' + esc(schedule) + (contract.product ? ' · ' + esc(contract.product) : '') + '</div></div><span style="flex:none;color:#1d4ed8;background:#eef4ff;border-radius:999px;padding:3px 7px;font-size:11.5px;font-weight:600;white-space:nowrap">' + esc(stage) + '</span></div>' +
+        (contract.next ? '<div style="font-size:12px;color:var(--ink-body);margin-top:7px">Next charge <strong>' + esc(contract.next) + '</strong></div>' : '') +
+      '</div>';
+    }).join('');
+    return operationCard('Subscription', '<div style="margin-top:4px">' + rows + '</div>');
+  }
+
+  function bundleGroups(o) {
+    const groups = {};
+    (o.items || []).forEach((item) => {
+      if (!item.bundle) return;
+      if (!groups[item.bundle]) groups[item.bundle] = { name: item.bundle, components: 0, gifts: 0 };
+      groups[item.bundle].components += 1;
+      if (item.gift) groups[item.bundle].gifts += 1;
+    });
+    const list = Object.keys(groups).map((key) => groups[key]);
+    if (!list.length && o.bundle) list.push({ name: o.bundle.name || 'Bundle', id: o.bundle.id || '', components: 0, gifts: 0 });
+    return list.map((group) => {
+      if (!group.id && o.bundle && o.bundle.name === group.name) group.id = o.bundle.id || '';
+      return group;
+    });
+  }
+
+  function bundleSnapshotCard(o) {
+    const bundles = bundleGroups(o);
+    if (!bundles.length) return '';
+    const rows = bundles.map((bundle, index) => {
+      const parts = [];
+      if (bundle.id) parts.push(bundle.id);
+      if (bundle.components) parts.push(bundle.components + (bundle.components === 1 ? ' component' : ' components'));
+      if (bundle.gifts) parts.push(bundle.gifts + (bundle.gifts === 1 ? ' free gift' : ' free gifts'));
+      return '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:12px 0' + (index ? ';border-top:1px solid var(--hair)' : '') + '">' +
+        '<div style="min-width:0"><div style="font-size:13px;font-weight:600;color:var(--ink)">' + esc(bundle.name) + '</div><div class="muted" style="font-size:12px;line-height:1.5;margin-top:3px">' + esc(parts.join(' · ') || 'Bundle configuration saved with this order') + '</div></div>' +
+        '<span style="flex:none;color:#9a6400;background:#fff4de;border-radius:999px;padding:3px 7px;font-size:11.5px;font-weight:600">Bundle</span>' +
+      '</div>';
+    }).join('');
+    return operationCard('Bundle snapshot', '<div style="margin-top:4px">' + rows + '</div>');
+  }
+
+  function purchaseSnapshotCards(o) {
+    const cards = [subscriptionSnapshotCard(o), bundleSnapshotCard(o)].filter(Boolean);
+    if (!cards.length) return '';
+    return '<div class="order-snapshot-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-bottom:16px">' + cards.join('') + '</div>';
+  }
+
   // ---- Shipping address card (ShippingAddressCard.tsx): 2-col, no inline edit ----
   function shippingAddressCard(o) {
     const s = o.shipping;
@@ -780,11 +934,14 @@
     const shopifyUrl = state.key === 'in_shopify' ? shopifyAdminOrderUrl(o) : '';
     const openInShopify = shopifyUrl ? '<a class="btn btn-default" href="' + esc(shopifyUrl) + '" target="_blank" rel="noreferrer">View in Shopify</a>' : '';
     const retry = state.key === 'attention' ? '<button class="btn btn-default" data-act="retry-shopify">Retry sync</button>' : '';
+    const fulfillmentNote = state.key === 'subscription_history'
+      ? 'This billing history entry does not contain Shopify fulfillment or refund activity.'
+      : 'Fulfillment and refunds are managed in Shopify.';
     return cardOpen('<span>Shopify</span>', openInShopify || retry) +
       integrationRow('Order source', orderSourceDetail(o)) +
       integrationRow('Shopify sync status', shopifySyncPill(o) + shopifyId) +
       '<div class="subtle" style="font-size:12.5px;line-height:1.55;margin-top:6px">' + esc(state.detail) + '</div>' +
-      '<div class="subtle" style="font-size:12.5px;line-height:1.55;margin-top:6px">Fulfillment and refunds are managed in Shopify.</div>' +
+      '<div class="subtle" style="font-size:12.5px;line-height:1.55;margin-top:6px">' + esc(fulfillmentNote) + '</div>' +
     '</div>';
   }
 

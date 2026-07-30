@@ -658,6 +658,12 @@ a.mod-card:hover { border-color: var(--brand); box-shadow: var(--float-shadow); 
   .sidebar-backdrop.show { display: block; position: fixed; inset: 0; background: rgb(15 23 42 / 35%); z-index: 45; }
   .hub-cols { flex-direction: column; }
   .hub-cols .builder-side { width: 100%; flex: none; }
+  .detail-wrap { width: 100%; margin: 0; padding: 0 14px 24px; }
+  .detail-cols { flex-direction: column; gap: 16px; }
+  .detail-rail { width: 100%; flex: none; }
+  .order-operation-cards, .order-snapshot-cards { grid-template-columns: 1fr !important; }
+  .order-operation-facts { grid-template-columns: 1fr !important; }
+  .order-item-row { grid-template-columns: minmax(0, 1fr) 32px 68px !important; gap: 8px !important; }
   .view-wrap { padding: 16px 18px 40px; }
   .search-box { display: none; }
 }

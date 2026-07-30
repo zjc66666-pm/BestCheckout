@@ -674,6 +674,55 @@
     },
   };
 
+  function paymentProviderAndMethod(paymentMethod) {
+    const raw = String(paymentMethod || '').trim();
+    if (/^Stripe\b/i.test(raw)) return { processor: 'Stripe', method: raw.replace(/^Stripe\s*/i, '') || 'Card' };
+    if (/^Airwallex\b/i.test(raw)) return { processor: 'Airwallex', method: raw.replace(/^Airwallex\s*/i, '') || 'Card' };
+    if (/^PayPal\b/i.test(raw)) return { processor: 'PayPal', method: raw.replace(/^PayPal\s*/i, '') || 'PayPal' };
+    return { processor: raw && raw !== '--' ? raw : 'Not selected', method: raw && raw !== '--' ? raw : 'Not selected' };
+  }
+
+  function checkoutOperationalMeta(detail, listOrder) {
+    const orderNumber = String(detail.order_sn || (listOrder && listOrder.order_sn) || detail.order_id || 'order');
+    const subscription = detail.sub || detail.has_subscription || (detail.items || []).some((item) => item.subLine || item.subscription);
+    const renewal = !!(detail.sub && Number(detail.sub.cycle || 0) > 1);
+    const wroteUpsell = /upsell/i.test(String((detail.shopify_writeback_detail || (listOrder && listOrder.shopify_writeback_detail) || '')));
+    return {
+      flowName: renewal ? 'Subscription renewal automation' : (subscription ? 'Subscription · Core flow' : 'US paid social · Core flow'),
+      pageName: renewal ? 'Recurring charge · no checkout page' : (subscription ? 'Subscription checkout · v4' : 'Standard checkout · v3'),
+      entry: renewal ? 'Recurring charge' : 'Shopify cart redirect',
+      sessionId: (renewal ? 'bc_rnw_' : 'bc_chk_') + orderNumber,
+      attribution: renewal ? 'Existing subscriber' : 'Paid social · US',
+      postPurchase: renewal ? 'Not shown on renewal' : (wroteUpsell ? '1 offer accepted' : 'No offer shown'),
+    };
+  }
+
+  function paymentOperationalMeta(detail, listOrder) {
+    const row = listOrder || {};
+    const status = detail.status || row.order_status || '';
+    const paymentStatus = detail.payment_status || row.payment_status || 'unpaid';
+    const rawMethod = detail.payment_method || row.payment_method || '--';
+    const parsed = paymentProviderAndMethod(rawMethod);
+    const captured = paymentStatus === 'paid';
+    const refundAmount = Number(detail.refunded_amount || 0);
+    const fullyRefunded = status === 'refund' || (refundAmount > 0 && refundAmount >= Number(detail.total || row.total || 0));
+    return {
+      status: fullyRefunded ? 'refunded' : (captured ? 'captured' : 'not_paid'),
+      processor: parsed.processor,
+      method: parsed.method,
+      transactionId: captured ? 'txn_' + String(detail.order_sn || row.order_sn || detail.order_id || '').toLowerCase() : '',
+      capturedAt: detail.pay_time || row.pay_time || '',
+      risk: captured ? 'Standard review passed' : 'Not evaluated',
+      refund: fullyRefunded ? 'Fully refunded' : (refundAmount > 0 ? 'Partially refunded' : ''),
+    };
+  }
+
+  function enrichOperationalMeta(detail, listOrder) {
+    detail.checkout = Object.assign(checkoutOperationalMeta(detail, listOrder), detail.checkout || {});
+    detail.payment = Object.assign(paymentOperationalMeta(detail, listOrder), detail.payment || {});
+    return detail;
+  }
+
   // Keep every list record drill-down ready. Rich scenario fixtures above take precedence;
   // ordinary list rows receive a complete standard-order detail instead of an empty route.
   function standardOrderDetail(order) {
@@ -716,7 +765,7 @@
       delivery_id: order.delivery_id || '',
       user: order.user,
       shipping: order.shipping,
-      note: 'Standard order detail mock generated from this list record.',
+      note: 'Paid through BestCheckout. Fulfillment continues in Shopify.',
       total_num: 1,
       subtotal: order.total,
       shipping_fee: 0,
@@ -727,7 +776,8 @@
       shipping_discounts: [],
       total_savings: 0,
       items: [{
-        title: 'Standard order item',
+        title: ['Lavender Set', 'Calming Body Oil', 'Night Ritual Kit', 'Daily Restore Serum'][Number(order.order_id || 0) % 4],
+        sku: ['1 set', '100ml', 'Starter kit', '30ml'][Number(order.order_id || 0) % 4],
         image: IMG('#eef0f4', '#62708d', 'O'),
         unit_price: order.total,
         qty: 1,
@@ -743,6 +793,14 @@
     if (!Object.prototype.hasOwnProperty.call(DETAILS, order.order_id)) {
       DETAILS[order.order_id] = standardOrderDetail(order);
     }
+    enrichOperationalMeta(DETAILS[order.order_id], order);
+  });
+
+  // Some detailed fixtures do not have a current list row. They still receive
+  // the same order-operations metadata so every detail route has a consistent surface.
+  Object.keys(DETAILS).forEach((id) => {
+    const detail = DETAILS[id];
+    if (!detail.checkout || !detail.payment) enrichOperationalMeta(detail, null);
   });
 
   window.DATA_ORDERS = {
