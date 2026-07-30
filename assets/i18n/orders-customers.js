@@ -88,6 +88,7 @@ window.I18N.extend({
 
   // ---- inline order source tags ----
   "Bundle": "捆绑销售",
+  "Subscription": "订阅",
   "View contract": "查看合约",
   "BestCheckout": "BestCheckout",
   "Online store": "在线商店",
@@ -151,11 +152,14 @@ window.I18N.extend({
   // ---- products card ----
   "FREE GIFT": "免费赠品",
   "Free": "免费",
+  "Included": "已包含",
   "Recurring order": "周期订单",
 
   // ---- amount card ----
   "Subtotal": "小计",
   "Order discount": "订单折扣",
+  "Order Discount": "订单优惠",
+  "Product Discount": "商品优惠",
   "FREE": "免运费",
   "Free Shipping": "免运费",
 
@@ -166,6 +170,7 @@ window.I18N.extend({
 
   // ---- timeline card ----
   "No data": "暂无数据",
+  "Order placed": "订单已创建",
   "Captured by BestCheckout funnel": "由 BestCheckout 漏斗捕获",
   "Shopify write-back pending": "Shopify 回写待处理",
   "Written back to Shopify · #SHP-89142": "已回写 Shopify · #SHP-89142",
@@ -351,8 +356,13 @@ window.I18N.addRules([
   { re: /^Renewal · cycle (\d+)$/, zh: function (m) { return '续费 · 第 ' + m[1] + ' 期'; } },
   { re: /^Delivery every (\d+) months? · (.+)$/, zh: function (m) { return '每 ' + m[1] + ' 个月配送 · ' + m[2]; } },
   { re: /^(\S+) · (\d+) components? · (\d+) free gifts?$/, zh: function (m) { return m[1] + ' · ' + m[2] + ' 个组件 · ' + m[3] + ' 件免费赠品'; } },
+  { re: /^(\d+) components? · (\d+) free gifts?$/, zh: function (m) { return m[1] + ' 个组件 · ' + m[2] + ' 件免费赠品'; } },
   { re: /^(\d+) components?$/, zh: function (m) { return m[1] + ' 个组件'; } },
   { re: /^(\d+) free gifts?$/, zh: function (m) { return m[1] + ' 件免费赠品'; } },
+  { re: /^(Bundle|Subscription|Product) discount \((.+)\)$/, zh: function (m) { return ({ Bundle: '套餐', Subscription: '订阅', Product: '商品' })[m[1]] + '优惠（' + m[2] + '）'; } },
+  { re: /^Payment captured · (.+)$/, zh: function (m) { return '支付已扣款 · ' + m[1]; } },
+  { re: /^Subscription (\S+) started \((.+)\)$/, zh: function (m) { return '订阅 ' + m[1] + ' 已开通（' + m[2] + '）'; } },
+  { re: /^Shopify write-back synced · (.+)$/, zh: function (m) { return 'Shopify 回写已同步 · ' + m[1]; } },
   // customer list "Orders" cell: "N order" / "N orders"
   { re: /^(\d+) orders?$/, zh: function (m) { return m[1] + ' 笔订单'; } },
   // customer stats card Orders value: "N Orders"
