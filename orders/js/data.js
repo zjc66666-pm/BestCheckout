@@ -44,8 +44,10 @@
       order_id: 5056, order_sn: 'EN1048', create_time: '2026-06-21 10:42', order_type: 0,
       user: { nickname: 'Sofia Bennett', uid: 81720 },
       shipping: { name: 'Sofia Bennett', first_name: 'Sofia', last_name: 'Bennett', detail: '86 Franklin Street', detail2: '', city: 'Boston', province: 'MA', post_code: '02110', country: 'United States', phone_code: '1', phone: '617 555 0142', email: 'sofia.bennett@example.com' },
-      total: 96.40, order_status: 'to_ship', payment_status: 'paid', payment_method: 'Stripe Apple Pay', pay_time: '2026-06-21 10:43', delivery_time: null,
-      source: 'BestCheckout', shopify_writeback_status: 'synced', shopify_order_id: '#SHP-89174', shopify_writeback_detail: 'Written back to Shopify and ready for the merchant’s existing fulfillment workflow.',
+      total: 182.35, order_status: 'to_ship', payment_status: 'paid', payment_method: 'Stripe Apple Pay', pay_time: '2026-06-21 10:43', delivery_time: null,
+      source: 'BestCheckout', shopify_writeback_status: 'synced', shopify_order_id: '#SHP-89174', shopify_writeback_detail: 'Written back to Shopify with the bundle and subscription contract snapshots for fulfillment.',
+      sub: { id: 'SUB-20471', cycle: 1, next: '2026-08-20', deliveryLabel: 'Delivery every 2 months (-$13.99)' },
+      bundle: { id: 'BND-07', name: 'Coffee Office Pack' },
     },
     {
       order_id: 5055, order_sn: 'EN1047', create_time: '2026-06-21 09:16', order_type: 0,
@@ -789,9 +791,38 @@
     };
   }
 
+  // EN1048 is the visible Orders-page demo: use the complete Bundle +
+  // Subscription purchase matrix in the Product card, not a one-item order
+  // with information only in lower summary cards.
+  function bundleSubscriptionOrderDetail(order) {
+    const detail = JSON.parse(JSON.stringify(DETAILS[5046]));
+    detail.order_id = order.order_id;
+    detail.order_sn = order.order_sn;
+    detail.status = order.order_status;
+    detail.paid = 1;
+    detail.create_time = order.create_time;
+    detail.pay_time = order.pay_time;
+    detail.source = order.source;
+    detail.shopify_writeback_status = order.shopify_writeback_status;
+    detail.shopify_order_id = order.shopify_order_id;
+    detail.shopify_writeback_detail = order.shopify_writeback_detail;
+    detail.payment_method = order.payment_method;
+    detail.user = order.user;
+    detail.shipping = order.shipping;
+    detail.timeline = [
+      { label: 'Order placed', time: detail.create_time },
+      { label: 'Payment captured · Stripe Apple Pay', time: detail.pay_time },
+      { label: 'Subscription SUB-20471 started (Coffee Office Pack)', time: detail.pay_time },
+      { label: 'Subscription SUB-20472 started (Signature Blend Coffee)', time: detail.pay_time },
+      { label: 'Subscription SUB-20473 started (Whey Protein)', time: detail.pay_time },
+      { label: 'Shopify write-back synced · #SHP-89174', time: detail.pay_time },
+    ];
+    return detail;
+  }
+
   ORDERS.forEach((order) => {
     if (!Object.prototype.hasOwnProperty.call(DETAILS, order.order_id)) {
-      DETAILS[order.order_id] = standardOrderDetail(order);
+      DETAILS[order.order_id] = Number(order.order_id) === 5056 ? bundleSubscriptionOrderDetail(order) : standardOrderDetail(order);
     }
     enrichOperationalMeta(DETAILS[order.order_id], order);
   });
