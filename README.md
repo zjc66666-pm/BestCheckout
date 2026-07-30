@@ -26,7 +26,7 @@ BestShopio 公共电商服务
 
 - 官网：产品介绍、登录、注册、找回密码、Shopify 连接
 - Help Center：Shopify 连接指南
-- 独立后台：Overview、Checkout flows、Checkout pages、Orders、Performance、Activity、Settings
+- 独立后台：Overview、Checkout flows、Checkout pages、Orders、Performance、Settings
 - Checkout 页面：Checkout、Upsell、Downsell、Thank you
 
 支付连接与支付路由是核心能力，当前主要位于 Settings 或具体 Checkout/Funnel 工作流，不默认作为独立一级菜单。
@@ -53,7 +53,6 @@ BestCheckout 与 BestShopio 应共享兼容的 Funnel、页面、Offer 和支付
 | `src/views/admin/bestcheckout/` | 官网、认证和公共流程组件 |
 | `bestcheckout/` | Purchase flows 与 Checkout pages |
 | `orders/` | BestCheckout 订单和 Shopify 回写状态 |
-| `activity/` | 操作与服务事件日志 |
 | `settings/` | Shopify、支付、结账域名、邮件与员工设置 |
 | `online-store/` | 仅保留 Checkout 与 post-purchase 页面编辑器 |
 | `bundles/js/data.js` | Bundle 订单与选择器兼容数据 |

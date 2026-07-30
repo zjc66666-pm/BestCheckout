@@ -18,7 +18,6 @@ window.NAV_MENU = [
   { id: 'flows', label: 'Purchase flows', icon: 'apps', route: '#/flows', desc: 'Choose who sees each checkout, Upsell, and Downsell flow.' },
   { id: 'pages', label: 'Checkout pages', icon: 'page', route: '#/pages', desc: 'Customize Checkout, Upsell, Downsell, and Thank you pages.' },
   { id: 'orders', label: 'Orders', icon: 'inbox', route: '#/orders', desc: 'Orders created in BestCheckout and written back to Shopify.' },
-  { id: 'activity', label: 'Activity log', icon: 'bell', route: '#/activity', desc: 'Important changes and service events for this Shopify store.' },
   {
     id: 'settings', label: 'Settings', icon: 'settings', route: '#/settings/base', desc: 'Manage the Shopify connection and checkout services.',
     children: [
@@ -59,7 +58,6 @@ window.ROUTE_MODULE = {
   flows: 'bestcheckout',
   pages: 'bestcheckout',
   orders: 'orders',
-  activity: 'activity',
   payments: 'settings',
   domains: 'settings',
   notifications: 'settings',
@@ -75,7 +73,7 @@ window.CHANGELOG = [
     version: 'BestCheckout prototype',
     date: '2026-07',
     title: 'Standalone checkout growth workspace',
-    modules: ['home', 'flows', 'pages', 'orders', 'activity', 'settings'],
+    modules: ['home', 'flows', 'pages', 'orders', 'settings'],
     items: [
       'Public website and merchant admin now have separate entry paths.',
       'Checkout, Upsell, Downsell, and Thank you pages share one focused editor.',

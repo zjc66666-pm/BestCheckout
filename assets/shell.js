@@ -9,7 +9,7 @@
    #/orders/5042, or 'base' for #/settings/base). Internal navigation just sets
    location.hash; the router re-dispatches. */
 (function () {
-  var V = '20260728bestcheckoutsenderdomainflow18'; // cache-bust for lazy-loaded module scripts
+  var V = '20260730removeactivityv1'; // cache-bust for lazy-loaded module scripts
   var PUBLIC_SHOPIFY_CONNECTION_URL = './?entry=connect-new-shopify-store#/connect-shopify';
   var s = function (p) { return '<svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>'; };
   var ICONS = {
@@ -510,6 +510,9 @@
     // The standalone Post purchase app has been retired. Preserve old bookmarks
     // without attempting to lazy-load its deleted assets.
     if (p.first === 'post-purchase') { location.hash = '#/home'; return; }
+    // Activity is not part of the current BestCheckout merchant workspace.
+    // Preserve any old bookmark without loading its retired module assets.
+    if (p.first === 'activity') { location.hash = '#/home'; return; }
     // The copied baseline used this path for a broader internal workspace.
     // Preserve bookmarks without exposing that unrelated surface to merchants.
     if (p.first === 'bestcheckout') {
