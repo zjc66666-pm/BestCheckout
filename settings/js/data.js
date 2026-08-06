@@ -114,11 +114,11 @@ window.DATA_SETTINGS = {
   // =========================================================================
   // v2 渠道/方式模型（见 app.js renderPayments + docs/支付对接现状_Stripe_Airwallex.md）
   //   卡+Express = 单处理方槽位（cardProcessor，仅 active 一个）；PayPal Wallet /
-  //   Klarna 自有直连为独立方式。PayPal Cards 复用 PayPal 账户，但仍受主卡槽位互斥约束。
+  //   Klarna 自有直连为独立方式。PayPal 复用同一收款账户，但仍受主卡槽位互斥约束。
   //   phase 1 = 上线版（3 BYO）；phase 2 = 渠道扩展（更多 PSP + Klarna 直连）。
   payments: {
     phase: 1,                 // 1 = 一期上线版；2 = 二期渠道扩展（演示路线图）
-    cardProcessor: 'stripe',  // 当前 active 的卡+Express 处理方（必须已连接）
+    cardProcessor: 'paypal_cards',  // 当前 active 的卡+Express 处理方（必须已连接）
     cardsOn: true,            // 结账页是否挂卡输入
     expressOn: true,          // 结账页是否挂 Express 块
     // 可连接的卡处理方（同一时间只能 active 一个）；phase2 的在一期标「二期」
@@ -131,12 +131,15 @@ window.DATA_SETTINGS = {
       { key: 'nmi',       name: 'NMI',          connected: false, phase2: true },
       { key: 'braintree', name: 'Braintree',    connected: false, phase2: true },
     ],
-    // PayPal 账户只连一次：Wallet 可独立启用；Cards 只在 eligible 时加入主卡处理方候选。
-    // Apple Pay / Google Pay 是当前 PayPal 接入明确不支持的能力，不能被本地开关“打开”。
+    // PayPal 账户只连一次：Wallet、Cards、Apple Pay、Google Pay 共享同一收款账户。
+    // 具体钱包是否展示由账户能力、Checkout 域名状态和买家环境共同决定。
     paypal: {
       connected: true,
       walletOn: true,
-      capabilities: { cards: 'eligible', wallet: 'eligible', applePay: 'unavailable', googlePay: 'unavailable' },
+      mode: 'sandbox',
+      capabilities: { cards: 'enabled', wallet: 'enabled', applePay: 'enabled', googlePay: 'enabled' },
+      domain: { checkout: 'checkout.lovecross.com', applePay: 'verified' },
+      lastSynced: 'just now',
     },
     klarna: { directConnected: true, directOn: true }, // 自有直连，仅二期展示
   },
