@@ -1,4 +1,5 @@
 import { icon } from '../components/common.js';
+import { escapeHtml } from '../utils.js';
 
 function brand() {
   return '<a class="portal-auth-brand" href="#/" aria-label="BestCheckout home"><img class="portal-mark" src="assets/brand-mark.svg?v=20260723transparentmark1" alt="" aria-hidden="true"/><strong>BestCheckout</strong></a>';
@@ -10,6 +11,10 @@ function authLayout(eyebrow, title, copy, formMarkup, foot) {
 
 function portalField(label, control, help) {
   return '<label class="portal-field" data-portal-field><span class="portal-field-label">' + label + '</span>' + control + '<span class="portal-field-error" data-field-error role="alert" hidden></span>' + (help ? '<small>' + help + '</small>' : '') + '</label>';
+}
+
+function portalFieldWithAction(label, control, action) {
+  return '<div class="portal-field-with-action">' + portalField(label, control) + action + '</div>';
 }
 
 export function renderSignIn() {
@@ -47,12 +52,20 @@ export function renderForgotPasswordCode(step) {
 }
 
 export function renderSignUp() {
+  const codeInput = '<div class="portal-code-field"><input required type="text" name="verificationCode" inputmode="numeric" autocomplete="one-time-code" minlength="6" maxlength="6" pattern="[0-9]{6}" placeholder="Enter 6-digit code" data-validation-required="Enter the verification code." data-validation-too-short="Enter the 6-digit verification code." data-validation-invalid="Enter the 6-digit verification code." /><button type="button" class="portal-code-send" data-action="send-signup-code" data-signup-code-button>Send code</button></div>';
+  const previewButton = '<button type="button" class="portal-email-preview-button" data-action="preview-signup-email" aria-label="Preview verification email (prototype only)">' + icon('email', 14) + '<span>Preview email</span></button>';
   const form = '<form class="portal-form" id="portal-signup-form" novalidate>'
     + portalField('Work email', '<input required type="email" name="email" placeholder="you@company.com" autocomplete="email" data-validation-required="Enter your work email address." data-validation-invalid="Enter a valid work email address." />')
-    + portalField('Full name', '<input required type="text" name="name" placeholder="Your name" autocomplete="name" data-validation-required="Enter your full name." />')
+    + portalFieldWithAction('Verification code', codeInput, previewButton)
     + portalField('Password', '<input required minlength="8" type="password" name="password" placeholder="Create a password" autocomplete="new-password" data-validation-required="Create a password." data-validation-too-short="Use at least 8 characters." />')
+    + portalField('Confirm password', '<input required minlength="8" type="password" name="confirmPassword" placeholder="Re-enter your password" autocomplete="new-password" data-validation-required="Confirm your password." data-validation-too-short="Use at least 8 characters." />')
     + '<button type="submit" class="portal-submit">Create account ' + icon('arrow', 16) + '</button><p class="portal-terms-note">By creating an account, you agree to the Terms and Privacy Policy.</p></form>';
   return authLayout('Get started', 'Create your BestCheckout account', 'Start with your Shopify store. You can build and test before sending buyers to a new checkout.', form, '<p class="portal-auth-foot">Already have an account? <button type="button" data-route="sign-in">Sign in</button></p>');
+}
+
+export function renderSignupVerificationEmailPage(email) {
+  const recipient = escapeHtml(String(email || '').trim() || 'you@company.com');
+  return '<div class="verification-email-page"><main class="verification-email-wrap"><p class="verification-email-context">Prototype-only · reference for the registration verification email. This page is not part of the production sign-up flow.</p><section class="verification-email-inbox" aria-label="Email metadata"><p><span>From</span><b>BestCheckout</b> <small>&lt;no-reply@bestcheckout.com&gt;</small></p><p><span>Subject</span><b>Verify your BestCheckout email</b></p></section><section class="verification-email-stage"><article class="verification-email-card"><div class="verification-email-bar"></div><header><a class="verification-email-brand" href="#/landing" aria-label="BestCheckout home"><img src="assets/brand-mark.svg?v=20260723transparentmark1" alt="" aria-hidden="true"/><strong>BestCheckout</strong></a></header><main><h1>Confirm your email address</h1><p class="verification-email-lead">You’re creating a BestCheckout account with <b>' + recipient + '</b>. Enter this code to confirm it’s you:</p><section class="verification-email-code" aria-label="Verification code 482913"><strong>482913</strong><span>This code expires in 10 minutes.</span></section><p class="verification-email-note">Keep this code private — BestCheckout will never ask you for it. If you didn’t request this, you can safely ignore this email.</p></main><footer><p>This is an automated message from BestCheckout — please don’t reply.</p><small>© 2026 BestCheckout</small></footer></article></section><a class="verification-email-back" href="#/sign-up">← Back to sign up</a></main></div>';
 }
 
 export function renderConnectShopify() {

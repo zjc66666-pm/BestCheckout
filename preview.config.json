@@ -55,6 +55,7 @@
     "#/landing",
     "#/sign-in",
     "#/sign-up?next=connect-shopify",
+    "#/email-preview",
     "#/forgot-password",
     "#/connect-shopify",
     "help/#guide=connect-shopify",
