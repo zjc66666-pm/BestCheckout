@@ -486,6 +486,18 @@
     if (changed) bcFlowListSave(flows);
     return flows;
   }
+  // Purchase flows only have Draft and Live states. Retire the legacy third
+  // state without unexpectedly turning an inactive flow back on.
+  function bcNormalizeFlowStatuses(flows) {
+    var changed = false;
+    (flows || []).forEach(function (flow) {
+      if (!flow || (flow.status === 'Draft' || flow.status === 'Live')) return;
+      flow.status = 'Draft';
+      changed = true;
+    });
+    if (changed) bcFlowListSave(flows);
+    return flows;
+  }
   function bcFlowList() {
     var flows;
     try {
@@ -494,7 +506,7 @@
     } catch (e) {}
     flows = flows || JSON.parse(JSON.stringify(FLOW_LIST_SEED));
     flows = bcSeedDefaultPurchaseFlows(flows);
-    return bcMigrateLegacyCartEntryConditions(bcApplyFlowNameCleanup(bcApplyOrderBumpCleanup(flows)));
+    return bcNormalizeFlowStatuses(bcMigrateLegacyCartEntryConditions(bcApplyFlowNameCleanup(bcApplyOrderBumpCleanup(flows))));
   }
   function bcFlowListSave(flows) { try { localStorage.setItem(FLOW_LIST_KEY, JSON.stringify(flows)); } catch (e) {} }
   function bcFlowById(id) { return bcFlowList().filter(function (flow) { return flow.id === id; })[0] || null; }
@@ -505,32 +517,31 @@
   }
   function flowIsLive(flow) { return !!flow && flow.status === 'Live'; }
   function flowPrimaryAction(flow) {
-    if (flowIsLive(flow)) return { id: 'pause', nextStatus: 'Paused', label: 'Pause purchase flow', notice: 'Purchase flow paused. Customers will continue matching the next live purchase flow or Shopify Checkout.' };
-    if (flow && flow.status === 'Paused') return { id: 'resume', nextStatus: 'Live', label: 'Resume purchase flow', notice: 'Purchase flow resumed' };
+    if (flowIsLive(flow)) return { id: 'draft', nextStatus: 'Draft', label: 'Set as draft', notice: 'Purchase flow set as draft', className: 'btn btn-default' };
     return { id: 'publish', nextStatus: 'Live', label: 'Publish purchase flow', notice: 'Purchase flow published' };
   }
   function flowPrimaryButton(flow, className) {
     var action = flowPrimaryAction(flow);
-    return '<button type="button" class="' + (className || 'btn btn-primary') + '" data-flow-primary="' + esc(flow.id) + '">' + t(action.label) + '</button>';
+    if (!action) return '';
+    return '<button type="button" class="' + (className || action.className || 'btn btn-primary') + '" data-flow-primary="' + esc(flow.id) + '">' + t(action.label) + '</button>';
   }
   function applyFlowStatus(flow) {
     var action = flowPrimaryAction(flow);
+    if (!action) return;
     activeFlowId = flow.id;
-    // Publishing snapshots the current page configuration. Pausing and resuming
-    // only control whether the already-published flow can receive new buyers.
+    // Publishing and setting a flow back to Draft are standalone lifecycle
+    // actions. Updating the journey never changes this status.
     if (action.id === 'publish') fnPublish(bcFunnel());
     bcFlowUpdate(flow.id, { status: action.nextStatus, updated: t('Just now') });
     toast(t(action.notice));
   }
-  function publishFlowChanges(flow) {
+  function updateFlowChanges(flow) {
     activeFlowId = flow.id;
     fnPublish(bcFunnel());
-    var patch = { updated: t('Just now') };
-    // Publishing a draft also activates it. Publishing edits to a paused flow
-    // deliberately keeps it paused until the merchant explicitly resumes it.
-    if (flow.status === 'Draft') patch.status = 'Live';
-    bcFlowUpdate(flow.id, patch);
-    toast(t(flow.status === 'Draft' ? 'Purchase flow published' : 'Purchase flow changes published'));
+    // Update saves the journey configuration only. Flow lifecycle remains a
+    // separate explicit Publish action for Draft flows.
+    bcFlowUpdate(flow.id, { updated: t('Just now') });
+    toast(t('Purchase flow updated'));
   }
   function deleteFlow(flow, onDeleted) {
     if (!flow) return;
@@ -553,25 +564,10 @@
     if (window.UI && window.UI.confirm) window.UI.confirm(options);
     else if (window.confirm(t('Delete purchase flow?'))) remove();
   }
-  function confirmPauseFlow(flow, onPaused) {
-    var pause = function () {
-      applyFlowStatus(flow);
-      if (onPaused) onPaused();
-    };
-    var options = {
-      title: t('Pause purchase flow?'),
-        content: t('New customers will no longer enter this purchase flow. They will continue through the next matching live purchase flow, or Shopify Checkout.'),
-      okText: t('Pause flow'),
-      cancelText: t('Cancel'),
-      onOk: pause
-    };
-    if (window.UI && window.UI.confirm) window.UI.confirm(options);
-    else bcModal(options.title, '<p style="margin:0;font-size:13px;line-height:1.6;color:var(--ink-body)">' + esc(options.content) + '</p>', options.okText, pause);
-  }
   function bindFlowStatusActions(flow, onChange, onDelete) {
     root.querySelectorAll('[data-flow-primary]').forEach(function (button) { button.onclick = function () {
       var current = bcFlowById(button.getAttribute('data-flow-primary')) || flow;
-      if (flowPrimaryAction(current).id === 'pause') { confirmPauseFlow(current, onChange); return; }
+      if (!flowPrimaryAction(current)) return;
       applyFlowStatus(current);
       if (onChange) onChange();
     }; });
@@ -1347,7 +1343,7 @@
     return t(flow.entry || flow.entryLabel || 'All customers');
   }
   function flowPill(status) {
-    var cls = status === 'Live' ? 'green' : status === 'Paused' ? 'orange' : 'gray';
+    var cls = status === 'Live' ? 'green' : 'gray';
     return '<span class="pill pill-' + cls + '"><span class="dot"></span>' + t(status) + '</span>';
   }
   function flowListPager(page, pages) {
@@ -1368,6 +1364,7 @@
     // Each flow opens directly in the same visual canvas editor.
     flowDetailView = 'canvas';
     var activeFilter = filter || flowListState.filter || 'all';
+    if (activeFilter !== 'all' && activeFilter !== 'live' && activeFilter !== 'draft') activeFilter = 'all';
     if (activeFilter !== flowListState.filter) flowListState.page = 1;
     flowListState.filter = activeFilter;
     var flows = bcFlowList().slice().sort(function (a, b) { return b.priority - a.priority; });
@@ -1377,9 +1374,9 @@
     if (flowListState.page > pages) flowListState.page = pages;
     var pageStart = (flowListState.page - 1) * flowListState.size;
     var pageFlows = shown.slice(pageStart, pageStart + flowListState.size);
-    var counts = { all: flows.length, live: 0, draft: 0, paused: 0 };
+    var counts = { all: flows.length, live: 0, draft: 0 };
     flows.forEach(function (flow) { counts[flow.status.toLowerCase()] = (counts[flow.status.toLowerCase()] || 0) + 1; });
-    var tabs = [['all', 'All'], ['live', 'Live'], ['draft', 'Draft'], ['paused', 'Paused']].map(function (item) {
+    var tabs = [['all', 'All'], ['live', 'Live'], ['draft', 'Draft']].map(function (item) {
       return '<button class="fl-tab' + (activeFilter === item[0] ? ' active' : '') + '" data-flow-filter="' + item[0] + '">' + t(item[1]) + '<span>' + (counts[item[0]] || 0) + '</span></button>';
     }).join('');
     var priorityCards = flows.filter(flowIsLive).map(function (flow) {
@@ -1702,8 +1699,8 @@
     fnAutoLayout(s); s._pub = fnSnap(s);
     return s;
   }
-  // Snapshot the graph portion of state for publish-tracking — `_pub` is JSON of
-  // {nodes, edges}. fnHasChanges() compares the current graph against it.
+    // Keep the last applied graph only for the editor's Update/Discard UI.
+    // This is not a merchant-visible version or deployment-snapshot feature.
   function fnSnap(s) { return JSON.stringify({ nodes: s.nodes, edges: s.edges }); }
   function fnHasChanges(s) { return fnSnap(s) !== (s._pub || ''); }
   function fnPubEdgeKeys(s) {
@@ -1715,6 +1712,25 @@
     } catch (e) { return new Set(); }
   }
   function fnPublish(s) { s._pub = fnSnap(s); bcFunnelSave(s); }
+  // Traffic allocation is an operational setting: when it is saved, update the
+  // applied baseline for existing Checkout branches only. That keeps traffic
+  // changes out of the global Update bar while preserving any pending journey
+  // additions, removals, or routing edits.
+  function fnApplyTrafficRules(s, sourceId) {
+    try {
+      var pub = JSON.parse(s._pub || '');
+      var current = {};
+      (s.edges || []).forEach(function (edge) {
+        if (edge.from === sourceId) current[edge.to] = edge;
+      });
+      (pub.edges || []).forEach(function (edge) {
+        var live = current[edge.to];
+        if (edge.from === sourceId && live) edge.rule = JSON.parse(JSON.stringify(live.rule || null));
+      });
+      s._pub = JSON.stringify(pub);
+    } catch (e) {}
+    bcFunnelSave(s);
+  }
   function fnDiscardChanges(s) {
     try {
       var pub = JSON.parse(s._pub || '');
@@ -1797,7 +1813,26 @@
         var migrated = fnMigrateRules(s);
         var fallbackRepaired = fnEnsureSystemFallback(s);
         // Backfill _pub for legacy state — treat existing graphs as already published.
-        if (!s._pub || migrated || fallbackRepaired) { s._pub = fnSnap(s); bcFunnelSave(s); }
+        // If the current graph needed normalization, normalize the existing applied
+        // baseline independently. Do not replace it with the current graph: that
+        // would mark a newly added / swapped / deleted page as already updated.
+        if (!s._pub) {
+          s._pub = fnSnap(s);
+          bcFunnelSave(s);
+        } else if (migrated || fallbackRepaired) {
+          try {
+            var applied = JSON.parse(s._pub);
+            fnMigrateRules(applied);
+            fnEnsureSystemFallback(applied);
+            s._pub = fnSnap(applied);
+            bcFunnelSave(s);
+          } catch (e) {
+            // A malformed legacy baseline cannot support Discard safely; recover
+            // it once from the normalized current graph.
+            s._pub = fnSnap(s);
+            bcFunnelSave(s);
+          }
+        }
         return s;
       }
     } catch (e) {}
@@ -2070,7 +2105,7 @@
     return '<section class="fj-traffic-mini"><header><div><small>' + t('Traffic rules') + '</small><strong>' + t('Checkout traffic') + '</strong></div><button type="button" class="btn btn-default" data-flow-traffic>' + t('Set traffic rules') + '</button></header><div>' + labels + '</div><p>' + t('Different audience → separate Funnel. Same audience → split traffic here.') + '</p></section>';
   }
   function flowJourneyStoreStage(flow, entryText) {
-    return '<section class="fj-stage fj-stage-store"><header><div><h3>' + t('Shopify store') + '</h3><p>' + t('Matching customers begin here.') + '</p></div></header><div class="fj-stage-nodes"><article class="fj-node fj-node-store"><div class="fj-node-head"><span class="fj-stage-icon">S</span><div><strong>lavender-labs.myshopify.com</strong><span class="fj-node-meta">' + esc(entryText) + '</span></div></div><button type="button" class="fj-store-link" data-flow-entry>' + t('Configure entry') + '</button></article></div><div class="fj-stage-hint">' + t('Matching customers enter the BestCheckout journey.') + '</div></section>';
+    return '<section class="fj-stage fj-stage-store"><header><div><h3>' + t('Shopify store') + '</h3><p>' + t('Matching customers begin here.') + '</p></div></header><div class="fj-stage-nodes"><article class="fj-node fj-node-store"><div class="fj-node-head"><span class="fj-stage-icon"><img src="assets/shopify-bag.svg" alt="Shopify"></span><div><strong>lavender-labs.myshopify.com</strong><span class="fj-node-meta">' + esc(entryText) + '</span></div></div><button type="button" class="fj-store-link" data-flow-entry>' + t('Configure entry') + '</button></article></div><div class="fj-stage-hint">' + t('Matching customers enter the BestCheckout journey.') + '</div></section>';
   }
   function flowJourneyFallback() {
     return '<div class="fj-fallback"><span class="fj-fallback-icon">S</span><div><span class="fj-eyebrow">' + t('System fallback') + '</span><strong>' + t('Unmatched customers continue to Shopify Checkout.') + '</strong><p>' + t('Always enabled. This route cannot be edited or removed.') + '</p></div></div>';
@@ -2163,7 +2198,7 @@
     journeyStages.push(flowJourneyStage(st, 'thankyou', { title: 'Thank you', description: 'Confirm the order and guide the next action.', icon: '✓' }));
     var journeyRow = journeyStages.join('<span class="fj-journey-connector" aria-hidden="true"></span>');
     var journeyMarkup = '<section class="fj-journey panel fj-canvas-journey"><header class="fj-canvas-head"><div><span class="fj-eyebrow">' + t('Purchase journey') + '</span><strong>' + esc(flowPagePath(st)) + '</strong></div><div class="fj-canvas-tools"><button type="button" class="btn btn-default" data-fj-zoom="fit">' + t('Fit') + '</button><button type="button" class="btn btn-default" data-fj-zoom="out">−</button><output data-fj-zoom-output>' + Math.round(fjCanvasZoom * 100) + '%</output><button type="button" class="btn btn-default" data-fj-zoom="in">+</button></div></header><div class="fj-canvas"><div class="fj-canvas-row fj-canvas-row-' + journeyStages.length + '">' + journeyRow + '</div></div></section>';
-    root.innerHTML = (window.UI && window.UI.unsavedBar ? window.UI.unsavedBar({ show: dirty, saveLabel: 'Publish', saveAct: 'funnel-publish', discardAct: 'funnel-discard' }) : '') + wrap(GSTYLE + FSTYLE + XSTYLE + FLOW_SYSTEM_STYLE + flowDetailHeader(flow) +
+    root.innerHTML = (window.UI && window.UI.unsavedBar ? window.UI.unsavedBar({ show: dirty, saveLabel: 'Update', saveAct: 'funnel-update', discardAct: 'funnel-discard' }) : '') + wrap(GSTYLE + FSTYLE + XSTYLE + FLOW_SYSTEM_STYLE + flowDetailHeader(flow) +
       '<style>.fj-priority-edit{display:inline-flex;align-items:center;gap:4px;border:0;background:none;color:var(--brand);font:inherit;font-size:12px;font-weight:500;padding:0;cursor:pointer;margin-left:6px}.fj-priority-edit:hover{text-decoration:underline}.fj-summary .fj-card-head p{max-width:none;white-space:nowrap}@media(max-width:680px){.fj-summary .fj-card-head p{white-space:normal}}</style><section class="fj-summary panel card-pad"><div class="fj-card-head"><div><h2>' + t('Customer entry') + '</h2><p>' + t('Set customer eligibility rules and priority for this flow. Customers who do not match continue to Shopify Checkout.') + '</p></div><div class="fj-summary-actions"><button type="button" class="btn btn-default" data-flow-entry>' + t('Configure entry') + '</button>' + trafficAction + '</div></div><div class="fj-summary-grid"><div><small>' + t('Eligible customers') + '</small><strong>' + esc(entryText) + '</strong></div><div><small>' + t('Priority') + '</small><strong>#' + esc(flow.priority) + '<button type="button" class="fj-priority-edit" data-flow-priority>' + t('Edit') + '</button></strong></div><div><small>' + t('System fallback') + '</small><strong>' + t('Shopify checkout') + '</strong></div></div></section>' +
       '<section class="fj-journey panel"><div class="fj-journey-head"><div><span class="fj-eyebrow">' + t('Pages and offers') + '</span><h2>' + t('Purchase journey') + '</h2><p>' + t('This funnel path was selected when the purchase flow was created. Configure its pages and offers here.') + '</p></div></div><div class="fj-stages">' +
         journeyStages.join('') +
@@ -2195,8 +2230,8 @@
     root.querySelectorAll('[data-flow-delete-checkout]').forEach(function (button) { button.onclick = function () { fnDeletePage(button.getAttribute('data-flow-delete-checkout')); }; });
     root.querySelectorAll('[data-flow-template]').forEach(function (button) { button.onclick = function () { var node = fnNode(bcFunnel(), button.getAttribute('data-flow-template')); if (node) openPagePicker({ mode: 'swap', id: node.id, type: node.type }); }; });
     root.querySelectorAll('[data-flow-offer]').forEach(function (button) { button.onclick = function () { openOfferConfig(button.getAttribute('data-flow-offer')); }; });
-    var publish = root.querySelector('[data-act="funnel-publish"]');
-    if (publish) publish.onclick = function () { publishFlowChanges(flow); renderFunnel(flow.id); };
+    var update = root.querySelector('[data-act="funnel-update"]');
+    if (update) update.onclick = function () { updateFlowChanges(flow); renderFunnel(flow.id); };
     var discard = root.querySelector('[data-act="funnel-discard"]');
     if (discard) discard.onclick = function () { if (fnDiscardChanges(bcFunnel())) toast(t('Changes discarded')); renderFunnel(flow.id); };
     bcI18n(root);
@@ -2602,9 +2637,10 @@
     document.body.appendChild(modal); window.addEventListener('resize', onEntryPickerViewportChange); modal.addEventListener('pointerdown', function (event) { var target = event.target; if (openEntryFieldPicker !== null && (!target.closest || !target.closest('.entry-field-picker, .entry-field-menu-floating'))) closeEntryFieldPicker(); }); modal.addEventListener('click', function (event) { var target = event.target; if (openEntryFieldPicker !== null && (!target.closest || !target.closest('.entry-field-picker, .entry-field-menu-floating'))) closeEntryFieldPicker(); }); render();
   }
   function flowDetailHeader(flow) {
+    var deleteButton = flowIsLive(flow) ? '' : '<button type="button" class="btn btn-default fd-delete" data-flow-delete="' + esc(flow.id) + '">' + t('Delete purchase flow') + '</button>';
     return '<div class="fd-head"><style>' +
       '.fd-head{margin-bottom:18px}.fd-main{display:flex;align-items:center;justify-content:space-between;gap:18px}.fd-title{display:flex;align-items:center;gap:12px;min-width:0}.fd-title h1{margin:0;font-size:20px;font-weight:600;letter-spacing:normal;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fd-title .back-btn{text-decoration:none;font-size:21px;line-height:1}.fd-actions{display:flex;gap:8px;flex:none;flex-wrap:wrap;justify-content:flex-end}.fd-delete{color:var(--err)!important;border-color:#f0c9bf!important}.fd-delete:hover{background:#fff4f2!important;border-color:var(--err)!important}.fd-purpose{display:none}@media(max-width:760px){.fd-main{align-items:flex-start;flex-direction:column}.fd-actions{justify-content:flex-start}}' +
-      '</style><div class="fd-main"><div class="fd-title"><a class="back-btn" href="#/flows" aria-label="' + t('Back to purchase flows') + '" title="' + t('Back to purchase flows') + '">←</a><h1>' + esc(t(flow.name)) + '</h1>' + flowPill(flow.status) + '</div><div class="fd-actions"><button class="btn btn-default" data-flow-preview>' + t('Preview journey') + '</button>' + flowPrimaryButton(flow) + '<button type="button" class="btn btn-default fd-delete" data-flow-delete="' + esc(flow.id) + '">' + t('Delete purchase flow') + '</button></div></div><p class="fd-purpose">' + t(flowPurpose(flow)) + '</p></div>';
+      '</style><div class="fd-main"><div class="fd-title"><a class="back-btn" href="#/flows" aria-label="' + t('Back to purchase flows') + '" title="' + t('Back to purchase flows') + '">←</a><h1>' + esc(t(flow.name)) + '</h1>' + flowPill(flow.status) + '</div><div class="fd-actions"><button class="btn btn-default" data-flow-preview>' + t('Preview journey') + '</button>' + flowPrimaryButton(flow) + deleteButton + '</div></div><p class="fd-purpose">' + t(flowPurpose(flow)) + '</p></div>';
   }
   function flowCanvasNode(nd) {
     var pos = nd.pos || { x: 40, y: 40 };
@@ -2720,7 +2756,7 @@
       '</div>';
     };
     var nodes = (st.nodes || []).map(node).join('');
-    root.innerHTML = (window.UI && window.UI.unsavedBar ? window.UI.unsavedBar({ show: dirty, saveLabel: 'Publish', saveAct: 'funnel-publish', discardAct: 'funnel-discard' }) : '') + wrap(GSTYLE + FSTYLE + XSTYLE + flowDetailHeader(flow) +
+    root.innerHTML = (window.UI && window.UI.unsavedBar ? window.UI.unsavedBar({ show: dirty, saveLabel: 'Update', saveAct: 'funnel-update', discardAct: 'funnel-discard' }) : '') + wrap(GSTYLE + FSTYLE + XSTYLE + flowDetailHeader(flow) +
       '<div class="fc-bar">' +
         '<button class="btn btn-primary" id="fc-addbtn">+ ' + t('Add page') + '</button>' +
         '<button class="btn btn-default" data-flow-priority>' + t('Manage priorities') + '</button>' +
@@ -2760,8 +2796,8 @@
       fcSel = null; applySel();
     });
     var addBtn = root.querySelector('#fc-addbtn'); if (addBtn) addBtn.onclick = function () { openPagePicker({ mode: 'add' }); };
-    var pubBtn = root.querySelector('[data-act="funnel-publish"]');
-    if (pubBtn) pubBtn.onclick = function () { publishFlowChanges(flow); renderFunnel(flow.id); };
+    var updateBtn = root.querySelector('[data-act="funnel-update"]');
+    if (updateBtn) updateBtn.onclick = function () { updateFlowChanges(flow); renderFunnel(flow.id); };
     var discardBtn = root.querySelector('[data-act="funnel-discard"]');
     if (discardBtn) discardBtn.onclick = function () {
       var s = bcFunnel();
@@ -2811,8 +2847,8 @@
       fcSel = null; applySel();
     });
     var addBtn = root.querySelector('#fc-addbtn'); if (addBtn) addBtn.onclick = function () { openPagePicker({ mode: 'add' }); };
-    var pubBtn = root.querySelector('[data-act="funnel-publish"]');
-    if (pubBtn) pubBtn.onclick = function () { publishFlowChanges(flow); renderFunnel(flow.id); };
+    var updateBtn = root.querySelector('[data-act="funnel-update"]');
+    if (updateBtn) updateBtn.onclick = function () { updateFlowChanges(flow); renderFunnel(flow.id); };
     var discardBtn = root.querySelector('[data-act="funnel-discard"]');
     if (discardBtn) discardBtn.onclick = function () { var s = bcFunnel(); if (fnDiscardChanges(s)) toast(t('Changes discarded')); renderFunnel(flow.id); };
     root.querySelectorAll('[data-swap]').forEach(function (a) { a.onclick = function (e) { e.preventDefault(); var s = bcFunnel(), n = fnNode(s, a.getAttribute('data-swap')); if (n) openPagePicker({ mode: 'swap', id: n.id, type: n.type }); }; });
@@ -2967,7 +3003,7 @@
         var liveBranch = live.filter(function (edge) { return edge.to === branch.to; })[0];
         if (liveBranch) liveBranch.rule = JSON.parse(JSON.stringify(branch.rule));
       });
-      bcFunnelSave(next); close(); toast(t('Traffic rules saved')); renderFunnel(activeFlowId);
+      fnApplyTrafficRules(next, fromId); close(); toast(t('Traffic rules saved')); renderFunnel(activeFlowId);
     };
     render();
   }
@@ -4015,7 +4051,7 @@
   });
   Object.assign(ZH, {
     'Purchase flows': '购买流程', 'Back to purchase flows': '返回购买流程', 'Create purchase flow': '新建购买流程', 'Status': '状态',
-    'All': '全部', 'Live': '已启用', 'Draft': '草稿', 'Paused': '已暂停', 'Priority': '优先级', 'Traffic': '流量', 'Explain priority': '说明优先级', 'When multiple live purchase flows match the same cart, the one with the higher number is used first.': '当多个已上线购买流程同时匹配同一购物车时，数值更高的流程会优先使用。', 'Manage priorities': '管理优先级', 'Save priorities': '保存优先级', 'Priorities saved': '优先级已保存',
+    'All': '全部', 'Live': '已启用', 'Draft': '草稿', 'Priority': '优先级', 'Traffic': '流量', 'Explain priority': '说明优先级', 'When multiple live purchase flows match the same cart, the one with the higher number is used first.': '当多个已上线购买流程同时匹配同一购物车时，数值更高的流程会优先使用。', 'Manage priorities': '管理优先级', 'Save priorities': '保存优先级', 'Priorities saved': '优先级已保存',
     'Higher numbers are checked first. Each purchase flow needs a unique priority.': '数值越大，系统越先检查；每条购买流程的优先级必须唯一。', 'Choose an unused priority greater than 0.': '请输入大于 0 且未被占用的优先级。', 'Priority must be a positive whole number.': '优先级必须是大于 0 的整数。', 'Each purchase flow needs a unique priority.': '每条购买流程的优先级必须唯一。',
     'checkout': '结账页面', 'upsell': '加购页', 'downsell': '降购页', 'Upsell page': 'Upsell 页面', 'Downsell page': 'Downsell 页面', 'No Upsell or Downsell': '不含 Upsell 或 Downsell 页面', 'offers': '优惠页面', 'No offers': '不含优惠页面',
     'Thank you page': 'Thank you 页面', 'Open': '打开', 'purchase flows': '条购买流程', 'per page': '条/页',
@@ -4116,7 +4152,7 @@
     'Split entered buyers between BestCheckout Checkout pages.': '在 BestCheckout 的多个结账页面之间分配进入流程的买家。',
     'Eligible carts begin here. Configure the Checkout page for this journey in the next step.': '符合条件的购物车从这里进入；请在下一步配置此购买路径的结账页面。',
     'After offers': '优惠之后',
-    'Purchase flow published': '购买流程已发布'
+    'Purchase flow published': '购买流程已发布', 'Purchase flow updated': '购买流程已更新', 'Set as draft': '设为草稿', 'Purchase flow set as draft': '购买流程已设为草稿'
   });
   Object.assign(ZH, {
     'Set Checkout traffic rules': '设置结账流量规则',
@@ -4222,8 +4258,6 @@
   });
   Object.assign(ZH, {
     'Editing a page does not affect live purchase flows. After you confirm the changes, publish the purchase flow for shoppers to see the new version.': '编辑页面不会影响已上线的购买流程。确认无误后，在购买流程中点击“发布”，买家才会看到新版本。',
-    'Purchase flow paused. Shoppers will continue matching the next live purchase flow or Shopify Checkout.': '购买流程已暂停。买家会继续匹配下一条已启用购买流程或 Shopify Checkout。',
-    'Pause purchase flow?': '暂停购买流程？', 'Pause flow': '暂停流程', 'New buyers will no longer enter this purchase flow. They will continue through the next matching live purchase flow, or Shopify Checkout.': '新的买家将不再进入此购买流程，而会继续匹配下一条已启用购买流程；若没有匹配项，则进入 Shopify Checkout。',
     'Arrange the pages shoppers see in this purchase flow.': '配置买家在此购买流程中看到的页面。',
     'Shoppers not matched by higher-priority purchase flows': '未被更高优先级购买流程命中的买家',
     'Create purchase flows, then open one to arrange Checkout pages, Upsells, Downsells, and Thank you pages.': '创建购买流程，再进入其中配置结账页面、Upsell、Downsell 和 Thank you 页面。',
@@ -4577,6 +4611,7 @@
   '</style>';
 
   const FLOW_SYSTEM_STYLE = '<style>' +
+    '.fj-node-store .fj-stage-icon{background:transparent;border-radius:0}.fj-node-store .fj-stage-icon img{display:block;width:19px;height:19px}' +
     '.fj-eyebrow{display:block;font-size:11px;line-height:1.2;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-muted);margin-bottom:4px}' +
     '.fj-card-head,.fj-journey-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.fj-card-head h2,.fj-journey-head h2{margin:0;color:var(--ink);font-size:16px;letter-spacing:-.1px}.fj-card-head p,.fj-journey-head p{margin:5px 0 0;max-width:640px;font-size:12.5px;line-height:1.55;color:var(--ink-muted)}' +
     '.fj-summary{margin:0 0 16px}.fj-summary .fj-card-head{align-items:center}.fj-summary-grid{display:grid;grid-template-columns:2fr 1fr 1.45fr;gap:0;margin-top:16px;border-top:1px solid var(--hair)}.fj-summary-grid>div{padding:13px 16px 2px 0;display:flex;flex-direction:column;gap:4px}.fj-summary-grid>div+div{border-left:1px solid var(--hair);padding-left:16px}.fj-summary-grid small{font-size:11.5px;color:var(--ink-muted)}.fj-summary-grid strong{font-size:13.5px;color:var(--ink)}' +

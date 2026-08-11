@@ -9,7 +9,7 @@
    #/orders/5042, or 'base' for #/settings/base). Internal navigation just sets
    location.hash; the router re-dispatches. */
 (function () {
-  var V = '20260806paypalfieldrhythm1'; // cache-bust for lazy-loaded module scripts
+  var V = '20260811flowupdate1'; // cache-bust for lazy-loaded module scripts
   var PUBLIC_SHOPIFY_CONNECTION_URL = './?entry=connect-new-shopify-store#/connect-shopify';
   var s = function (p) { return '<svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>'; };
   var ICONS = {
@@ -327,10 +327,9 @@
     return flows.reduce(function (counts, flow) {
       var status = String((flow || {}).status || '').toLowerCase();
       if (status === 'live') counts.live += 1;
-      else if (status === 'paused') counts.paused += 1;
       else counts.draft += 1;
       return counts;
-    }, { live: 0, draft: 0, paused: 0 });
+    }, { live: 0, draft: 0 });
   }
   function homeChartHtml(period) {
     var values = period.series || [];
@@ -390,7 +389,7 @@
         item = {
           label: item.label,
           value: flows.live + ' live',
-          detail: flows.draft ? flows.draft + ' draft needs review' : (flows.paused ? flows.paused + ' paused' : 'All flows are published'),
+          detail: flows.draft ? flows.draft + ' draft needs review' : 'All flows are published',
           tone: flows.draft ? 'warn' : 'ok',
           href: item.href
         };
@@ -399,7 +398,7 @@
     }).join('');
   }
   function homeRevenueHtml(flows) {
-    return '<a class="home-app-row" href="#/flows"><span class="home-app-icon home-app-checkout">' + ICONS.card + '</span><span class="home-app-copy"><strong>Purchase flows</strong><small>Live checkout routes and their post-purchase offers</small></span><span class="home-app-stats"><b>' + flows.live + '</b><small>live</small><b>' + flows.draft + '</b><small>draft</small><b class="' + (flows.paused ? 'home-stat-muted' : '') + '">' + flows.paused + '</b><small>paused</small></span><span class="home-row-caret">&rsaquo;</span></a>';
+    return '<a class="home-app-row" href="#/flows"><span class="home-app-icon home-app-checkout">' + ICONS.card + '</span><span class="home-app-copy"><strong>Purchase flows</strong><small>Live checkout routes and their post-purchase offers</small></span><span class="home-app-stats"><b>' + flows.live + '</b><small>live</small><b>' + flows.draft + '</b><small>draft</small></span><span class="home-row-caret">&rsaquo;</span></a>';
   }
   function homeFlowPerformanceHtml(period) {
     var rows = (period.flows || []).map(function (flow) {
