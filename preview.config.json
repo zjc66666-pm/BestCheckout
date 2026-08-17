@@ -56,6 +56,7 @@
     "#/sign-in",
     "#/sign-up?next=connect-shopify",
     "#/email-preview",
+    "#/password-reset-email-preview",
     "#/forgot-password",
     "#/connect-shopify",
     "help/#guide=connect-shopify",

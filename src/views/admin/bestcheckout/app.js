@@ -36,7 +36,7 @@ import { renderActivity } from './pages/activity.js?rev=20260720-standalone-port
 import { renderSettings } from './pages/settings.js?rev=20260720-standalone-portal-v150';
 import { renderEditor, mountEditor } from './pages/editor.js?rev=20260719-preview-session-v92';
 import { renderOrders } from './pages/orders.js?rev=20260720-standalone-portal-v145';
-import { renderConnectShopify, renderForgotPasswordCode, renderSignIn, renderSignUp, renderSignupVerificationEmailPage } from './pages/auth.js?rev=20260808emailpreviewpage1';
+import { renderConnectShopify, renderForgotPasswordCode, renderPasswordResetEmailPage, renderSignIn, renderSignUp, renderSignupVerificationEmailPage } from './pages/auth.js?rev=20260817resetemailpreview2';
 import { renderHelpCenter } from './pages/help.js?rev=20260723brandunify1';
 import { renderMarketingSite } from './pages/website.js?rev=20260723brandmark1';
 import { escapeHtml, formatDateTime, getRouteName, parseRoute, setRoute } from './utils.js?rev=20260720-standalone-portal-v145';
@@ -442,13 +442,14 @@ function renderShopifyChrome(pageMarkup, route) {
 }
 
 function isPublicRoute(route) {
-  return ['landing', 'sign-in', 'sign-up', 'email-preview', 'forgot-password', 'connect-shopify', 'help'].includes(route.segments[0]);
+  return ['landing', 'sign-in', 'sign-up', 'email-preview', 'password-reset-email-preview', 'forgot-password', 'connect-shopify', 'help'].includes(route.segments[0]);
 }
 
 function renderPublicRoute(route) {
   if (route.segments[0] === 'sign-in') return renderSignIn();
   if (route.segments[0] === 'sign-up') return renderSignUp();
   if (route.segments[0] === 'email-preview') return renderSignupVerificationEmailPage(route.query.get('email'));
+  if (route.segments[0] === 'password-reset-email-preview') return renderPasswordResetEmailPage(route.query.get('email'));
   if (route.segments[0] === 'forgot-password') return renderForgotPasswordCode(route.segments[1]);
   if (route.segments[0] === 'connect-shopify') return renderConnectShopify();
   if (route.segments[0] === 'help') return renderHelpCenter(route);
@@ -2780,6 +2781,12 @@ function bindFormSubmissions(event) {
 
 function handleInput(event) {
   if (event.target.matches('[data-portal-field] input')) {
+    if (event.target.name === 'email' && event.target.closest('#portal-reset-password-form')) {
+      const form = event.target.closest('#portal-reset-password-form');
+      const previewLink = form && form.querySelector('[data-reset-email-preview-link]');
+      const email = event.target.value.trim();
+      if (previewLink) previewLink.href = '#/password-reset-email-preview' + (email ? '?email=' + encodeURIComponent(email) : '');
+    }
     if (event.target.name === 'email' && event.target.closest('#portal-signup-form') && state.ui.signupCodeEmail && event.target.value.trim() !== state.ui.signupCodeEmail) {
       const form = event.target.closest('#portal-signup-form');
       state.ui.signupCodeEmail = '';
@@ -3482,7 +3489,7 @@ window.addEventListener('beforeunload', function (event) {
 });
 
 const initialRoute = parseRoute();
-if (!window.location.hash || !['landing', 'sign-in', 'sign-up', 'email-preview', 'forgot-password', 'connect-shopify', 'help'].includes(initialRoute.segments[0])) {
+if (!window.location.hash || !['landing', 'sign-in', 'sign-up', 'email-preview', 'password-reset-email-preview', 'forgot-password', 'connect-shopify', 'help'].includes(initialRoute.segments[0])) {
   setRoute('landing');
 } else {
   renderShell();
