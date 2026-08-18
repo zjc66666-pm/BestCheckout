@@ -2271,7 +2271,7 @@
     primaryDomainSyncedAt: 'Just now',
   };
   let checkoutDomain = {
-    platform: 'lavender-labs.store.bestcheckout.com/checkout',
+    platform: 'lavender-labs.stores.bestcheckout.com/checkout',
     custom: 'checkout.' + shopifyDomain.primaryDomain,
     status: 'not_connected',
     provider: '',
