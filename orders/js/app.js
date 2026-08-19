@@ -190,7 +190,7 @@
     root.innerHTML =
       '<div class="orders-page-head">' +
         '<h1 class="page-title">Orders</h1>' +
-        '<p class="orders-page-subtitle">Paid BestCheckout orders are automatically created in Shopify. Fulfillment and refunds are managed there.</p>' +
+        '<p class="orders-page-subtitle">Paid BestCheckout orders are automatically created in Shopify. Fulfillment is managed there. Refunds are issued in BestCheckout because payment is captured here.</p>' +
       '</div>' +
       '<div class="panel">' +
         '<div class="tabs" style="padding:0 8px" id="ord-tabs">' + tabsHtml + '</div>' +
@@ -497,9 +497,15 @@
     const o = stored || byOrderNumber || subscriptionOrderDetail(id);
     if (!o) { renderMissing(id); return; }
 
+    // Action visibility mirrors BestShopio: refund stays on paid orders until
+    // they are fully refunded, canceled, or archived. Fulfillment stays in Shopify.
+    const showRefund = o.status !== 'refund' && o.status !== 'cancel' && o.status !== 'archived'
+      && (o.paid === 1 || Number(o.paid_amount || 0) > 0.001);
+    const actions = showRefund ? '<button class="btn btn-primary" data-act="refund">Refund</button>' : '';
+
     root.innerHTML =
       '<div class="detail-wrap">' +
-        // BestCheckout owns the payment record; Shopify owns post-payment fulfillment.
+        // BestCheckout owns payment and refunds; Shopify owns post-payment fulfillment.
         '<div class="flex items-center justify-between mb-4">' +
           '<div class="flex items-center gap-3">' +
             '<button class="back-btn" data-act="back" title="Back">' + I.arrowLeft + '</button>' +
@@ -509,15 +515,15 @@
               '<span class="pill pill-blue"><span class="dot"></span>BestCheckout</span>' + shopifySyncPill(o) +
             '</div>' +
           '</div>' +
+          '<div class="flex items-center gap-2">' + actions + '</div>' +
         '</div>' +
         // two-column body (main + 275px rail) — detial.tsx layout
         '<div class="detail-cols">' +
           '<div class="detail-main">' +
             productsCard(o) +
             amountCard(o) +
-            checkoutAndPaymentCards(o) +
-            purchaseSnapshotCards(o) +
             shippingAddressCard(o) +
+            paymentCard(o) +
             integrationCard(o) +
             timelineCard(o) +
           '</div>' +
@@ -806,16 +812,12 @@
 
   function paymentCard(o) {
     const p = o.payment || {};
-    const facts = [
-      operationFact('Payment status', paymentStatusPill(p.status)),
-      operationFact('Processor', esc(p.processor)),
-      operationFact('Payment method', esc(p.method)),
-      operationFact('Transaction reference', p.transactionId ? '<span style="font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px">' + esc(p.transactionId) + '</span>' : '--'),
-      operationFact(p.status === 'captured' ? 'Captured at' : 'Payment time', esc(p.capturedAt)),
-      operationFact('Risk check', esc(p.risk)),
-    ];
-    if (p.refund) facts.push(operationFact('Refund', esc(p.refund)));
-    return operationCard('Payment', '<div class="order-operation-facts" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:18px">' + facts.join('') + '</div>');
+    const grid =
+      '<div class="grid grid-cols-2" style="gap:0 16px">' +
+        descRow('Processor', esc(p.processor)) + descRow('Payment method', esc(p.method)) +
+        (p.refund ? descRow('Refund', esc(p.refund)) : '') +
+      '</div>';
+    return cardOpen('<span>Payment</span>') + grid + '</div>';
   }
 
   function checkoutAndPaymentCards(o) {
@@ -930,19 +932,20 @@
 
   function integrationCard(o) {
     const state = shopifySyncState(o);
-    const shopifyId = o.shopify_order_id ? '<span class="muted" style="margin-left:6px">' + esc(o.shopify_order_id) + '</span>' : '';
+    const shopifyId = o.shopify_order_id ? esc(o.shopify_order_id) : '--';
     const shopifyUrl = state.key === 'in_shopify' ? shopifyAdminOrderUrl(o) : '';
     const openInShopify = shopifyUrl ? '<a class="btn btn-default" href="' + esc(shopifyUrl) + '" target="_blank" rel="noreferrer">View in Shopify</a>' : '';
     const retry = state.key === 'attention' ? '<button class="btn btn-default" data-act="retry-shopify">Retry sync</button>' : '';
-    const fulfillmentNote = state.key === 'subscription_history'
-      ? 'This billing history entry does not contain Shopify fulfillment or refund activity.'
-      : 'Fulfillment and refunds are managed in Shopify.';
-    return cardOpen('<span>Shopify</span>', openInShopify || retry) +
-      integrationRow('Order source', orderSourceDetail(o)) +
-      integrationRow('Shopify sync status', shopifySyncPill(o) + shopifyId) +
-      '<div class="subtle" style="font-size:12.5px;line-height:1.55;margin-top:6px">' + esc(state.detail) + '</div>' +
-      '<div class="subtle" style="font-size:12.5px;line-height:1.55;margin-top:6px">' + esc(fulfillmentNote) + '</div>' +
-    '</div>';
+    const fulfillment = state.key === 'subscription_history' ? 'Not recorded on this billing history' : 'Managed in Shopify';
+    const refund = 'Issued in BestCheckout';
+    const grid =
+      '<div class="grid grid-cols-2" style="gap:0 16px">' +
+        descRow('Shopify sync status', shopifySyncPill(o)) +
+        descRow('Shopify order', shopifyId) +
+        descRow('Fulfillment', fulfillment) +
+        descRow('Refund', refund) +
+      '</div>';
+    return cardOpen('<span>Shopify</span>', openInShopify || retry) + grid + '</div>';
   }
 
   // ---- Timeline card (TimelineCard.tsx): label left, time right; Ant Empty when none ----
@@ -1012,6 +1015,7 @@
   function wireDetail(o) {
     const back = root.querySelector('[data-act="back"]'); if (back) back.onclick = () => { location.hash = '#/orders'; };
     const copy = root.querySelector('[data-act="copy"]'); if (copy) copy.onclick = () => { try { navigator.clipboard.writeText(o.order_sn); } catch (e) {} toast('Copied'); };
+    const ref = root.querySelector('[data-act="refund"]'); if (ref) ref.onclick = () => openRefundModal(o);
     const en = root.querySelector('[data-act="edit-note"]'); if (en) en.onclick = () => openEditNoteModal(o);
     const retry = root.querySelector('[data-act="retry-shopify"]'); if (retry) retry.onclick = () => retryShopifySync(o);
   }
@@ -1125,7 +1129,7 @@
         '<div class="muted" style="font-size:12px;margin-top:6px">Only you and other staff can see this reason</div></div>' +
       '<div id="rf-err" style="color:var(--err);font-size:12px;margin-top:8px;display:none"></div>';
     modal({
-      title: 'Refund', width: 920, okText: 'Save',
+      title: 'Refund', width: 520, okText: 'Save',
       body,
       onOk: (m, close) => {
         const amt = Number(m.querySelector('#rf-amt').value);
@@ -1138,6 +1142,11 @@
         o.refunded_amount = Number(o.refunded_amount || 0) + amt;
         o.paid_amount = Math.max(0, Number(o.paid_amount || 0) - amt);
         if (o.paid_amount < 0.001) o.status = 'refund';
+        if (o.payment) {
+          const fully = o.status === 'refund';
+          o.payment.status = fully ? 'refunded' : 'captured';
+          o.payment.refund = fully ? 'Fully refunded' : 'Partially refunded';
+        }
         o.timeline = o.timeline || [];
         o.timeline.push({ label: (o.status === 'refund' ? 'Full' : 'Partial') + ' refund of ' + money(amt) + ' issued · ' + reason, time: refundedAt });
         syncListOrder(o);

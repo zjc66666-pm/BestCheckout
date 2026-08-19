@@ -4,7 +4,8 @@
    Money is in store currency (USD $). No real PII / secrets.
 
    This workspace audits paid BestCheckout transactions and their Shopify
-   write-back state. Fulfillment and refunds continue in Shopify Admin. */
+   write-back state. Fulfillment continues in Shopify Admin. Refunds are
+   issued in BestCheckout, matching the BestShopio order refund flow. */
 (function () {
   // ---- BestCheckout payment / Shopify-sync tabs ----
   const TABS = [
