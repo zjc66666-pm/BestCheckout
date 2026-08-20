@@ -9,7 +9,7 @@
    #/orders/5042, or 'base' for #/settings/base). Internal navigation just sets
    location.hash; the router re-dispatches. */
 (function () {
-  var V = '20260820-domain-soon1'; // cache-bust for lazy-loaded module scripts
+  var V = '20260820-home-states1'; // cache-bust for lazy-loaded module scripts
   var PUBLIC_SHOPIFY_CONNECTION_URL = './?entry=connect-new-shopify-store#/connect-shopify';
   var s = function (p) { return '<svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>'; };
   var ICONS = {
@@ -58,6 +58,8 @@
     var query = new URLSearchParams(location.search);
     var qsStore = query.get('store');
     activeStore = STORES.filter(function (store) { return store.name === qsStore; })[0] || null;
+    if (activeStore) SITE.store = activeStore.name;
+    if (!activeStore) activeStore = STORES.filter(function (store) { return store.name === SITE.store; })[0] || STORES[0] || null;
     if (activeStore) SITE.store = activeStore.name;
     shopifyConnectionState = query.get('shopify') === 'unlinked' ? 'unlinked' : 'connected';
     // Store connection is completed in the public onboarding flow. Do not
@@ -331,6 +333,30 @@
       return counts;
     }, { live: 0, draft: 0 });
   }
+  function homeScenario() {
+    var state = (activeStore && activeStore.homeState) || 'unconfigured';
+    if (state === 'unconfigured' || state === 'ready' || state === 'live') return state;
+    return 'live';
+  }
+  function emptyHomePeriod(period) {
+    var source = period || {};
+    var labels = source.labels && source.labels.length ? source.labels.slice() : ['—'];
+    return {
+      label: source.label || 'Last 7 days',
+      comparison: 'No checkout data yet',
+      empty: true,
+      metrics: [
+        { title: 'Sales through BestCheckout', value: '$0', change: '' },
+        { title: 'Completed orders', value: '0', change: '' },
+        { title: 'Checkout conversion', value: '--', change: '' },
+        { title: 'Additional offer sales', value: '$0', change: '' }
+      ],
+      series: labels.map(function () { return 0; }),
+      labels: labels,
+      flows: [],
+      offers: []
+    };
+  }
   function homeChartHtml(period) {
     var values = period.series || [];
     var labels = period.labels || [];
@@ -354,12 +380,18 @@
     var xLabels = '<div class="home-chart-labels' + (labels.length > 7 ? ' is-dense' : '') + '" style="grid-template-columns:repeat(' + Math.max(labels.length, 1) + ',minmax(0,1fr))">' + labels.map(function (label) {
       return '<span title="' + homeEsc(label) + '">' + homeEsc(label) + '</span>';
     }).join('') + '</div>';
-    return '<div class="home-chart-wrap"><svg class="home-chart" viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none" role="img" aria-label="Checkout sales trend for ' + homeEsc(period.label) + '">' +
-      grid + '<path d="' + area + '" class="home-chart-area" /><polyline points="' + line + '" class="home-chart-line" /></svg>' + xLabels + '</div>';
+    var emptyNote = period.empty
+      ? '<p class="home-chart-empty">Completed checkout sales will appear after the first paid order.</p>'
+      : '';
+    return '<div class="home-chart-wrap' + (period.empty ? ' is-empty' : '') + '"><svg class="home-chart" viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none" role="img" aria-label="Checkout sales trend for ' + homeEsc(period.label) + '">' +
+      grid + '<path d="' + area + '" class="home-chart-area" /><polyline points="' + line + '" class="home-chart-line" /></svg>' + xLabels + emptyNote + '</div>';
   }
   function homeMetricHtml(metric, comparison) {
+    var change = metric.change
+      ? '<b>' + homeEsc(metric.change) + '</b> '
+      : '';
     var inner = '<span class="home-kpi-label">' + homeEsc(metric.title) + '</span>' +
-      '<strong>' + homeEsc(metric.value) + '</strong><span class="home-kpi-meta"><b>' + homeEsc(metric.change) + '</b> ' + homeEsc(comparison) + '</span>';
+      '<strong>' + homeEsc(metric.value) + '</strong><span class="home-kpi-meta">' + change + homeEsc(comparison) + '</span>';
     return metric.href ? '<a class="home-kpi" href="' + metric.href + '">' + inner + '</a>' : '<article class="home-kpi">' + inner + '</article>';
   }
   function homeAttentionHtml(orders, flows) {
@@ -404,28 +436,42 @@
     var rows = (period.flows || []).map(function (flow) {
       return '<tr><td><a href="#/flows/' + homeEsc(flow.id) + '">' + homeEsc(flow.name) + '</a><small>Attributed in this period</small></td><td>' + homeEsc(flow.sessions) + '</td><td><strong>' + homeEsc(flow.orders) + '</strong></td><td><strong>' + homeEsc(flow.conversion) + '</strong><small class="home-positive">' + homeEsc(flow.lift) + ' <span>vs Shopify</span></small></td><td>' + homeEsc(flow.aov) + '</td><td><strong>' + homeEsc(flow.sales) + '</strong></td></tr>';
     }).join('');
+    if (!rows) {
+      rows = '<tr><td colspan="6" class="home-data-empty">No purchase flow results yet.</td></tr>';
+    }
     return '<section class="home-panel home-flow-performance"><div class="home-section-head"><div><h2>Purchase flow performance</h2><p>Compare purchase flow results during the selected period.</p></div><a class="home-text-link" href="#/flows">Manage purchase flows</a></div><div class="home-data-table-wrap"><table class="home-data-table"><thead><tr><th>Purchase flow</th><th>Entered checkout</th><th>Completed orders</th><th>Conversion</th><th>Average order value</th><th>Sales</th></tr></thead><tbody>' + rows + '</tbody></table></div></section>';
   }
   function homeOfferPerformanceHtml(period) {
     var offers = (period.offers || []).map(function (offer) {
       return '<article class="home-offer-card"><span class="home-offer-tag home-offer-' + homeEsc(offer.tone) + '">' + homeEsc(offer.type) + '</span><strong>' + homeEsc(offer.title) + '</strong><p>' + homeEsc(offer.note) + '</p><div><span><small>Accept rate</small><b>' + homeEsc(offer.rate) + '</b></span><span><small>Added sales</small><b>' + homeEsc(offer.sales) + '</b></span></div></article>';
     }).join('');
+    if (!offers) {
+      offers = '<div class="home-offer-empty">No Upsell or Downsell results yet.</div>';
+    }
     return '<section class="home-offer-section"><div class="home-section-head home-offer-section-head"><div><h2>Offer performance</h2><p>Revenue and acceptance rate for Upsell and Downsell offers.</p></div><a class="home-text-link" href="#/flows">Manage offers</a></div><div class="home-offer-grid">' + offers + '</div></section>';
   }
   function homeDataInsightHtml(period) {
+    if (period.empty) {
+      return '<section class="home-panel home-data-insight is-empty"><div class="home-section-head"><div><div class="home-overline">This period</div><h2>Waiting for the first paid order</h2><p>Sales and conversion appear after a buyer completes a paid checkout.</p></div></div><div class="home-data-insight-value"><span>Checkout conversion</span><strong>--</strong><small>No checkout data yet</small></div><a class="btn btn-primary" href="#/flows">Review purchase flows</a></section>';
+    }
     return '<section class="home-panel home-data-insight"><div class="home-section-head"><div><div class="home-overline">This period</div><h2>More shoppers complete checkout</h2><p>Your checkout conversion is higher than the Shopify control group. Keep the current setup running, then test the next segment.</p></div></div><div class="home-data-insight-value"><span>Checkout conversion</span><strong>' + homeEsc(period.metrics[2].value) + '</strong><small>' + homeEsc(period.metrics[2].change) + ' <span>vs Shopify</span></small></div><a class="btn btn-primary" href="#/flows">Review purchase flows</a></section>';
   }
-  function checkoutLaunchGuideHtml() {
+  function checkoutLaunchGuideHtml(scenario) {
     // The connection is completed automatically during Shopify authorization.
     // The remaining steps mirror the buyer journey and link to the workspace
     // where each launch outcome is configured.
     var connected = shopifyConnectionState === 'connected';
+    var launchReady = scenario === 'ready' || scenario === 'live';
     var tasks = [
       connected
         ? { done: true, title: 'Shopify store connected', desc: 'Products, discounts and delivery options are ready for checkout.' }
         : { done: false, current: true, title: 'Connect your Shopify store', desc: 'Connect your custom app to sync products, orders, and checkout data.', href: './?entry=connect-new-shopify-store#/connect-shopify', action: 'Connect' },
-      { done: false, title: 'Set checkout domain', desc: 'Use a branded, secure address throughout checkout, Upsell, Downsell, and Thank you pages.', href: '#/settings/domains', action: 'Set up' },
-      { done: false, title: 'Connect payment service', desc: 'Choose how buyers can pay and complete a test payment.', href: '#/settings/payments', action: 'Set up' }
+      launchReady
+        ? { done: true, title: 'Set checkout domain', desc: 'Use a branded, secure address throughout checkout, Upsell, Downsell, and Thank you pages.' }
+        : { done: false, current: connected, title: 'Set checkout domain', desc: 'Use a branded, secure address throughout checkout, Upsell, Downsell, and Thank you pages.', href: '#/settings/domains', action: 'Set up' },
+      launchReady
+        ? { done: true, title: 'Connect payment service', desc: 'Choose how buyers can pay and complete a test payment.' }
+        : { done: false, title: 'Connect payment service', desc: 'Choose how buyers can pay and complete a test payment.', href: '#/settings/payments', action: 'Set up' }
     ];
     var complete = tasks.filter(function (task) { return task.done; }).length;
     var rows = tasks.map(function (task) {
@@ -436,11 +482,14 @@
         : '<a class="onboard-action" href="' + task.href + '">' + task.action + '<span>&rsaquo;</span></a>';
       return '<div class="onboard-row' + state + '"><span class="onboard-step">' + marker + '</span><div class="onboard-copy"><strong>' + homeEsc(task.title) + '</strong><small>' + homeEsc(task.desc) + '</small></div>' + end + '</div>';
     }).join('');
+    var safety = launchReady
+      ? ''
+      : '<div class="onboard-safety"><span>!</span><p>Your default checkout pages and purchase flow are ready to use. Finish the steps above before routing live shoppers to BestCheckout.</p></div>';
     return '<section class="home-onboarding">' +
       '<header class="onboard-head"><div><div class="home-overline">Quick start</div><h2>Complete your launch setup</h2><p>Follow these steps once to start taking orders with BestCheckout.</p></div>' +
       '<div class="onboard-progress"><div><strong>' + complete + ' / ' + tasks.length + '</strong><span>complete</span></div><i><b style="width:' + Math.round(complete / tasks.length * 100) + '%"></b></i></div></header>' +
       '<div class="onboard-rows">' + rows + '</div>' +
-      '<div class="onboard-safety"><span>!</span><p>Your default checkout pages and purchase flow are ready to use. Finish the steps above before routing live shoppers to BestCheckout.</p></div>' +
+      safety +
     '</section>';
   }
   function renderNewStoreHome() {
@@ -467,21 +516,25 @@
   }
   function renderHome() {
     if (isNewStore) { renderNewStoreHome(); return; }
+    var scenario = homeScenario();
     var data = window.DATA_HOME || { periods: {}, storeHealth: [], update: {} };
     var period = data.periods[homeRange] || data.periods['30d'] || { label: 'Last 30 days', comparison: 'vs previous period', metrics: [], series: [], labels: [], flows: [], offers: [] };
+    var hasCheckoutData = scenario === 'live';
+    if (!hasCheckoutData) period = emptyHomePeriod(period);
     // BestCheckout owns only orders created through its checkout. Shopify native
     // checkout orders remain in Shopify Admin and must not influence this home view.
-    var orders = ((window.DATA_ORDERS || {}).ORDERS || []).filter(function (order) {
+    var orders = hasCheckoutData ? ((window.DATA_ORDERS || {}).ORDERS || []).filter(function (order) {
       return order && order.source === 'BestCheckout' && order.payment_status === 'paid';
-    });
+    }) : [];
     var flowCounts = homeFlowCounts();
     var rangeTabs = [['7d', 'Last 7 days'], ['30d', 'Last 30 days'], ['90d', 'Last 90 days']].map(function (tab) {
       return '<button type="button" class="home-range-tab' + (homeRange === tab[0] ? ' active' : '') + '" data-home-range="' + tab[0] + '" aria-pressed="' + (homeRange === tab[0] ? 'true' : 'false') + '">' + tab[1] + '</button>';
     }).join('');
+    var attention = scenario === 'unconfigured' ? '' : homeAttentionHtml(orders, flowCounts);
     root.innerHTML = '<div class="home-page"><div class="home-head"><div><h1>Good morning, ' + homeEsc(SITE.store || 'your store') + '</h1><p>Review the setup and results that affect buyers in BestCheckout.</p></div></div>' +
-      checkoutLaunchGuideHtml() +
-      homeAttentionHtml(orders, flowCounts) +
-      '<section class="home-data" id="home-data"><div class="home-section-head home-performance-head"><div><div class="home-overline">Data</div><h2>Checkout data</h2><p>' + homeEsc(period.label) + ' ' + homeEsc(period.comparison) + '</p></div><div class="home-range-tabs" role="group" aria-label="Data period">' + rangeTabs + '</div></div><div class="home-kpi-grid">' + (period.metrics || []).map(function (metric) { return homeMetricHtml(metric, period.comparison); }).join('') + '</div>' +
+      checkoutLaunchGuideHtml(scenario) +
+      attention +
+      '<section class="home-data" id="home-data"><div class="home-section-head home-performance-head"><div><div class="home-overline">Data</div><h2>Checkout data</h2><p>' + homeEsc(period.label) + (period.empty ? '' : ' ' + homeEsc(period.comparison)) + '</p></div><div class="home-range-tabs" role="group" aria-label="Data period">' + rangeTabs + '</div></div><div class="home-kpi-grid">' + (period.metrics || []).map(function (metric) { return homeMetricHtml(metric, period.comparison); }).join('') + '</div>' +
       '<div class="home-main-grid"><section class="home-panel home-chart-panel"><div class="home-section-head"><div><h2>Checkout sales trend</h2><p><span>Completed checkout sales</span> · <span>' + homeEsc(period.label) + '</span></p></div></div>' + homeChartHtml(period) + '</section>' + homeDataInsightHtml(period) + '</div>' + homeFlowPerformanceHtml(period) + homeOfferPerformanceHtml(period) + '<section class="home-data-note"><span>i</span><div><strong>How sales are counted</strong><p>Sales are counted after payment succeeds. Paid orders are then sent to Shopify, so the result here matches the orders your team fulfills.</p></div></section></section></div>';
     wireHome();
     // See renderNewStoreHome: this view is assembled after the initial i18n pass.

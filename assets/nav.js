@@ -8,9 +8,9 @@ window.SITE = {
 };
 
 window.STORES = [
-  { name: 'Lavender Labs', url: 'lavender-labs.myshopify.com' },
-  { name: 'Aura Living', url: 'aura-living.myshopify.com' },
-  { name: 'Northline Goods', url: 'northline-goods.myshopify.com' },
+  { name: 'Lavender Labs', url: 'lavender-labs.myshopify.com', homeState: 'unconfigured' },
+  { name: 'Aura Living', url: 'aura-living.myshopify.com', homeState: 'ready' },
+  { name: 'Northline Goods', url: 'northline-goods.myshopify.com', homeState: 'live' },
 ];
 
 window.NAV_MENU = [

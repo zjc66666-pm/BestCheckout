@@ -337,6 +337,13 @@
     'Set checkout domain': '设置结账域名', 'Use a branded, secure address throughout checkout, Upsell, Downsell, and Thank you pages.': '在结账、Upsell、Downsell 和 Thank you 页面全程使用安全的品牌域名。',
     'Connect payment service': '连接支付服务', 'Choose how buyers can pay and complete a test payment.': '选择买家可使用的支付方式，并完成一次测试付款。',
     'Set up': '去设置', 'Completed': '已完成', 'Optional growth': '可选增长项', 'Add Upsell, Downsell, or conversion tracking after launch.': '上线后可按需添加 Upsell、Downsell 或转化追踪。', 'Add offers': '添加优惠', 'View performance': '查看效果',
+    'Your default checkout pages and purchase flow are ready to use. Finish the steps above before routing live shoppers to BestCheckout.': '默认结账页面和购买流程已可用。完成以上步骤后，再把买家引流到 BestCheckout。',
+    'No checkout data yet': '暂无结账数据',
+    'Waiting for the first paid order': '等待第一笔已付款订单',
+    'Sales and conversion appear after a buyer completes a paid checkout.': '买家完成已付款结账后，这里才会显示销售额和转化。',
+    'Completed checkout sales will appear after the first paid order.': '第一笔已付款订单完成后，这里会显示结账销售额。',
+    'No purchase flow results yet.': '暂无购买流程结果。',
+    'No Upsell or Downsell results yet.': '暂无 Upsell 或 Downsell 结果。',
     'Your Shopify checkout stays available until you publish a purchase flow.': '在发布购买流程前，买家仍会使用 Shopify Checkout。'
   });
 }());
