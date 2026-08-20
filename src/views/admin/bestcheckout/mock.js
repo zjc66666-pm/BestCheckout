@@ -534,7 +534,7 @@ const PROVIDERS = [
     regions: 'By gateway account',
     postPurchase: CAPABILITY.PLANNED,
     capabilityCoverage: 'Not evaluated',
-    notes: 'We will let you know when this payment account can be connected.',
+    notes: 'NMI accepts card payments only. Apple Pay and Google Pay are not available.',
     successRate: '—',
     capabilityEvaluations: [
       { method: 'Card', region: 'Merchant account', currency: 'Account currency', authorizationState: 'Unknown', outcome: CAPABILITY.PLANNED, confirmationFlow: 'Not defined', reasonCode: 'connector_planned', verifiedAt: 'Not verified' },

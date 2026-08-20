@@ -707,6 +707,7 @@ const ZH = {
   'Just now': '刚刚',
   'Cards · Apple Pay · Google Pay': '银行卡 · Apple Pay · Google Pay',
   'Cards': '银行卡',
+  'NMI accepts card payments only. Apple Pay and Google Pay are not available.': 'NMI 仅支持银行卡收款，不提供 Apple Pay 和 Google Pay。',
   'PayPal wallet': 'PayPal 钱包',
   'Cards · wallets': '银行卡 · 钱包',
   'Cards · PayPal · wallets': '银行卡 · PayPal · 钱包',

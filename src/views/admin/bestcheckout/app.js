@@ -4,7 +4,7 @@ import {
   FUNNEL_STATUS,
   TRACKING_CONTRACT_VERSION,
 } from './type.js?rev=20260720-standalone-portal-v150';
-import { createMockBestCheckoutState } from './mock.js?rev=20260723-connected-overview-v1';
+import { createMockBestCheckoutState } from './mock.js?rev=20260820-nmi-card-only1';
 import { buildRuntimePayload, deterministicPayloadHash, graphEdgesForNodes, validateGraphCoverage } from './runtime.js?rev=20260716-rich-audience-v19';
 import { icon } from './components/common.js?rev=20260716-focus-mode-v27';
 import {
@@ -40,7 +40,7 @@ import { renderConnectShopify, renderForgotPasswordCode, renderPasswordResetEmai
 import { renderHelpCenter } from './pages/help.js?rev=20260723brandunify1';
 import { renderMarketingSite } from './pages/website.js?rev=20260723brandmark1';
 import { escapeHtml, formatDateTime, getRouteName, parseRoute, setRoute } from './utils.js?rev=20260720-standalone-portal-v145';
-import { applyLocale, renderLanguageSwitcher, translate } from './i18n.js?rev=20260720-standalone-portal-v150';
+import { applyLocale, renderLanguageSwitcher, translate } from './i18n.js?rev=20260820-nmi-card-only1';
 
 const appRoot = document.getElementById('app');
 const modalRoot = document.getElementById('modal-root');
@@ -2709,7 +2709,7 @@ function bindFormSubmissions(event) {
       merchantAccountRef: draft.merchantAccountRef,
       regions: state.store.targetRegions.slice(),
       currencies: Array.from(new Set([state.store.checkoutCurrency, 'CAD'])),
-      methods: provider.id === 'paypal' ? ['paypal'] : ['card', 'apple_pay', 'google_pay'],
+      methods: provider.id === 'paypal' ? ['paypal'] : provider.id === 'nmi' ? ['card'] : provider.id === 'klarna' ? ['klarna'] : ['card', 'apple_pay', 'google_pay'],
       authorizationState: 'Verified',
       testPaymentState: 'Passed',
       webhookState: 'Verified',
