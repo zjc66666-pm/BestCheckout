@@ -1934,8 +1934,11 @@
   .sp-ms-ph { color: var(--ink-muted); font-size: 14px; }
   .sp-ms-val { display: flex; flex-wrap: wrap; gap: 6px; }
   .sp-ms-tag { background: #f0f1f3; border-radius: 4px; padding: 2px 8px; font-size: 13px; color: var(--ink); }
-  .sp-ms-list { margin-top: 6px; border: 1px solid var(--hair); border-radius: 8px; padding: 6px; }
+  .sp-ms { position: relative; }
+  .sp-ms-list { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 30; background: #fff; border: 1px solid var(--hair); border-radius: 8px; padding: 4px; box-shadow: 0 8px 24px rgba(15,23,42,.12); max-height: 220px; overflow: auto; }
   .sp-ms-list[hidden] { display: none; }
+  .sp-ms-list .chk { display: flex; width: 100%; padding: 7px 10px; border-radius: 6px; box-sizing: border-box; }
+  .sp-ms-list .chk:hover { background: #f5f6f8; }
   /* radio (Active/Inactive) */
   .sp-radio { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-body); cursor: pointer; margin-right: 28px; }
   .sp-radio input { width: 15px; height: 15px; accent-color: var(--brand); }
@@ -2014,6 +2017,7 @@
     const box = m.querySelector('[data-ms-box]'), list = m.querySelector('[data-ms-list]');
     const toggle = () => { if (list.hasAttribute('hidden')) list.removeAttribute('hidden'); else list.setAttribute('hidden', ''); };
     box.onclick = toggle;
+    m.addEventListener('click', (e) => { if (!e.target.closest('.sp-ms')) list.setAttribute('hidden', ''); });
     const redraw = () => {
       const sel = collectRoles(m);
       box.innerHTML = (sel.length
