@@ -1844,44 +1844,39 @@
   // ===========================================================================
   // ===========================================================================
   // V1.129 Staff and permissions — Roles + Staff (replaces the earlier stubs).
-  // SSO grants a store; inside the store admin you manage Roles (menu/permission
-  // tree) and Staff (5-state account lifecycle). Mock data is module-scoped so the
-  // CRUD flows mutate and re-render in place.
+  // BestCheckout staff are created in this admin. There is no invite or access-code
+  // flow, so accounts are Active or Inactive only. Mock data is module-scoped so
+  // the CRUD flows mutate and re-render in place.
   // ===========================================================================
   const ROLE_NAMES = ['Administrator', 'Operations Specialist', 'Customer Service Representative', 'Order Specialist'];
   const PERM_TREE = [
-    { title: 'Home', children: ['Dashboard'] },
-    { title: 'Orders', children: ['Order list', 'Order detail', 'Shipping', 'Edit shipping address', 'Refund', 'Note'] },
-    { title: 'Products', children: ['Product list', 'Add product', 'Edit product', 'Collections'] },
-    { title: 'Discounts', children: ['Discount list', 'Add discount', 'Edit discount'] },
-    { title: 'Customers', children: ['Customer list', 'Customer detail'] },
-    { title: 'Content', children: ['Blog', 'Page', 'Menu'] },
-    { title: 'Google', children: ['Google sync'] },
-    { title: 'Settings', children: ['Basic settings', 'Payments', 'Staff and permissions'] },
+    { title: 'Overview', children: ['View overview'] },
+    { title: 'Purchase flows', children: ['Purchase flow list', 'Create purchase flow', 'Edit purchase flow', 'Publish purchase flow'] },
+    { title: 'Checkout pages', children: ['Page list', 'Create page', 'Edit page'] },
+    { title: 'Orders', children: ['Order list', 'Order detail', 'Refund', 'Note'] },
+    { title: 'Settings', children: ['Shopify connection', 'Checkout domain', 'Payment services', 'Ad data', 'Email notifications', 'Roles', 'Staff'] },
   ];
   const ALL_LEAVES = PERM_TREE.reduce((a, p) => a.concat(p.children), []);
   let rolesData = [
-    { role: 'Administrator', desc: 'Full access to all features and settings', members: 5, perms: ALL_LEAVES.slice() },
-    { role: 'Operations Specialist', desc: 'Manages products, marketing, and orders', members: 4, perms: ['Product list', 'Add product', 'Edit product', 'Collections', 'Discount list', 'Add discount', 'Order list', 'Order detail'] },
-    { role: 'Customer Service Representative', desc: 'Manages customer inquiries, returns, and exchanges', members: 3, perms: ['Customer list', 'Customer detail', 'Order list', 'Order detail', 'Note', 'Refund'] },
-    { role: 'Order Specialist', desc: '', members: 0, perms: ['Order list', 'Order detail', 'Shipping', 'Edit shipping address'] },
+    { role: 'Administrator', desc: 'Full access to all features and settings', members: 2, perms: ALL_LEAVES.slice() },
+    { role: 'Operations Specialist', desc: 'Manages purchase flows, checkout pages, and orders', members: 1, perms: ['Purchase flow list', 'Create purchase flow', 'Edit purchase flow', 'Publish purchase flow', 'Page list', 'Create page', 'Edit page', 'Order list', 'Order detail'] },
+    { role: 'Customer Service Representative', desc: 'Handles order questions and refunds', members: 1, perms: ['Order list', 'Order detail', 'Note', 'Refund'] },
+    { role: 'Order Specialist', desc: '', members: 1, perms: ['Order list', 'Order detail', 'Note'] },
   ];
   let staffData = [
     { email: 'zhangsan@gmail.com', role: ['Administrator'], name: 'Zhang San', status: 'Active' },
     { email: 'lisi@gmail.com', role: ['Operations Specialist'], name: 'Li Si', status: 'Inactive' },
-    { email: 'wangwu@gmail.com', role: ['Customer Service Representative'], name: 'Wang Wu', status: 'Invite pending' },
-    { email: 'liuma@gmail.com', role: ['Order Specialist'], name: '', status: 'Request pending' },
-    { email: 'chenliu@gmail.com', role: ['Administrator'], name: 'Chen Liu', status: 'Request rejected' },
+    { email: 'wangwu@gmail.com', role: ['Customer Service Representative'], name: 'Wang Wu', status: 'Active' },
+    { email: 'liuma@gmail.com', role: ['Order Specialist'], name: 'Liu Ma', status: 'Active' },
+    { email: 'chenliu@gmail.com', role: ['Administrator'], name: 'Chen Liu', status: 'Inactive' },
   ];
-  let accessCode = '0815';
-  const STAFF_PILL = { 'Active': 'pill-green', 'Inactive': 'pill-gray', 'Invite pending': 'pill-orange', 'Request pending': 'pill-blue', 'Request rejected': 'pill-red' };
-  const ALL_STATUSES = ['Active', 'Inactive', 'Invite pending', 'Request pending', 'Request rejected'];
+  const STAFF_PILL = { 'Active': 'pill-green', 'Inactive': 'pill-gray' };
+  const ALL_STATUSES = ['Active', 'Inactive'];
 
   // inline svgs scoped to these pages
   const SP_X = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
   const SP_CARET = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
   const SP_CHEVR = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
-  const SP_REVIEW = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>';
 
   const SP_STYLES = `
   .sp-wrap { width: 100%; max-width: none; margin: 0; }
@@ -2005,7 +2000,7 @@
     inp.addEventListener('input', upd); upd();
   }
 
-  // ---- role multi-select (Add/Edit/Review staff) ----
+  // ---- role multi-select (Add/Edit staff) ----
   function roleSelectHtml(selected) {
     selected = selected || [];
     const box = selected.length
@@ -2082,7 +2077,7 @@
     const existing = roleName ? rolesData.find((r) => r.role === roleName) : null;
     const body =
       '<div class="sp-field"><label class="sp-label">Role</label><div class="sp-input-wrap"><input id="r-name" class="sp-input" maxlength="100" placeholder="Example: Order Specialist" value="' + esc(existing ? existing.role : '') + '"/><span class="sp-cnt" id="r-name-cnt">0/100</span></div><div class="sp-err" data-err="r-name"></div></div>' +
-      '<div class="sp-field"><label class="sp-label">Description</label><div class="sp-input-wrap"><input id="r-desc" class="sp-input" maxlength="100" placeholder="Example: Handles order fulfillment and shipping logistics" value="' + esc(existing ? existing.desc : '') + '"/><span class="sp-cnt" id="r-desc-cnt">0/100</span></div></div>' +
+      '<div class="sp-field"><label class="sp-label">Description</label><div class="sp-input-wrap"><input id="r-desc" class="sp-input" maxlength="100" placeholder="Example: Handles order questions and refunds" value="' + esc(existing ? existing.desc : '') + '"/><span class="sp-cnt" id="r-desc-cnt">0/100</span></div></div>' +
       '<div class="sp-field"><label class="sp-label">Permission</label>' + permTreeHtml(existing ? existing.perms : []) + '<div class="sp-err" data-err="perm"></div></div>';
     const ref = modal({
       title: existing ? 'Edit role' : 'Add role', width: 560, okText: existing ? 'Update' : 'Add', body,
@@ -2125,13 +2120,9 @@
     const val = staffField === 'Email' ? s.email : staffField === 'Name' ? s.name : s.role.join(', ');
     return String(val).toLowerCase().indexOf(q) >= 0;
   }
-  function staffActions(s) {
-    const edit = '<button class="sp-icon-btn" data-edit title="Edit">' + I.pencil + '</button>';
-    const del = '<button class="sp-icon-btn danger" data-del title="Delete">' + I.trash + '</button>';
-    const review = '<button class="sp-icon-btn" data-review title="Review">' + SP_REVIEW + '</button>';
-    if (s.status === 'Active' || s.status === 'Inactive') return edit + del;
-    if (s.status === 'Invite pending') return del;
-    return review + del; // Request pending / Request rejected
+  function staffActions() {
+    return '<button class="sp-icon-btn" data-edit title="Edit">' + I.pencil + '</button>' +
+      '<button class="sp-icon-btn danger" data-del title="Delete">' + I.trash + '</button>';
   }
   function staffRowsHtml() {
     const list = staffData.filter(staffMatch);
@@ -2144,7 +2135,7 @@
         '<td><span class="sp-ellip" title="' + esc(roleTxt) + '">' + esc(roleTxt) + '</span></td>' +
         '<td>' + name + '</td>' +
         '<td><span class="pill ' + STAFF_PILL[s.status] + '"><span class="dot"></span>' + s.status + '</span></td>' +
-        '<td><div class="flex" style="gap:2px">' + staffActions(s) + '</div></td>' +
+        '<td><div class="flex" style="gap:2px">' + staffActions() + '</div></td>' +
       '</tr>';
     }).join('');
   }
@@ -2163,15 +2154,13 @@
   }
   function wireStaffRows(scope) {
     scope.querySelectorAll('#sp-sbody [data-edit]').forEach((b) => b.onclick = (e) => { e.stopPropagation(); openStaffModal('edit', b.closest('tr').getAttribute('data-email')); });
-    scope.querySelectorAll('#sp-sbody [data-review]').forEach((b) => b.onclick = (e) => { e.stopPropagation(); openStaffModal('review', b.closest('tr').getAttribute('data-email')); });
     scope.querySelectorAll('#sp-sbody [data-del]').forEach((b) => b.onclick = (e) => { e.stopPropagation(); deleteStaff(b.closest('tr').getAttribute('data-email')); });
   }
   function renderStaff() {
     paint('<style>' + SP_STYLES + '</style>' +
       '<div class="sp-wrap">' +
-        '<div class="sp-head"><div><div class="page-title">Staff</div><div class="sp-sub">Manage team members and their account access.</div>' +
-          '<div class="sp-sub" style="margin-top:6px">Access code: <b id="sp-code" style="color:var(--ink)">' + accessCode + '</b></div></div>' +
-          '<div class="sp-actions"><button class="btn" data-gencode>Generate new code</button><button class="btn btn-primary" data-add>Add staff</button></div></div>' +
+        '<div class="sp-head"><div><div class="page-title">Staff</div><div class="sp-sub">Add team members in BestCheckout and manage their access.</div></div>' +
+          '<div class="sp-actions"><button class="btn btn-primary" data-add>Add staff</button></div></div>' +
         '<div class="sp-card">' +
           '<div class="sp-filter">' +
             '<div class="sp-search"><select id="sp-field" class="filter-select sp-field-sel"><option>Email</option><option>Role</option><option>Name</option></select><input id="sp-staff-q" placeholder="Search"/></div>' +
@@ -2185,11 +2174,6 @@
     const scope = root;
     refreshStaff(scope);
     scope.querySelector('[data-add]').onclick = () => openStaffModal('add');
-    scope.querySelector('[data-gencode]').onclick = () => {
-      accessCode = String(Math.floor(1000 + Math.random() * 9000));
-      scope.querySelector('#sp-code').textContent = accessCode;
-      toast('New access code generated');
-    };
     const fsel = scope.querySelector('#sp-field');
     fsel.addEventListener('change', () => { staffField = fsel.value; if (staffQuery) refreshStaff(scope); });
     const q = scope.querySelector('#sp-staff-q');
@@ -2213,45 +2197,44 @@
   }
   function openStaffModal(mode, email) {
     const s = email ? staffData.find((x) => x.email === email) : null;
-    const isAdd = mode === 'add', isReview = mode === 'review';
-    const title = isAdd ? 'Add staff' : isReview ? 'Review staff' : 'Edit staff';
+    const isAdd = mode === 'add';
+    const title = isAdd ? 'Add staff' : 'Edit staff';
     const emailField = isAdd
       ? '<div class="sp-field"><label class="sp-label">Email</label><div class="sp-input-wrap"><input id="s-email" class="sp-input" maxlength="100" placeholder="Example: name@example.com"/><span class="sp-cnt" id="s-email-cnt">0/100</span></div><div class="sp-err" data-err="s-email"></div></div>'
       : '<div class="sp-field"><label class="sp-label">Email</label><input class="sp-input" disabled value="' + esc(s.email) + '"/></div>';
-    const selectedRoles = (isReview || isAdd) ? [] : s.role.slice();
+    const selectedRoles = isAdd ? [] : s.role.slice();
     const roleField = '<div class="sp-field"><label class="sp-label">Role</label>' + roleSelectHtml(selectedRoles) + '<div class="sp-err" data-err="s-role"></div></div>';
-    const nameField = '<div class="sp-field"><label class="sp-label">Name</label><div class="sp-input-wrap"><input id="s-name" class="sp-input" maxlength="100" placeholder="Please enter full name. Example: John Smith" value="' + esc(s && !isReview ? s.name : '') + '"/><span class="sp-cnt" id="s-name-cnt">0/100</span></div></div>';
-    const statusField = (mode === 'edit')
-      ? '<div class="sp-field"><label class="sp-label">Status</label><div style="display:flex;align-items:center"><label class="sp-radio"><input type="radio" name="s-status" value="Active"' + (s.status === 'Active' ? ' checked' : '') + '/> Active</label><label class="sp-radio"><input type="radio" name="s-status" value="Inactive"' + (s.status !== 'Active' ? ' checked' : '') + '/> Inactive</label></div></div>'
-      : '';
+    const nameField = '<div class="sp-field"><label class="sp-label">Name</label><div class="sp-input-wrap"><input id="s-name" class="sp-input" maxlength="100" placeholder="Please enter full name. Example: John Smith" value="' + esc(s ? s.name : '') + '"/><span class="sp-cnt" id="s-name-cnt">0/100</span></div><div class="sp-err" data-err="s-name"></div></div>';
+    const currentStatus = s ? s.status : 'Active';
+    const statusField = '<div class="sp-field"><label class="sp-label">Status</label><div style="display:flex;align-items:center"><label class="sp-radio"><input type="radio" name="s-status" value="Active"' + (currentStatus === 'Active' ? ' checked' : '') + '/> Active</label><label class="sp-radio"><input type="radio" name="s-status" value="Inactive"' + (currentStatus !== 'Active' ? ' checked' : '') + '/> Inactive</label></div></div>';
     const body = emailField + roleField + nameField + statusField;
-    const okText = isAdd ? 'Add' : isReview ? 'Approve' : 'Update';
     const ref = modal({
-      title, width: 560, okText, hideCancel: isReview, body,
+      title, width: 560, okText: isAdd ? 'Add' : 'Update', body,
       onOk: (m, close) => {
         const roles = collectRoles(m);
-        setErr(m, 's-role', ''); setErr(m, 's-email', '');
+        setErr(m, 's-role', ''); setErr(m, 's-email', ''); setErr(m, 's-name', '');
         let ok = true;
         let emailVal = s ? s.email : '';
+        const nameEl = m.querySelector('#s-name');
+        nameEl.classList.remove('err');
         if (isAdd) {
-          emailVal = m.querySelector('#s-email').value.trim();
-          if (!emailVal) { setErr(m, 's-email', 'Please enter email'); ok = false; }
-          else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) { setErr(m, 's-email', 'The email you entered is invalid'); ok = false; }
-          else if (staffData.some((x) => x.email.toLowerCase() === emailVal.toLowerCase())) { setErr(m, 's-email', 'Email already exist'); ok = false; }
+          const emailEl = m.querySelector('#s-email');
+          emailEl.classList.remove('err');
+          emailVal = emailEl.value.trim();
+          if (!emailVal) { setErr(m, 's-email', 'Please enter email'); emailEl.classList.add('err'); ok = false; }
+          else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) { setErr(m, 's-email', 'The email you entered is invalid'); emailEl.classList.add('err'); ok = false; }
+          else if (staffData.some((x) => x.email.toLowerCase() === emailVal.toLowerCase())) { setErr(m, 's-email', 'Email already exist'); emailEl.classList.add('err'); ok = false; }
         }
+        const name = nameEl.value.trim();
+        if (!name) { setErr(m, 's-name', 'Please enter name'); nameEl.classList.add('err'); ok = false; }
         if (!roles.length) { setErr(m, 's-role', 'Please select role'); ok = false; }
         if (!ok) return;
-        const name = m.querySelector('#s-name') ? m.querySelector('#s-name').value.trim() : (s ? s.name : '');
+        const status = (m.querySelector('input[name="s-status"]:checked') || { value: 'Active' }).value;
         if (isAdd) {
-          staffData.unshift({ email: emailVal, role: roles, name, status: 'Invite pending' });
+          staffData.unshift({ email: emailVal, role: roles, name, status });
           toast('Add staff successfully');
-        } else if (isReview) {
-          s.role = roles; s.name = name; s.status = 'Active';
-          toast('Staff access approved successfully');
         } else {
-          s.role = roles; s.name = name;
-          const st = m.querySelector('input[name="s-status"]:checked');
-          if (st) s.status = st.value;
+          s.role = roles; s.name = name; s.status = status;
           toast('Update staff successfully');
         }
         close(); renderStaff();
@@ -2259,13 +2242,7 @@
     });
     wireRoleSelect(ref.m);
     if (ref.m.querySelector('#s-email-cnt')) wireCounter(ref.m, 's-email');
-    if (ref.m.querySelector('#s-name-cnt')) wireCounter(ref.m, 's-name');
-    if (isReview) {
-      const foot = ref.m.querySelector('.modal-foot .flex');
-      const rej = document.createElement('button'); rej.className = 'btn btn-default'; rej.textContent = 'Reject';
-      foot.insertBefore(rej, foot.firstChild);
-      rej.onclick = () => { s.status = 'Request rejected'; ref.close(); toast('Staff request has been rejected'); renderStaff(); };
-    }
+    wireCounter(ref.m, 's-name');
   }
   function deleteStaff(email) {
     confirm({
