@@ -8892,6 +8892,8 @@ kbd {
 .fable-brand:hover, .fable-nav-links a:hover, .fable-sign-in:hover { color: var(--fable-primary); }
 .fable-nav-links, .fable-nav-actions { display: flex; align-items: center; gap: 32px; }
 .fable-nav-links a, .fable-sign-in { color: var(--fable-muted); font-size: 14px; font-weight: 500; transition: color .2s ease; }
+.fable-nav-links a[aria-current="page"] { color: var(--fable-text); }
+.fable-footer nav a[aria-current="page"] { color: var(--fable-text); }
 .fable-nav-actions { gap: 28px; }
 .fable-button {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;

@@ -38,7 +38,7 @@ import { renderEditor, mountEditor } from './pages/editor.js?rev=20260719-previe
 import { renderOrders } from './pages/orders.js?rev=20260720-standalone-portal-v145';
 import { renderConnectShopify, renderForgotPasswordCode, renderPasswordResetEmailPage, renderSignIn, renderSignUp, renderSignupVerificationEmailPage } from './pages/auth.js?rev=20260817resetemailpreview2';
 import { renderHelpCenter } from './pages/help.js?rev=20260723brandunify1';
-import { renderMarketingSite } from './pages/website.js?rev=20260723brandmark1';
+import { renderMarketingSite } from './pages/website.js?rev=20260821-landing-home-nav1';
 import { escapeHtml, formatDateTime, getRouteName, parseRoute, setRoute } from './utils.js?rev=20260720-standalone-portal-v145';
 import { applyLocale, renderLanguageSwitcher, translate } from './i18n.js?rev=20260820-nmi-card-only1';
 
@@ -66,6 +66,94 @@ let modalReturnFocus = null;
 let marketingMotionCleanup = null;
 let resetCodeCooldownTimer = null;
 let signupCodeCooldownTimer = null;
+let landingNavLock = null;
+let landingNavLockTimer = null;
+let landingSpyFrame = 0;
+
+const LANDING_SECTIONS = ['home', 'product', 'results', 'how-it-works'];
+const LANDING_NAV_OFFSET = 88;
+
+function landingSectionFromRoute(route) {
+  const section = route && route.query ? route.query.get('section') : '';
+  return LANDING_SECTIONS.includes(section) ? section : 'home';
+}
+
+function landingNavKey(section) {
+  return section === 'product' ? 'home' : (section || 'home');
+}
+
+function landingHashForSection(section) {
+  const key = landingNavKey(section);
+  return key === 'home' ? '#/landing' : '#/landing?section=' + key;
+}
+
+function landingScrollBehavior() {
+  return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+}
+
+function scrollToLandingSection(section) {
+  let top = 0;
+  if (section && section !== 'home') {
+    const target = appRoot.querySelector('#' + section);
+    if (target) top = Math.max(0, target.getBoundingClientRect().top + window.scrollY - LANDING_NAV_OFFSET);
+  }
+  if (Math.abs((window.scrollY || window.pageYOffset || 0) - top) < 2) return;
+  window.scrollTo({ top: top, behavior: landingScrollBehavior() });
+}
+
+function syncLandingNav(active) {
+  const root = appRoot.querySelector('.fable-site');
+  if (!root) return;
+  const key = landingNavKey(active);
+  root.querySelectorAll('a[data-landing-section]').forEach(function (link) {
+    if (link.classList.contains('fable-brand') || link.classList.contains('fable-button')) {
+      link.removeAttribute('aria-current');
+      return;
+    }
+    if (link.getAttribute('data-landing-section') === key) link.setAttribute('aria-current', 'page');
+    else link.removeAttribute('aria-current');
+  });
+}
+
+function spyLandingSection() {
+  const root = appRoot.querySelector('.fable-site');
+  if (!root) return 'home';
+  const marker = window.scrollY + LANDING_NAV_OFFSET + 24;
+  const how = root.querySelector('#how-it-works');
+  const results = root.querySelector('#results');
+  const howTop = how ? how.getBoundingClientRect().top + window.scrollY : Infinity;
+  const resultsTop = results ? results.getBoundingClientRect().top + window.scrollY : Infinity;
+  if (marker >= howTop) return 'how-it-works';
+  if (marker >= resultsTop) return 'results';
+  return 'home';
+}
+
+function lockLandingNav(section) {
+  landingNavLock = landingNavKey(section);
+  syncLandingNav(landingNavLock);
+  window.clearTimeout(landingNavLockTimer);
+  landingNavLockTimer = window.setTimeout(function () {
+    landingNavLock = null;
+    if (appRoot.querySelector('.fable-site')) syncLandingNav(spyLandingSection());
+  }, 900);
+}
+
+function handleLandingNavClick(event) {
+  if (!appRoot.querySelector('.fable-site')) return false;
+  const link = event.target.closest('a[data-landing-section]');
+  if (!link || !appRoot.contains(link)) return false;
+  if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return false;
+  const section = link.getAttribute('data-landing-section') || 'home';
+  const nextHash = landingHashForSection(section);
+  event.preventDefault();
+  lockLandingNav(section);
+  if ((window.location.hash || '#/landing') === nextHash) {
+    scrollToLandingSection(section);
+    return true;
+  }
+  window.location.hash = nextHash;
+  return true;
+}
 
 function clearMarketingMotion() {
   if (typeof marketingMotionCleanup === 'function') marketingMotionCleanup();
@@ -248,11 +336,28 @@ function mountMarketingMotion() {
     revealTargets.forEach(function (target) { observer.observe(target); });
   }
 
+  function onLandingScroll() {
+    if (landingSpyFrame || landingNavLock) return;
+    landingSpyFrame = window.requestAnimationFrame(function () {
+      landingSpyFrame = 0;
+      if (landingNavLock) return;
+      syncLandingNav(spyLandingSection());
+    });
+  }
+
+  window.addEventListener('scroll', onLandingScroll, { passive: true });
+  syncLandingNav(landingNavKey(landingSectionFromRoute(parseRoute())));
+
   marketingMotionCleanup = function () {
     window.cancelAnimationFrame(heroFrame);
     window.clearTimeout(workspaceTimer);
     animationFrames.forEach(function (frame) { window.cancelAnimationFrame(frame); });
     if (observer) observer.disconnect();
+    window.removeEventListener('scroll', onLandingScroll);
+    window.cancelAnimationFrame(landingSpyFrame);
+    landingSpyFrame = 0;
+    window.clearTimeout(landingNavLockTimer);
+    landingNavLock = null;
   };
 }
 let modalHistory = [];
@@ -523,16 +628,27 @@ function pageForRoute(route) {
 function renderShell(options) {
   const route = parseRoute();
   if (isPublicRoute(route)) {
+    if (route.segments[0] === 'landing' && appRoot.querySelector('.fable-site')) {
+      const section = landingSectionFromRoute(route);
+      window.requestAnimationFrame(function () {
+        scrollToLandingSection(section);
+        lockLandingNav(section);
+      });
+      lastRenderedHash = window.location.hash;
+      lastRenderedWasEditor = false;
+      return;
+    }
     clearMarketingMotion();
     appRoot.innerHTML = renderPublicRoute(route);
     if (route.segments[0] === 'forgot-password' && route.segments[1] !== 'complete') syncResetCodeCooldown();
     if (route.segments[0] === 'sign-up') syncSignupCodeCooldown();
-    if (route.segments[0] === 'landing') mountMarketingMotion();
-    const section = route.segments[0] === 'landing' ? route.query.get('section') : null;
-    if (section && ['product', 'results', 'how-it-works'].includes(section)) {
+    if (route.segments[0] === 'landing') {
+      mountMarketingMotion();
       window.requestAnimationFrame(function () {
-        const target = appRoot.querySelector('#' + section);
-        if (target) window.scrollTo({ top: Math.max(0, target.getBoundingClientRect().top + window.scrollY - 88), behavior: 'smooth' });
+        const section = landingSectionFromRoute(route);
+        if (section === 'home') window.scrollTo(0, 0);
+        else scrollToLandingSection(section);
+        lockLandingNav(section);
       });
     }
     lastRenderedHash = window.location.hash;
@@ -2055,6 +2171,7 @@ function handleAction(action, element) {
 }
 
 function handleClick(event) {
+  if (handleLandingNavClick(event)) return;
   if (state.ui.performanceDatePickerOpen && !event.target.closest('.performance-date-filter')) {
     state.ui.performanceDatePickerOpen = false;
     state.ui.performanceDateError = '';
