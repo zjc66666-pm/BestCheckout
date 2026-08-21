@@ -38,7 +38,7 @@ import { renderEditor, mountEditor } from './pages/editor.js?rev=20260719-previe
 import { renderOrders } from './pages/orders.js?rev=20260720-standalone-portal-v145';
 import { renderConnectShopify, renderForgotPasswordCode, renderPasswordResetEmailPage, renderSignIn, renderSignUp, renderSignupVerificationEmailPage } from './pages/auth.js?rev=20260817resetemailpreview2';
 import { renderHelpCenter } from './pages/help.js?rev=20260723brandunify1';
-import { renderMarketingSite } from './pages/website.js?rev=20260821-landing-home-nav1';
+import { renderMarketingSite } from './pages/website.js?rev=20260821-testimonial-avatars1';
 import { escapeHtml, formatDateTime, getRouteName, parseRoute, setRoute } from './utils.js?rev=20260720-standalone-portal-v145';
 import { applyLocale, renderLanguageSwitcher, translate } from './i18n.js?rev=20260820-nmi-card-only1';
 
