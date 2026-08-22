@@ -120,7 +120,7 @@
       if (bcCoverById(kind, id)) known = true;
     });
     var safe = known ? id : 'checkout-1';
-    return '<img class="pcv-photo" src="bestcheckout/covers/' + safe + '.png?v=20260822-desktopcovers" alt="" draggable="false">';
+    return '<img class="pcv-photo" src="bestcheckout/covers/' + safe + '.png?v=20260822-fashionswap" alt="" draggable="false">';
   }
   function bcSavedTpls() { try { return JSON.parse(localStorage.getItem('bsio_bc_templates') || '{}'); } catch (e) { return {}; } }
   function bcSavedTplsSave(s) { try { localStorage.setItem('bsio_bc_templates', JSON.stringify(s)); } catch (e) {} }
@@ -151,6 +151,7 @@
   // A page stays a reusable asset until a purchase flow chooses it. This keeps
   // design work separate from journey editing while making its reuse visible.
   var pageLibraryFilter = 'all';
+  var pageMoreOutsideBound = false;
   function bcTplUsageCount(k, id) {
     var count = 0;
     (bcFlowList ? bcFlowList() : []).forEach(function (flow) {
@@ -258,6 +259,24 @@
     root.querySelectorAll('[data-page-filter]').forEach(function (button) { button.onclick = function () { renderTemplates(button.getAttribute('data-page-filter')); }; });
     root.querySelectorAll('[data-page-preview]').forEach(function (button) { button.onclick = function () { var parts = button.getAttribute('data-page-preview').split(':'); var page = bcTplList(parts[0]).filter(function (item) { return item.id === parts[1]; })[0]; if (page) openPagePreview(parts[0], page); }; });
     root.querySelectorAll('[data-page-duplicate]').forEach(function (button) { button.onclick = function () { var parts = button.getAttribute('data-page-duplicate').split(':'); var copy = bcDuplicateTpl(parts[0], parts[1]); if (copy) { toast(t('Page duplicated')); renderTemplates(pageLibraryFilter); } }; });
+    root.querySelectorAll('details.pl-more').forEach(function (menu) {
+      menu.addEventListener('toggle', function () {
+        if (!menu.open) return;
+        root.querySelectorAll('details.pl-more[open]').forEach(function (other) {
+          if (other !== menu) other.removeAttribute('open');
+        });
+      });
+    });
+    if (!pageMoreOutsideBound) {
+      pageMoreOutsideBound = true;
+      document.addEventListener('pointerdown', function (event) {
+        var target = event.target;
+        if (target && target.closest && target.closest('details.pl-more')) return;
+        document.querySelectorAll('details.pl-more[open]').forEach(function (menu) {
+          menu.removeAttribute('open');
+        });
+      });
+    }
     var create = root.querySelector('[data-page-create]'); if (create) create.onclick = openPageCreator;
     bcI18n(root);
   }

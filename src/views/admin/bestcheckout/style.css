@@ -8885,11 +8885,11 @@ kbd {
   background: var(--fable-bg);
   font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
+.fable-site { --fable-nav-height: 80px; }
 .fable-site *, .fable-site *::before, .fable-site *::after { box-sizing: border-box; }
 .fable-site a { color: inherit; text-decoration: none; }
 .fable-container { width: min(1280px, calc(100% - 32px)); margin: 0 auto; }
 .fable-nav {
-  --fable-nav-height: 80px;
   position: fixed; z-index: 50; inset: 0 0 auto; height: var(--fable-nav-height);
   border-bottom: 1px solid var(--fable-line);
   background: hsl(222 47% 5% / .82); backdrop-filter: blur(16px);
@@ -8966,7 +8966,7 @@ kbd {
   .fable-outcomes p,
   .fable-trust-grid p { max-width: none; }
 }
-@media (max-width: 780px) { .fable-nav { --fable-nav-height: 64px; }.fable-nav nav, .fable-container { width: min(100% - 40px, 1280px); }.fable-button--small { min-height: 42px; padding: 0 16px; }.fable-hero { min-height: 0; padding: 135px 0 75px; }.fable-hero-layout { gap: 62px; }.fable-eyebrow { margin-bottom: 20px; padding: 8px 12px; font-size: 10px; }.fable-hero h1 { font-size: clamp(48px, 14vw, 66px); }.fable-hero-copy > p { font-size: 16px; }.fable-hero-actions { align-items: flex-start; flex-direction: column; gap: 14px; margin-top: 28px; }.fable-button { min-height: 47px; padding: 0 27px; font-size: 15px; }.fable-workspace-shell { grid-template-columns: 1fr; min-height: 420px; }.fable-workspace-nav { flex-direction: row; justify-content: flex-start; height: 52px; padding: 9px 12px; border-right: 0; border-bottom: 1px solid hsl(220 20% 22% / .75); }.fable-preview-logo { margin: 0 8px 0 0; }.fable-workspace-nav > i { width: 30px; height: 30px; }.fable-workspace-nav > i:nth-of-type(n+4) { display: none; }.fable-workspace-main { padding: 17px; }.fable-workspace-main > header h3 { font-size: 15px; }.fable-preview-stats { gap: 7px; margin: 14px 0; }.fable-preview-stats article { padding: 10px; }.fable-preview-stats strong { font-size: 15px; }.fable-preview-lists { display: none; }.fable-float-pill--recovery { top: -13px; right: -7px; padding: 7px 9px; font-size: 9px; }.fable-float-pill--sync { display: none; }.fable-outcomes { padding: 52px 0; }.fable-outcomes-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 36px 16px; }.fable-outcomes strong { font-size: 34px; }.fable-outcomes p { font-size: 12px; }.fable-section { padding: 78px 0; }.fable-section-title { margin-bottom: 44px; font-size: clamp(35px, 10vw, 48px); }.fable-capability-grid, .fable-value-grid, .fable-trust-grid, .fable-process, .fable-testimonial-grid { grid-template-columns: 1fr; gap: 18px; }.fable-capability-grid article { min-height: 0; padding: 25px; }.fable-capability-grid header { margin-bottom: 25px; }.fable-value-grid article { min-height: 0; padding: 25px; }.fable-process { gap: 40px; }.fable-process b { font-size: 58px; }.fable-process h3 { font-size: 22px; }.fable-testimonial-grid article { min-height: 0; }.fable-final .fable-container > div { padding: 42px 23px; }.fable-footer { padding: 49px 0 28px; }.fable-footer .fable-container { grid-template-columns: 1fr; gap: 24px; }.fable-footer nav { justify-content: flex-start; }.fable-footer small { padding-top: 20px; } }
+@media (max-width: 780px) { .fable-site, .fable-nav { --fable-nav-height: 64px; }.fable-nav nav, .fable-container { width: min(100% - 40px, 1280px); }.fable-button--small { min-height: 42px; padding: 0 16px; }.fable-hero { min-height: 0; padding: 135px 0 75px; }.fable-hero-layout { gap: 62px; }.fable-eyebrow { margin-bottom: 20px; padding: 8px 12px; font-size: 10px; }.fable-hero h1 { font-size: clamp(48px, 14vw, 66px); }.fable-hero-copy > p { font-size: 16px; }.fable-hero-actions { align-items: flex-start; flex-direction: column; gap: 14px; margin-top: 28px; }.fable-button { min-height: 47px; padding: 0 27px; font-size: 15px; }.fable-workspace-shell { grid-template-columns: 1fr; min-height: 420px; }.fable-workspace-nav { flex-direction: row; justify-content: flex-start; height: 52px; padding: 9px 12px; border-right: 0; border-bottom: 1px solid hsl(220 20% 22% / .75); }.fable-preview-logo { margin: 0 8px 0 0; }.fable-workspace-nav > i { width: 30px; height: 30px; }.fable-workspace-nav > i:nth-of-type(n+4) { display: none; }.fable-workspace-main { padding: 17px; }.fable-workspace-main > header h3 { font-size: 15px; }.fable-preview-stats { gap: 7px; margin: 14px 0; }.fable-preview-stats article { padding: 10px; }.fable-preview-stats strong { font-size: 15px; }.fable-preview-lists { display: none; }.fable-float-pill--recovery { top: -13px; right: -7px; padding: 7px 9px; font-size: 9px; }.fable-float-pill--sync { display: none; }.fable-outcomes { padding: 52px 0; }.fable-outcomes-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 36px 16px; }.fable-outcomes strong { font-size: 34px; }.fable-outcomes p { font-size: 12px; }.fable-section { padding: 78px 0; }.fable-section-title { margin-bottom: 44px; font-size: clamp(35px, 10vw, 48px); }.fable-capability-grid, .fable-value-grid, .fable-trust-grid, .fable-process, .fable-testimonial-grid { grid-template-columns: 1fr; gap: 18px; }.fable-capability-grid article { min-height: 0; padding: 25px; }.fable-capability-grid header { margin-bottom: 25px; }.fable-value-grid article { min-height: 0; padding: 25px; }.fable-process { gap: 40px; }.fable-process b { font-size: 58px; }.fable-process h3 { font-size: 22px; }.fable-testimonial-grid article { min-height: 0; }.fable-final .fable-container > div { padding: 42px 23px; }.fable-footer { padding: 49px 0 28px; }.fable-footer .fable-container { grid-template-columns: 1fr; gap: 24px; }.fable-footer nav { justify-content: flex-start; }.fable-footer small { padding-top: 20px; } }
 @media (prefers-reduced-motion: reduce) { .fable-site *, .fable-site *::before, .fable-site *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
 
 .fable-mobile-guide { display: none; }
@@ -8979,13 +8979,13 @@ kbd {
   .fable-mobile-menu {
     display: none;
     position: fixed;
-    top: var(--fable-nav-height);
+    top: var(--fable-nav-height, 80px);
     right: 0;
     left: 0;
     z-index: 40;
     flex-direction: column;
     gap: 2px;
-    padding: 8px 20px 20px;
+    padding: 16px 20px 20px;
     border-bottom: 1px solid var(--fable-line);
     background: hsl(222 47% 5% / .96);
     backdrop-filter: blur(16px);
