@@ -31,6 +31,12 @@
 | `generated-mobile/` | 后续生成的移动端竖版封面（`co-` / `up-` / `ds-` / `ty-` 共 32 张，以及部分中间稿） |
 | `generated-fashion/` | 时尚类移动端封面 20 张（Checkout / Upsell / Downsell / Thank you 各 5） |
 | `generated-supplements/` | 保健品类移动端封面 20 张（Checkout / Upsell / Downsell / Thank you 各 5） |
+| `generated-jewelry/` | 珠宝配饰类移动端封面 20 张（Checkout / Upsell / Downsell / Thank you 各 5） |
+| `generated-living/` | 家具生活方式类移动端封面 20 张（Checkout / Upsell / Downsell / Thank you 各 5） |
+| `generated-food/` | 咖啡食品类移动端封面 8 张（Checkout / Upsell / Downsell / Thank you 各 2） |
+| `generated-pets/` | 宠物类移动端封面 8 张（Checkout / Upsell / Downsell / Thank you 各 2） |
+| `generated-baby/` | 母婴类移动端封面 8 张（Checkout / Upsell / Downsell / Thank you 各 2） |
+| `generated-sport/` | 运动类移动端封面 8 张（Checkout / Upsell / Downsell / Thank you 各 2） |
 | `desktop-defaults/` | 当前默认封面的项目内备份 |
 
 ## 时尚类 `generated-fashion/`
@@ -54,6 +60,30 @@
 | `supplement-upsell-01` … `05` | Upsell |
 | `supplement-downsell-01` … `05` | Downsell |
 | `supplement-thankyou-01` … `05` | Thank you |
+
+## 珠宝配饰 `generated-jewelry/`
+
+品牌方向：ORIO / AURELIA。每类 5 张：`jewelry-checkout-01` … `05`，upsell / downsell / thankyou 同理。
+
+## 家具生活方式 `generated-living/`
+
+品牌方向：HEARTH / ATLAS。每类 5 张：`living-checkout-01` … `05`，upsell / downsell / thankyou 同理。
+
+## 咖啡食品 `generated-food/`
+
+品牌方向：KILN / COMPOUND。每类 2 张：`food-checkout-01` … `02`，upsell / downsell / thankyou 同理。
+
+## 宠物 `generated-pets/`
+
+品牌方向：GOODWOLF / PAWDAY。每类 2 张：`pets-checkout-01` … `02`，upsell / downsell / thankyou 同理。
+
+## 母婴 `generated-baby/`
+
+品牌方向：NESTLING / LULL。每类 2 张：`baby-checkout-01` … `02`，upsell / downsell / thankyou 同理。画面只出现用品，不出现婴儿。
+
+## 运动 `generated-sport/`
+
+品牌方向：FIELD / NORTHLINE。每类 2 张：`sport-checkout-01` … `02`，upsell / downsell / thankyou 同理。
 
 说明：同一文件名的 PC 竖版封面后来被移动端版本覆盖，所以 `generated-pc/` 只保留了第一批 4 张独立命名的 PC 图。完整移动端稿在 `generated-mobile/`。
 

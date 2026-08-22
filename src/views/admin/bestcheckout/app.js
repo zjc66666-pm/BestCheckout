@@ -36,9 +36,9 @@ import { renderActivity } from './pages/activity.js?rev=20260720-standalone-port
 import { renderSettings } from './pages/settings.js?rev=20260720-standalone-portal-v150';
 import { renderEditor, mountEditor } from './pages/editor.js?rev=20260719-preview-session-v92';
 import { renderOrders } from './pages/orders.js?rev=20260720-standalone-portal-v145';
-import { renderConnectShopify, renderForgotPasswordCode, renderPasswordResetEmailPage, renderSignIn, renderSignUp, renderSignupVerificationEmailPage } from './pages/auth.js?rev=20260822-prototype-accounts1';
+import { renderConnectShopify, renderForgotPasswordCode, renderPasswordResetEmailPage, renderSignIn, renderSignUp, renderSignupVerificationEmailPage } from './pages/auth.js?rev=20260822-logo-landing1';
 import { renderHelpCenter } from './pages/help.js?rev=20260822-prototype-accounts1';
-import { renderMarketingSite } from './pages/website.js?rev=20260822-mobile-nav4';
+import { renderLookbookSite, renderMarketingSite } from './pages/website.js?rev=20260822-lookbook9';
 import {
   applyPrototypeSession,
   findPrototypeAccount,
@@ -80,7 +80,7 @@ let landingNavLock = null;
 let landingNavLockTimer = null;
 let landingSpyFrame = 0;
 
-const LANDING_SECTIONS = ['home', 'product', 'results', 'how-it-works'];
+const LANDING_SECTIONS = ['home', 'product', 'funnels', 'results', 'how-it-works'];
 const LANDING_NAV_OFFSET = 88;
 
 function landingSectionFromRoute(route) {
@@ -131,10 +131,13 @@ function spyLandingSection() {
   const marker = window.scrollY + LANDING_NAV_OFFSET + 24;
   const how = root.querySelector('#how-it-works');
   const results = root.querySelector('#results');
+  const funnels = root.querySelector('#funnels');
   const howTop = how ? how.getBoundingClientRect().top + window.scrollY : Infinity;
   const resultsTop = results ? results.getBoundingClientRect().top + window.scrollY : Infinity;
+  const funnelsTop = funnels ? funnels.getBoundingClientRect().top + window.scrollY : Infinity;
   if (marker >= howTop) return 'how-it-works';
   if (marker >= resultsTop) return 'results';
+  if (marker >= funnelsTop) return 'funnels';
   return 'home';
 }
 
@@ -195,8 +198,13 @@ function redirectPublicAuth(route) {
   return false;
 }
 
+function isMarketingLandingMounted() {
+  const site = appRoot.querySelector('.fable-site');
+  return Boolean(site && !site.classList.contains('is-lookbook'));
+}
+
 function handleLandingNavClick(event) {
-  if (!appRoot.querySelector('.fable-site')) return false;
+  if (!isMarketingLandingMounted()) return false;
   const link = event.target.closest('a[data-landing-section]');
   if (!link || !appRoot.contains(link)) return false;
   if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return false;
@@ -605,7 +613,7 @@ function renderShopifyChrome(pageMarkup, route) {
 }
 
 function isPublicRoute(route) {
-  return ['landing', 'sign-in', 'sign-up', 'email-preview', 'password-reset-email-preview', 'forgot-password', 'connect-shopify', 'help'].includes(route.segments[0]);
+  return ['landing', 'lookbook', 'sign-in', 'sign-up', 'email-preview', 'password-reset-email-preview', 'forgot-password', 'connect-shopify', 'help'].includes(route.segments[0]);
 }
 
 function renderPublicRoute(route) {
@@ -616,6 +624,7 @@ function renderPublicRoute(route) {
   if (route.segments[0] === 'forgot-password') return renderForgotPasswordCode(route.segments[1]);
   if (route.segments[0] === 'connect-shopify') return renderConnectShopify();
   if (route.segments[0] === 'help') return renderHelpCenter(route, marketingSession());
+  if (route.segments[0] === 'lookbook') return renderLookbookSite(marketingSession(), route.query);
   return renderMarketingSite(marketingSession());
 }
 
@@ -687,7 +696,7 @@ function renderShell(options) {
   const route = parseRoute();
   if (isPublicRoute(route)) {
     if (redirectPublicAuth(route)) return;
-    if (route.segments[0] === 'landing' && appRoot.querySelector('.fable-site')) {
+    if (route.segments[0] === 'landing' && isMarketingLandingMounted()) {
       const section = landingSectionFromRoute(route);
       window.requestAnimationFrame(function () {
         scrollToLandingSection(section);
@@ -697,6 +706,7 @@ function renderShell(options) {
       lastRenderedWasEditor = false;
       return;
     }
+    const keepLookbookScroll = /^#\/lookbook/.test(lastRenderedHash || '') ? (window.scrollY || window.pageYOffset || 0) : 0;
     clearMarketingMotion();
     appRoot.innerHTML = renderPublicRoute(route);
     if (route.segments[0] === 'forgot-password' && route.segments[1] !== 'complete') syncResetCodeCooldown();
@@ -710,6 +720,9 @@ function renderShell(options) {
         lockLandingNav(section);
       });
     }
+    if (route.segments[0] === 'lookbook') {
+      window.requestAnimationFrame(function () { window.scrollTo(0, keepLookbookScroll); });
+    }
     lastRenderedHash = window.location.hash;
     lastRenderedWasEditor = false;
     return;
@@ -717,6 +730,10 @@ function renderShell(options) {
   clearMarketingMotion();
   if (!state.ui.isAuthenticated) {
     setRoute('sign-in?next=' + encodeURIComponent(route.raw || 'home'));
+    return;
+  }
+  if (!state.ui.hasConnectedStore) {
+    setRoute('connect-shopify');
     return;
   }
   enforceWritebackCircuit();
@@ -3726,7 +3743,7 @@ window.addEventListener('beforeunload', function (event) {
 });
 
 const initialRoute = parseRoute();
-if (!window.location.hash || !['landing', 'sign-in', 'sign-up', 'email-preview', 'password-reset-email-preview', 'forgot-password', 'connect-shopify', 'help'].includes(initialRoute.segments[0])) {
+if (!window.location.hash || !['landing', 'lookbook', 'sign-in', 'sign-up', 'email-preview', 'password-reset-email-preview', 'forgot-password', 'connect-shopify', 'help'].includes(initialRoute.segments[0])) {
   setRoute('landing');
 } else {
   renderShell();

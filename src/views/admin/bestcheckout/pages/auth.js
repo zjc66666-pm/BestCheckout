@@ -3,7 +3,7 @@ import { escapeHtml } from '../utils.js';
 import { PROTOTYPE_ACCOUNTS } from '../session.js';
 
 function brand() {
-  return '<a class="portal-auth-brand" href="#/" aria-label="BestCheckout home"><img class="portal-mark" src="assets/brand-mark.svg?v=20260723transparentmark1" alt="" aria-hidden="true"/><strong>BestCheckout</strong></a>';
+  return '<a class="portal-auth-brand" href="#/landing" aria-label="BestCheckout home"><img class="portal-mark" src="assets/brand-mark.svg?v=20260723transparentmark1" alt="" aria-hidden="true"/><strong>BestCheckout</strong></a>';
 }
 
 function authLayout(eyebrow, title, copy, formMarkup, foot) {

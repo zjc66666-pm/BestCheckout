@@ -15,7 +15,7 @@
     .article-toc{position:sticky;top:28px;align-self:start;border-left:1px solid var(--hair);padding-left:18px}.article-toc strong{display:block;margin:0 0 10px;color:#526174;font-size:12px;font-weight:750;letter-spacing:.05em;text-transform:uppercase}.article-toc a{display:block;margin:8px 0;color:#76859a;font-size:12.5px;line-height:1.35;text-decoration:none}.article-toc a:hover{color:var(--brand)}.article-toc a.active{color:#075fcf;font-weight:700}
     .help-footer{max-width:1440px;margin:0 auto;padding:18px 28px 34px;border-top:1px solid var(--hair);color:#8794a6;font-size:12px}.help-footer a{color:#62708d;text-decoration:none}.help-footer a:hover{color:var(--brand)}
     .guide-path{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:15px 0 0;padding:10px 12px;border:1px solid #dbe7f6;border-radius:8px;background:#f8fbff;color:#365270;font-size:12.5px;font-weight:650}.guide-path b{color:#1f3f65}.guide-path span{color:#8ea0b5;font-weight:400}.guide-note{margin:14px 0 0;padding:11px 12px;border-left:3px solid #7aa7e8;border-radius:0 7px 7px 0;background:#f5f8fc;color:#566980;font-size:12.5px;line-height:1.55}.guide-config{display:grid;gap:10px;margin:15px 0 0;padding:14px;border:1px solid #dde5ef;border-radius:9px;background:#fbfcfe}.guide-config div{display:grid;grid-template-columns:132px minmax(0,1fr);gap:12px;align-items:start}.guide-config strong{color:#344258;font-size:12.5px}.guide-config span{color:#64758b;font-size:12.5px;line-height:1.5}.guide-config code{padding:2px 5px;border-radius:4px;background:#edf2f8;color:#344d6d;font-size:12px}.guide-resource-list{display:grid;gap:8px;margin:15px 0 0}.guide-resource-list a{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid #dce5ef;border-radius:8px;color:#075fcf;font-size:12.5px;font-weight:650;text-decoration:none}.guide-resource-list a::after{content:'Open Shopify docs ↗';color:#74849a;font-size:11px;font-weight:600}.guide-resource-list a:hover{border-color:#9fc1ee;background:#f7fbff}.guide-screenshot--credentials{max-width:680px}.guide-screenshot--credentials img{height:292px;object-fit:cover;object-position:78% 0}.guide-security-list{padding-left:20px}.guide-security-list li::marker{color:#0a67cf}
-    @media(max-width:1160px){.help-layout{grid-template-columns:228px minmax(0,1fr);gap:34px}.article-toc{display:none}}@media(max-width:760px){.help-header{height:58px;padding:0 16px;gap:12px}.help-brand span:last-child{font-size:14px}.help-search{order:3;position:absolute;top:68px;left:16px;right:16px;max-width:none}.help-header nav{gap:14px}.help-header nav a:first-child{display:none}.help-layout{display:block;padding:60px 16px 48px}.mobile-tree-toggle{display:flex;align-items:center;justify-content:space-between;width:100%;height:38px;margin:0 0 18px;padding:0 12px;border:1px solid #dce3ec;border-radius:8px;background:#fff;color:#344258;font:600 13px inherit}.help-sidebar{display:none;position:static;max-height:none;margin:0 0 22px;padding:14px;border:1px solid var(--hair);border-radius:10px;background:#fff}.help-sidebar.is-open{display:block}.article-head{padding-bottom:24px}.article-head h1{font-size:27px}.article-summary{font-size:14.5px}.guide-section h2{font-size:18px}.help-footer{padding:16px}.guide-screenshot{margin-left:0;margin-right:0}}
+    @media(max-width:1160px){.help-layout{grid-template-columns:228px minmax(0,1fr);gap:34px}.article-toc{display:none}}@media(max-width:760px){.help-header{height:58px;padding:0 16px;gap:12px}.help-brand span:last-child{font-size:14px}.help-search{order:3;position:absolute;top:68px;left:16px;right:16px;max-width:none}.help-header nav{gap:14px}.help-header nav a:first-child{display:none}.help-layout{display:block;padding:20px 16px 48px}.mobile-tree-toggle{display:flex;align-items:center;justify-content:space-between;width:100%;height:38px;margin:0 0 18px;padding:0 12px;border:1px solid #dce3ec;border-radius:8px;background:#fff;color:#344258;font:600 13px inherit}.help-sidebar{display:none;position:static;max-height:none;margin:0 0 22px;padding:14px;border:1px solid var(--hair);border-radius:10px;background:#fff}.help-sidebar.is-open{display:block}.article-head{padding-bottom:24px}.article-head h1{font-size:27px}.article-summary{font-size:14.5px}.guide-section h2{font-size:18px}.help-footer{padding:16px}.guide-screenshot{margin-left:0;margin-right:0}}
     /* Reading scale: keep navigation scannable while making long-form guides comfortable at desktop widths. */
     body{font-size:15px;line-height:1.6}
     .sidebar-title{font-size:12.5px}
@@ -75,14 +75,12 @@
 <body>
   <header class="help-header">
     <a class="help-brand" href="../?rev=20260724rootwebsite1#/landing" aria-label="Back to BestCheckout home" title="Back to BestCheckout home"><img class="help-mark" src="../assets/brand-mark.svg?v=20260723brandmark1" alt="" aria-hidden="true"/><span>BestCheckout</span></a>
-    <label class="help-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4.5 4.5"></path></svg><input type="search" data-guide-search placeholder="Search guides" autocomplete="off" /></label>
   </header>
 
   <div class="help-layout">
     <button class="mobile-tree-toggle" type="button" data-mobile-tree aria-expanded="false">Browse guides <span>⌄</span></button>
     <aside class="help-sidebar" data-help-sidebar aria-label="Help center guide tree">
       <div class="sidebar-title"><span>Help center</span><span>?</span></div>
-      <div class="tree-empty" data-tree-empty hidden>No guides match your search.</div>
       <section class="tree-group" data-tree-group>
         <button class="tree-toggle" type="button" data-tree-toggle aria-expanded="true"><svg class="tree-caret" viewBox="0 0 12 12" aria-hidden="true"><path d="m2 4 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Getting started</button>
         <div class="tree-children">
@@ -197,7 +195,6 @@
       var toc = document.querySelector('[data-article-toc]');
       var sidebar = document.querySelector('[data-help-sidebar]');
       var mobileToggle = document.querySelector('[data-mobile-tree]');
-      var search = document.querySelector('[data-guide-search]');
       var activeKey = '';
 
       function guideLabel(key) { return guides[key] ? guides[key].title : ''; }
@@ -230,23 +227,9 @@
         if (updateHash) history.replaceState(null, '', '#guide=' + activeKey);
         if (window.innerWidth <= 760) { sidebar.classList.remove('is-open'); mobileToggle.setAttribute('aria-expanded', 'false'); }
       }
-      function filterTree(value) {
-        var query = value.trim().toLowerCase();
-        var any = false;
-        document.querySelectorAll('[data-tree-group]').forEach(function (group) {
-          var visible = 0;
-          group.querySelectorAll('[data-guide]').forEach(function (item) { var match = !query || item.textContent.toLowerCase().indexOf(query) >= 0; item.hidden = !match; if (match) visible += 1; });
-          group.hidden = visible === 0;
-          if (query && visible) { group.querySelector('.tree-children').hidden = false; group.querySelector('[data-tree-toggle]').setAttribute('aria-expanded', 'true'); }
-          if (visible) any = true;
-        });
-        document.querySelector('[data-tree-empty]').hidden = any;
-        if (query && any && window.innerWidth <= 760) { sidebar.classList.add('is-open'); mobileToggle.setAttribute('aria-expanded', 'true'); }
-      }
       document.querySelectorAll('[data-tree-toggle]').forEach(function (toggle) { toggle.onclick = function () { var children = toggle.parentElement.querySelector('.tree-children'); var open = toggle.getAttribute('aria-expanded') === 'true'; toggle.setAttribute('aria-expanded', String(!open)); children.hidden = open; }; });
       document.querySelectorAll('[data-guide]').forEach(function (button) { button.onclick = function () { renderGuide(button.getAttribute('data-guide'), true); }; });
       mobileToggle.onclick = function () { var open = sidebar.classList.toggle('is-open'); mobileToggle.setAttribute('aria-expanded', String(open)); };
-      search.oninput = function () { filterTree(search.value); };
       window.addEventListener('hashchange', function () { var match = location.hash.match(/^#guide=([\w-]+)/); if (match) renderGuide(match[1], false); });
       var initial = location.hash.match(/^#guide=([\w-]+)/);
       renderGuide(initial ? initial[1] : 'connect-shopify', false);
