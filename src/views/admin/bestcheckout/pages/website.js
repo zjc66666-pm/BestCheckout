@@ -255,6 +255,43 @@ function lookbookTypeLabel(type) {
   return found ? found.label : type;
 }
 
+function lookbookFilterKeys(items) {
+  return items.map(function (item) { return item.key; }).filter(function (key) { return key !== 'all'; });
+}
+
+function interleaveLookbookPages(pages) {
+  const industries = lookbookFilterKeys(LOOKBOOK_INDUSTRIES);
+  const types = lookbookFilterKeys(LOOKBOOK_TYPES);
+  const buckets = {};
+  pages.forEach(function (page) {
+    const key = page.industry + ':' + page.type;
+    if (!buckets[key]) buckets[key] = [];
+    buckets[key].push(page);
+  });
+  const result = [];
+  let remaining = pages.length;
+  let wave = 0;
+  while (remaining > 0 && wave < pages.length + types.length) {
+    let took = false;
+    industries.forEach(function (industry, index) {
+      if (!remaining) return;
+      const start = (wave + index) % types.length;
+      for (let step = 0; step < types.length; step += 1) {
+        const bucket = buckets[industry + ':' + types[(start + step) % types.length]];
+        if (bucket && bucket.length) {
+          result.push(bucket.shift());
+          remaining -= 1;
+          took = true;
+          break;
+        }
+      }
+    });
+    if (!took) break;
+    wave += 1;
+  }
+  return result;
+}
+
 function lookbookHref(params) {
   const next = params || {};
   const query = new URLSearchParams();
@@ -449,9 +486,10 @@ export function renderLookbookSite(session, query) {
   const type = (query && query.get('type')) || 'all';
   const industry = (query && query.get('industry')) || 'all';
   const previewId = query && query.get('preview');
-  const pages = LOOKBOOK_PAGES.filter(function (page) {
+  const filtered = LOOKBOOK_PAGES.filter(function (page) {
     return (type === 'all' || page.type === type) && (industry === 'all' || page.industry === industry);
   });
+  const pages = industry === 'all' ? interleaveLookbookPages(filtered) : filtered;
   const preview = previewId ? LOOKBOOK_PAGES.filter(function (page) { return page.id === previewId; })[0] : null;
   const typeFilters = LOOKBOOK_TYPES.map(function (item) {
     return '<a class="fable-look-filter' + (item.key === type ? ' is-on' : '') + '" href="' + lookbookHref({ type: item.key, industry: industry }) + '">' + item.label + '</a>';
