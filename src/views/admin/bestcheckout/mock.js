@@ -1316,6 +1316,9 @@ export function createMockBestCheckoutState(profile) {
     chart: [42, 45, 44, 49, 52, 51, 56, 55, 60, 62, 64, 68, 67, 72],
     ui: {
       isAuthenticated: false,
+      sessionEmail: '',
+      hasConnectedStore: false,
+      marketingMenuOpen: false,
       locale: 'en',
       languageOpen: false,
       storeMenuOpen: false,

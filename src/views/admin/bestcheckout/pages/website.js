@@ -1,4 +1,5 @@
 import { icon } from '../components/common.js';
+import { marketingCtas } from '../session.js';
 
 const capabilities = [
   { step: '01', iconName: 'sparkles', title: 'Own the purchase moment', description: 'On-brand checkout journeys', features: ['Visual builder', 'Custom domains', 'Native wallets'] },
@@ -72,18 +73,38 @@ function cardIcon(name) {
   return `<span class="fable-card-icon">${icon(name, 22)}</span>`;
 }
 
-export function renderMarketingSite() {
+function marketingNavLinks() {
+  return '<a href="#/landing" data-landing-section="home">Home</a><a href="#/landing?section=results" data-landing-section="results">Product</a><a href="#/landing?section=how-it-works" data-landing-section="how-it-works">How it works</a><a href="help/">Help Center</a><a href="help/#guide=connect-shopify">Connect guide</a>';
+}
+
+function marketingPrimaryButton(ctas, extraClass, withArrow) {
+  return `<a class="fable-button${extraClass ? ' ' + extraClass : ''}" href="${ctas.primaryHref}">${ctas.primaryLabel}${withArrow ? ' ' + icon('arrow', 16) : ''}</a>`;
+}
+
+export function renderMarketingSite(session) {
+  const ctas = marketingCtas(session);
+  const menuOpen = Boolean(session && session.marketingMenuOpen);
+  const guestActions = ctas.authenticated
+    ? `<button type="button" class="fable-sign-out" data-action="portal-signout">Sign out</button>${marketingPrimaryButton(ctas, 'fable-button--small', false)}`
+    : `<a class="fable-sign-in" href="#/sign-in">Sign in</a>${marketingPrimaryButton(ctas, 'fable-button--small', false)}`;
+  const mobileAccount = ctas.authenticated
+    ? `<button type="button" class="fable-sign-out" data-action="portal-signout">Sign out</button>`
+    : `<a class="fable-sign-in" href="#/sign-in">Sign in</a>`;
   return `
-    <div class="fable-site">
-      <header class="fable-nav">
+    <div class="fable-site${menuOpen ? ' is-menu-open' : ''}">
+      <header class="fable-nav${menuOpen ? ' is-open' : ''}">
         <nav aria-label="Primary">
           <a class="fable-brand" href="#/landing" data-landing-section="home" aria-label="BestCheckout home"><img class="fable-brand-mark" src="${brandMark}" alt="" aria-hidden="true"/><span>BestCheckout</span></a>
           <div class="fable-nav-links">
-            <a href="#/landing" data-landing-section="home">Home</a><a href="#/landing?section=results" data-landing-section="results">Product</a><a href="#/landing?section=how-it-works" data-landing-section="how-it-works">How it works</a><a href="help/">Help Center</a><a href="help/#guide=connect-shopify">Connect guide</a>
+            ${marketingNavLinks()}
           </div>
-          <div class="fable-nav-actions"><a class="fable-mobile-guide" href="help/#guide=connect-shopify">Connect guide</a><a class="fable-sign-in" href="#/sign-in">Sign in</a><a class="fable-button fable-button--small" href="#/sign-up?next=connect-shopify">Start free</a></div>
+          <div class="fable-nav-actions">${guestActions}<button type="button" class="fable-menu-toggle" data-action="toggle-marketing-menu" aria-expanded="${menuOpen}" aria-controls="fable-mobile-menu" aria-label="${menuOpen ? 'Close menu' : 'Open menu'}">${icon(menuOpen ? 'close' : 'menu', 20)}</button></div>
         </nav>
       </header>
+      <div class="fable-mobile-menu" id="fable-mobile-menu" ${menuOpen ? '' : 'hidden'}>
+        ${marketingNavLinks()}
+        ${mobileAccount}
+      </div>
       <main>
         <section class="fable-hero" id="product">
           <div class="fable-hero-aurora" aria-hidden="true"></div><div class="fable-hero-stars" aria-hidden="true"></div><div class="fable-hero-grid" aria-hidden="true"></div>
@@ -92,7 +113,7 @@ export function renderMarketingSite() {
               <span class="fable-eyebrow">${icon('sparkles', 14)} Conversion infrastructure for Shopify</span>
               <h1>Make every checkout<br/><span>feel inevitable.</span></h1>
               <p>Design the path from cart to paid order, launch offers with confidence, and keep your Shopify operations in sync.</p>
-              <div class="fable-hero-actions"><a class="fable-button" href="#/sign-up?next=connect-shopify">Start free ${icon('arrow', 16)}</a><a class="fable-button fable-button--outline" href="#/landing?section=results" data-landing-section="results">Explore the product</a></div>
+              <div class="fable-hero-actions">${marketingPrimaryButton(ctas, '', true)}<a class="fable-button fable-button--outline" href="#/landing?section=results" data-landing-section="results">Explore the product</a></div>
             </div>
             ${workspacePreview()}
           </div>
@@ -103,8 +124,8 @@ export function renderMarketingSite() {
         <section class="fable-section" id="how-it-works"><div class="fable-container"><h2 class="fable-section-title">How it works</h2><ol class="fable-process"><li><b>01</b><h3>Connect your Shopify store</h3><p>Authorize once and your store's products, orders, and inventory are immediately available.</p></li><li><b>02</b><h3>Build the purchase flow</h3><p>Design your checkout sequence, configure offer rules, and preview the full buyer journey before going live.</p></li><li><b>03</b><h3>Launch with confidence</h3><p>Go live in minutes. Merchants connect their own Shopify app and retain full ownership of their store data and payment accounts.</p></li></ol></div></section>
         <section class="fable-section fable-testimonials"><div class="fable-container"><h2 class="fable-section-title">Built for operators who<br/>move fast and measure everything.</h2><div class="fable-testimonial-grid">${testimonials.map((item) => `<article><div class="fable-stars" aria-label="Rated 5 out of 5 stars">★★★★★</div><blockquote>“${item.quote}”</blockquote><span class="fable-metric">${item.metric}</span><footer><img class="fable-avatar" src="${item.avatar}" alt="" width="40" height="40" loading="lazy" decoding="async"/><span><b>${item.name}</b><small>${item.role}</small></span></footer></article>`).join('')}</div></div></section>
         <section class="fable-section"><div class="fable-container"><h2 class="fable-section-title">Your store. Your payment accounts.<br/>Your data.</h2><div class="fable-trust-grid"><article>${cardIcon('shield')}<h3>Merchant-owned access</h3><p>You connect your own Shopify app; BestCheckout never holds your credentials.</p></article><article>${cardIcon('orders')}<h3>Shopify order sync</h3><p>Every completed checkout writes back to Shopify automatically.</p></article><article>${cardIcon('analytics')}<h3>Clear performance data</h3><p>Conversion rates, AOV, and recovery stats visible from day one.</p></article></div></div></section>
-        <section class="fable-section fable-final"><div class="fable-container"><div><h2 class="fable-section-title">Make the checkout your<br/>strongest sales page.</h2><a class="fable-button" href="#/sign-up?next=connect-shopify">Start free ${icon('arrow', 16)}</a></div></div></section>
+        <section class="fable-section fable-final"><div class="fable-container"><div><h2 class="fable-section-title">Make the checkout your<br/>strongest sales page.</h2>${marketingPrimaryButton(ctas, '', true)}</div></div></section>
       </main>
-      <footer class="fable-footer"><div class="fable-container fable-footer-main"><section class="fable-footer-brand"><strong><img class="fable-footer-brand-mark" src="${brandMark}" alt="" aria-hidden="true"/><span>BestCheckout</span></strong><p>Conversion infrastructure for Shopify brands.</p><div class="fable-trust-badges" aria-label="Trust and compliance badges">${footerTrustBadges.map(renderFooterTrustBadge).join('')}</div></section><nav><a href="#/landing" data-landing-section="home">Home</a><a href="#/landing?section=results" data-landing-section="results">Product</a><a href="#/landing?section=how-it-works" data-landing-section="how-it-works">How it works</a><a href="help/">Help Center</a><a href="help/#guide=connect-shopify">Connect guide</a><a href="#/sign-in">Sign in</a></nav></div><div class="fable-container fable-footer-bottom"><small>© 2026 BestCheckout. All rights reserved.</small><section class="fable-payment-methods" aria-label="Supported payment methods"><span class="fable-footer-label">Supported payment methods</span><img class="fable-payment-logo" src="${footerPaymentLogo}" alt="American Express, Visa, Mastercard, UnionPay, PayPal, JCB, Discover, and Klarna" loading="lazy" decoding="async"/></section></div></footer>
+      <footer class="fable-footer"><div class="fable-container fable-footer-main"><section class="fable-footer-brand"><strong><img class="fable-footer-brand-mark" src="${brandMark}" alt="" aria-hidden="true"/><span>BestCheckout</span></strong><p>Conversion infrastructure for Shopify brands.</p><div class="fable-trust-badges" aria-label="Trust and compliance badges">${footerTrustBadges.map(renderFooterTrustBadge).join('')}</div></section><nav><a href="#/landing" data-landing-section="home">Home</a><a href="#/landing?section=results" data-landing-section="results">Product</a><a href="#/landing?section=how-it-works" data-landing-section="how-it-works">How it works</a><a href="help/">Help Center</a><a href="help/#guide=connect-shopify">Connect guide</a><a href="${ctas.footerHref}">${ctas.footerLabel}</a></nav></div><div class="fable-container fable-footer-bottom"><small>© 2026 BestCheckout. All rights reserved.</small><section class="fable-payment-methods" aria-label="Supported payment methods"><span class="fable-footer-label">Supported payment methods</span><img class="fable-payment-logo" src="${footerPaymentLogo}" alt="American Express, Visa, Mastercard, UnionPay, PayPal, JCB, Discover, and Klarna" loading="lazy" decoding="async"/></section></div></footer>
     </div>`;
 }

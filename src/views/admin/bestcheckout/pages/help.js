@@ -1,4 +1,5 @@
 import { icon } from '../components/common.js';
+import { marketingCtas } from '../session.js';
 
 function brand() {
   return '<a class="help-brand" href="#/landing" aria-label="BestCheckout home"><img class="portal-mark" src="assets/brand-mark.svg?v=20260723brandmark1" alt="" aria-hidden="true"/><strong>BestCheckout</strong></a>';
@@ -34,10 +35,13 @@ function helpHome() {
     + '</div>';
 }
 
-export function renderHelpCenter(route) {
+export function renderHelpCenter(route, session) {
   const isSetupGuide = route.segments[1] === 'shopify-app-setup';
+  const ctas = marketingCtas(session);
+  const accountHref = ctas.authenticated ? ctas.primaryHref : '#/sign-in';
+  const accountLabel = ctas.authenticated ? ctas.primaryLabel : 'Go to your account';
   return '<div class="help-center">'
-    + '<header class="help-header">' + brand() + '<nav aria-label="Help navigation"><a href="#/help"' + (isSetupGuide ? '' : ' aria-current="page"') + '>Help Center</a><a href="#/landing">Product</a><a href="#/sign-in" class="help-account-link">Go to your account ' + icon('arrow', 15) + '</a></nav></header>'
+    + '<header class="help-header">' + brand() + '<nav aria-label="Help navigation"><a href="#/help"' + (isSetupGuide ? '' : ' aria-current="page"') + '>Help Center</a><a href="#/landing">Product</a><a href="' + accountHref + '" class="help-account-link">' + accountLabel + ' ' + icon('arrow', 15) + '</a></nav></header>'
     + '<main class="help-main">' + (isSetupGuide ? setupArticle() : helpHome()) + '</main>'
     + '<footer class="help-footer"><span>BestCheckout Help Center</span><a href="#/landing">BestCheckout home</a></footer>'
     + '</div>';

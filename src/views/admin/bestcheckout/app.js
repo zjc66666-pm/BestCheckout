@@ -4,7 +4,7 @@ import {
   FUNNEL_STATUS,
   TRACKING_CONTRACT_VERSION,
 } from './type.js?rev=20260720-standalone-portal-v150';
-import { createMockBestCheckoutState } from './mock.js?rev=20260820-nmi-card-only1';
+import { createMockBestCheckoutState } from './mock.js?rev=20260822-prototype-accounts1';
 import { buildRuntimePayload, deterministicPayloadHash, graphEdgesForNodes, validateGraphCoverage } from './runtime.js?rev=20260716-rich-audience-v19';
 import { icon } from './components/common.js?rev=20260716-focus-mode-v27';
 import {
@@ -36,9 +36,15 @@ import { renderActivity } from './pages/activity.js?rev=20260720-standalone-port
 import { renderSettings } from './pages/settings.js?rev=20260720-standalone-portal-v150';
 import { renderEditor, mountEditor } from './pages/editor.js?rev=20260719-preview-session-v92';
 import { renderOrders } from './pages/orders.js?rev=20260720-standalone-portal-v145';
-import { renderConnectShopify, renderForgotPasswordCode, renderPasswordResetEmailPage, renderSignIn, renderSignUp, renderSignupVerificationEmailPage } from './pages/auth.js?rev=20260817resetemailpreview2';
-import { renderHelpCenter } from './pages/help.js?rev=20260723brandunify1';
-import { renderMarketingSite } from './pages/website.js?rev=20260821-testimonial-avatars1';
+import { renderConnectShopify, renderForgotPasswordCode, renderPasswordResetEmailPage, renderSignIn, renderSignUp, renderSignupVerificationEmailPage } from './pages/auth.js?rev=20260822-prototype-accounts1';
+import { renderHelpCenter } from './pages/help.js?rev=20260822-prototype-accounts1';
+import { renderMarketingSite } from './pages/website.js?rev=20260822-mobile-nav4';
+import {
+  applyPrototypeSession,
+  findPrototypeAccount,
+  persistPrototypeSession,
+  clearPrototypeSession,
+} from './session.js?rev=20260822-prototype-accounts1';
 import { escapeHtml, formatDateTime, getRouteName, parseRoute, setRoute } from './utils.js?rev=20260720-standalone-portal-v145';
 import { applyLocale, renderLanguageSwitcher, translate } from './i18n.js?rev=20260820-nmi-card-only1';
 
@@ -56,7 +62,11 @@ try {
   // Existing merchants can add another Shopify store without creating a second
   // BestCheckout account. This entry is only produced by the store switcher.
   const entry = new URLSearchParams(window.location.search).get('entry');
-  if (entry === 'connect-new-shopify-store') state.ui.isAuthenticated = true;
+  if (entry === 'connect-new-shopify-store') {
+    state.ui.isAuthenticated = true;
+    state.ui.hasConnectedStore = true;
+  }
+  applyPrototypeSession(state);
   const storedLocale = window.localStorage.getItem('bestcheckout-prototype-locale');
   if (storedLocale === 'zh' || storedLocale === 'en') state.ui.locale = storedLocale;
 } catch (error) {
@@ -138,6 +148,53 @@ function lockLandingNav(section) {
   }, 900);
 }
 
+function closeMarketingMenu() {
+  if (!state.ui.marketingMenuOpen) return;
+  state.ui.marketingMenuOpen = false;
+  const site = appRoot.querySelector('.fable-site');
+  const nav = appRoot.querySelector('.fable-nav');
+  const menu = appRoot.querySelector('#fable-mobile-menu');
+  const button = appRoot.querySelector('[data-action="toggle-marketing-menu"]');
+  if (site) site.classList.remove('is-menu-open');
+  if (nav) nav.classList.remove('is-open');
+  if (menu) menu.hidden = true;
+  if (button) {
+    button.setAttribute('aria-expanded', 'false');
+    button.setAttribute('aria-label', 'Open menu');
+    button.innerHTML = icon('menu', 20);
+  }
+}
+
+function marketingSession() {
+  return {
+    isAuthenticated: state.ui.isAuthenticated,
+    hasConnectedStore: state.ui.hasConnectedStore,
+    marketingMenuOpen: state.ui.marketingMenuOpen,
+  };
+}
+
+function enterSignedInDestination(next) {
+  if (state.ui.hasConnectedStore) {
+    openNewBestCheckoutDashboard();
+    return;
+  }
+  const requested = String(next || '').replace(/^#?\/?/, '');
+  setRoute(requested && requested !== 'home' ? requested : 'connect-shopify');
+}
+
+function redirectPublicAuth(route) {
+  const name = route.segments[0];
+  if (state.ui.isAuthenticated && ['sign-in', 'sign-up', 'forgot-password'].includes(name)) {
+    enterSignedInDestination();
+    return true;
+  }
+  if (name === 'connect-shopify' && !state.ui.isAuthenticated) {
+    setRoute('sign-in?next=connect-shopify');
+    return true;
+  }
+  return false;
+}
+
 function handleLandingNavClick(event) {
   if (!appRoot.querySelector('.fable-site')) return false;
   const link = event.target.closest('a[data-landing-section]');
@@ -146,6 +203,7 @@ function handleLandingNavClick(event) {
   const section = link.getAttribute('data-landing-section') || 'home';
   const nextHash = landingHashForSection(section);
   event.preventDefault();
+  closeMarketingMenu();
   lockLandingNav(section);
   if ((window.location.hash || '#/landing') === nextHash) {
     scrollToLandingSection(section);
@@ -557,8 +615,8 @@ function renderPublicRoute(route) {
   if (route.segments[0] === 'password-reset-email-preview') return renderPasswordResetEmailPage(route.query.get('email'));
   if (route.segments[0] === 'forgot-password') return renderForgotPasswordCode(route.segments[1]);
   if (route.segments[0] === 'connect-shopify') return renderConnectShopify();
-  if (route.segments[0] === 'help') return renderHelpCenter(route);
-  return renderMarketingSite();
+  if (route.segments[0] === 'help') return renderHelpCenter(route, marketingSession());
+  return renderMarketingSite(marketingSession());
 }
 
 function renderPortalChrome(pageMarkup, route) {
@@ -628,6 +686,7 @@ function pageForRoute(route) {
 function renderShell(options) {
   const route = parseRoute();
   if (isPublicRoute(route)) {
+    if (redirectPublicAuth(route)) return;
     if (route.segments[0] === 'landing' && appRoot.querySelector('.fable-site')) {
       const section = landingSectionFromRoute(route);
       window.requestAnimationFrame(function () {
@@ -1280,9 +1339,39 @@ function handleAction(action, element) {
   }
   if (action === 'portal-signout') {
     state.ui.isAuthenticated = false;
+    state.ui.sessionEmail = '';
+    state.ui.hasConnectedStore = false;
+    state.ui.marketingMenuOpen = false;
     state.ui.languageOpen = false;
+    clearPrototypeSession();
     closePortalHeaderMenus();
+    if (parseRoute().segments[0] === 'landing') appRoot.innerHTML = '';
     setRoute('landing');
+    return;
+  }
+  if (action === 'toggle-marketing-menu') {
+    state.ui.marketingMenuOpen = !state.ui.marketingMenuOpen;
+    const site = appRoot.querySelector('.fable-site');
+    const nav = appRoot.querySelector('.fable-nav');
+    const menu = appRoot.querySelector('#fable-mobile-menu');
+    const open = state.ui.marketingMenuOpen;
+    if (site) site.classList.toggle('is-menu-open', open);
+    if (nav) nav.classList.toggle('is-open', open);
+    if (menu) menu.hidden = !open;
+    element.setAttribute('aria-expanded', String(open));
+    element.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+    element.innerHTML = icon(open ? 'close' : 'menu', 20);
+    return;
+  }
+  if (action === 'fill-demo-account') {
+    const form = element.closest('#portal-login-form') || appRoot.querySelector('#portal-login-form');
+    const emailInput = form && form.querySelector('[name="email"]');
+    const passwordInput = form && form.querySelector('[name="password"]');
+    if (emailInput) emailInput.value = element.dataset.email || '';
+    if (passwordInput) passwordInput.value = element.dataset.password || '';
+    if (emailInput) setPortalFieldValidation(emailInput, false);
+    if (passwordInput) setPortalFieldValidation(passwordInput, false);
+    if (passwordInput) passwordInput.focus();
     return;
   }
   if (action === 'toggle-portal-store-menu') {
@@ -1391,9 +1480,13 @@ function handleAction(action, element) {
     const profile = element.dataset.profile === 'live' ? 'live' : 'installed';
     const locale = state.ui.locale;
     const isAuthenticated = state.ui.isAuthenticated;
+    const sessionEmail = state.ui.sessionEmail;
+    const hasConnectedStore = state.ui.hasConnectedStore;
     state = createMockBestCheckoutState(profile);
     state.ui.locale = locale;
     state.ui.isAuthenticated = isAuthenticated;
+    state.ui.sessionEmail = sessionEmail;
+    state.ui.hasConnectedStore = hasConnectedStore;
     state.ui.storeMenuOpen = false;
     renderShell({ focus: true });
     showToast(profile === 'live'
@@ -2172,6 +2265,9 @@ function handleAction(action, element) {
 
 function handleClick(event) {
   if (handleLandingNavClick(event)) return;
+  if (state.ui.marketingMenuOpen && !event.target.closest('.fable-nav')) {
+    closeMarketingMenu();
+  }
   if (state.ui.performanceDatePickerOpen && !event.target.closest('.performance-date-filter')) {
     state.ui.performanceDatePickerOpen = false;
     state.ui.performanceDateError = '';
@@ -2255,6 +2351,9 @@ function startShopifyConnection(form) {
     if (heading) heading.innerHTML = '<span class="connect-progress-complete" aria-hidden="true">✓</span><div><strong>Your Shopify store is connected</strong><p>Taking you to your BestCheckout dashboard.</p></div>';
   }, 2700);
   window.setTimeout(function () {
+    state.ui.isAuthenticated = true;
+    state.ui.hasConnectedStore = true;
+    persistPrototypeSession(state);
     openNewBestCheckoutDashboard();
   }, 3250);
 }
@@ -2339,7 +2438,25 @@ function bindFormSubmissions(event) {
   if (form.id === 'portal-login-form') {
     event.preventDefault();
     if (!validatePortalForm(form)) return;
-    openNewBestCheckoutDashboard();
+    const data = new FormData(form);
+    const email = String(data.get('email') || '').trim();
+    const password = String(data.get('password') || '');
+    const account = findPrototypeAccount(email, password);
+    if (!account) {
+      const passwordInput = form.querySelector('[name="password"]');
+      const field = passwordInput && passwordInput.closest('[data-portal-field]');
+      const error = field && field.querySelector('[data-field-error]');
+      if (field) field.classList.add('is-invalid');
+      if (passwordInput) { passwordInput.setAttribute('aria-invalid', 'true'); passwordInput.focus(); }
+      if (error) { error.hidden = false; error.textContent = 'Email or password is incorrect.'; }
+      return;
+    }
+    state.ui.isAuthenticated = true;
+    state.ui.sessionEmail = account.email;
+    state.ui.hasConnectedStore = account.hasStore;
+    persistPrototypeSession(state);
+    useEnglishPortalDefault();
+    enterSignedInDestination(parseRoute().query.get('next'));
     return;
   }
   if (form.id === 'portal-reset-password-form') {
@@ -2400,8 +2517,11 @@ function bindFormSubmissions(event) {
       return;
     }
     state.ui.isAuthenticated = true;
+    state.ui.sessionEmail = email;
+    state.ui.hasConnectedStore = false;
+    persistPrototypeSession(state);
     useEnglishPortalDefault();
-    setRoute(parseRoute().query.get('next') || 'connect-shopify');
+    enterSignedInDestination(parseRoute().query.get('next') || 'connect-shopify');
     return;
   }
   if (form.id === 'connect-shopify-form') {

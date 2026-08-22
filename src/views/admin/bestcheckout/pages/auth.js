@@ -1,5 +1,6 @@
 import { icon } from '../components/common.js';
 import { escapeHtml } from '../utils.js';
+import { PROTOTYPE_ACCOUNTS } from '../session.js';
 
 function brand() {
   return '<a class="portal-auth-brand" href="#/" aria-label="BestCheckout home"><img class="portal-mark" src="assets/brand-mark.svg?v=20260723transparentmark1" alt="" aria-hidden="true"/><strong>BestCheckout</strong></a>';
@@ -17,11 +18,20 @@ function portalFieldWithAction(label, control, action) {
   return '<div class="portal-field-with-action">' + portalField(label, control) + action + '</div>';
 }
 
+function renderDemoAccountHints() {
+  const rows = PROTOTYPE_ACCOUNTS.filter(function (account) { return account.email !== 'hello@lavenderlabs.co'; }).map(function (account) {
+    return '<button type="button" class="portal-demo-account" data-action="fill-demo-account" data-email="' + escapeHtml(account.email) + '" data-password="' + escapeHtml(account.password) + '"><strong>' + escapeHtml(account.label) + '</strong><span>' + escapeHtml(account.email) + ' · ' + escapeHtml(account.password) + '</span></button>';
+  }).join('');
+  return '<aside class="portal-demo-accounts" aria-label="Prototype test accounts"><p>Prototype test accounts</p>' + rows + '</aside>';
+}
+
 export function renderSignIn() {
   const form = '<form class="portal-form" id="portal-login-form" novalidate>'
-    + portalField('Email', '<input required type="email" name="email" value="hello@lavenderlabs.co" autocomplete="email" data-validation-required="Enter your email address." data-validation-invalid="Enter a valid email address." />')
-    + portalField('Password', '<div class="portal-password-field"><input required type="password" name="password" value="demo-password" autocomplete="current-password" data-validation-required="Enter your password." /><button type="button" aria-label="Show password">' + icon('eye', 16) + '</button></div>')
-    + '<div class="portal-form-row"><label class="portal-check"><input type="checkbox" checked /> <span>Keep me signed in</span></label><button type="button" class="portal-inline-button" data-route="forgot-password">Forgot password?</button></div><button type="submit" class="portal-submit">Sign in ' + icon('arrow', 16) + '</button></form>';
+    + portalField('Email', '<input required type="email" name="email" autocomplete="email" placeholder="you@company.com" data-validation-required="Enter your email address." data-validation-invalid="Enter a valid email address." />')
+    + portalField('Password', '<div class="portal-password-field"><input required type="password" name="password" autocomplete="current-password" placeholder="Enter your password" data-validation-required="Enter your password." /><button type="button" aria-label="Show password">' + icon('eye', 16) + '</button></div>')
+    + '<div class="portal-form-row"><label class="portal-check"><input type="checkbox" checked /> <span>Keep me signed in</span></label><button type="button" class="portal-inline-button" data-route="forgot-password">Forgot password?</button></div><button type="submit" class="portal-submit">Sign in ' + icon('arrow', 16) + '</button>'
+    + renderDemoAccountHints()
+    + '</form>';
   return authLayout('Welcome back', 'Sign in to BestCheckout', 'Manage checkout growth for your Shopify store.', form, '<p class="portal-auth-foot">New to BestCheckout? <button type="button" data-route="sign-up">Create your account</button></p>');
 }
 
