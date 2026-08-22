@@ -9,7 +9,7 @@
    #/orders/5042, or 'base' for #/settings/base). Internal navigation just sets
    location.hash; the router re-dispatches. */
 (function () {
-  var V = '20260820-staff-roledd1'; // cache-bust for lazy-loaded module scripts
+  var V = '20260822-desktopcovers'; // cache-bust for lazy-loaded module scripts
   var PUBLIC_SHOPIFY_CONNECTION_URL = './?entry=connect-new-shopify-store#/connect-shopify';
   var s = function (p) { return '<svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>'; };
   var ICONS = {
@@ -187,11 +187,16 @@
     chain = chain.then(function () {
       if (id === 'customers' && !window.DATA_ORDERS) return loadScript('orders/js/data.js?v=' + V);
     });
+    var moduleV = id === 'online-store' ? '20260822theme-sync2' : V;
+    chain = chain.then(function () {
+      if (id === 'online-store' && !window.POST_PURCHASE_ORDER_MOCK)
+        return loadScript('assets/post-purchase-order-mock.js?v=' + moduleV);
+    });
     chain = chain.then(function () {
       if (id === 'subscriptions' && window.DATA_SUBS) return;
-      return loadScript(id + '/js/data.js?v=' + V);
+      return loadScript(id + '/js/data.js?v=' + moduleV);
     }).catch(function () {}); // optional
-    chain = chain.then(function () { return loadScript(id + '/js/app.js?v=' + V); });    // required
+    chain = chain.then(function () { return loadScript(id + '/js/app.js?v=' + moduleV); });    // required
     loaded[id] = chain;
     return loaded[id];
   }
@@ -784,7 +789,13 @@
 
     // Pluggable-app toggles (Apps page) call this to re-render the sidebar in place.
     window.Shell = { refresh: function () { if (navEl) renderSidebar(curActiveId); } };
-    if (!location.hash) location.replace('#/home');
+    var qs = new URLSearchParams(location.search || '');
+    if (qs.get('preview_id')) {
+      if ((location.hash || '').indexOf('#/online-store') !== 0)
+        location.replace(location.pathname + location.search + '#/online-store');
+    } else if (!location.hash) {
+      location.replace('#/home');
+    }
     window.addEventListener('hashchange', dispatch);
     dispatch();
   }
