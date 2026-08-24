@@ -120,7 +120,7 @@
       if (bcCoverById(kind, id)) known = true;
     });
     var safe = known ? id : 'checkout-1';
-    return '<img class="pcv-photo" src="bestcheckout/covers/' + safe + '.png?v=20260822-fashionswap" alt="" draggable="false">';
+    return '<img class="pcv-photo" src="bestcheckout/covers/' + safe + '.webp?v=20260824-webp1" alt="" draggable="false">';
   }
   function bcSavedTpls() { try { return JSON.parse(localStorage.getItem('bsio_bc_templates') || '{}'); } catch (e) { return {}; } }
   function bcSavedTplsSave(s) { try { localStorage.setItem('bsio_bc_templates', JSON.stringify(s)); } catch (e) {} }

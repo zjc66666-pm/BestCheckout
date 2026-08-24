@@ -10,14 +10,14 @@
 
 | 文件 | 用在哪张页面 |
 |---|---|
-| `checkout-1.png` | Checkout |
-| `checkout-2.png` | Checkout A |
-| `checkout-3.png` | Checkout B |
-| `upsell-1.png` | New customer Upsell |
-| `upsell-2.png` | Returning customer Upsell |
-| `downsell-1.png` | New customer Downsell |
-| `downsell-2.png` | Returning customer Downsell |
-| `thankyou-1.png` | Thank you |
+| `checkout-1.webp` | Checkout |
+| `checkout-2.webp` | Checkout A |
+| `checkout-3.webp` | Checkout B |
+| `upsell-1.webp` | New customer Upsell |
+| `upsell-2.webp` | Returning customer Upsell |
+| `downsell-1.webp` | New customer Downsell |
+| `downsell-2.webp` | Returning customer Downsell |
+| `thankyou-1.webp` | Thank you |
 
 同一份也备份在本目录的 `desktop-defaults/`。
 
@@ -40,6 +40,8 @@
 | `desktop-defaults/` | 当前默认封面的项目内备份 |
 
 ## 时尚类 `generated-fashion/`
+
+线上页面使用 WebP。以下原稿目录已转为同名 `.webp`（质量 88）。
 
 品牌方向：LINEA / STUDIO 9 / ATELIER / RIVER / ORIO。每类 5 张：
 

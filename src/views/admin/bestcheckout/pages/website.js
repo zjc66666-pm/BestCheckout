@@ -33,7 +33,7 @@ const footerTrustBadges = [
 
 const footerPaymentLogo = 'settings/assets/payments/payment-logo-sheet.svg?v=20260723paymentlogosheet3';
 const brandMark = 'assets/brand-mark.svg?v=20260723brandmark1';
-const LOOKBOOK_ASSET = 'v=20260822-lookbook10';
+const LOOKBOOK_ASSET = 'v=20260824-webp1';
 const LOOKBOOK_TYPES = [
   { key: 'all', label: 'All pages' },
   { key: 'checkout', label: 'Checkout' },
@@ -247,7 +247,7 @@ const LOOKBOOK_TEASER_IDS = [
 ];
 
 function lookbookSrc(page) {
-  return page.src + '?' + LOOKBOOK_ASSET;
+  return String(page.src || '').replace(/\.png$/i, '.webp') + '?' + LOOKBOOK_ASSET;
 }
 
 function lookbookTypeLabel(type) {
@@ -413,7 +413,7 @@ function renderFunnelShowcase() {
 
 function marketingNavLinks(active) {
   const lookbook = active === 'lookbook' ? ' aria-current="page"' : '';
-  return '<a href="#/landing" data-landing-section="home">Home</a><a href="#/landing?section=results" data-landing-section="results">Product</a><a href="#/landing?section=funnels" data-landing-section="funnels">Funnels</a><a href="#/lookbook"' + lookbook + '>Lookbook</a><a href="#/landing?section=how-it-works" data-landing-section="how-it-works">How it works</a><a href="help/">Help Center</a><a href="help/#guide=connect-shopify">Connect guide</a>';
+  return '<a href="#/landing" data-landing-section="home">Home</a><a href="#/landing?section=funnels" data-landing-section="funnels">Funnels</a><a href="#/lookbook"' + lookbook + '>Lookbook</a><a href="#/landing?section=results" data-landing-section="results">Product</a><a href="#/landing?section=how-it-works" data-landing-section="how-it-works">How it works</a><a href="help/">Help Center</a><a href="help/#guide=connect-shopify">Connect guide</a>';
 }
 
 function marketingPrimaryButton(ctas, extraClass, withArrow) {
@@ -447,7 +447,7 @@ function renderMarketingFrame(session, options) {
         ${mobileAccount}
       </div>
       ${options && options.main ? options.main : ''}
-      <footer class="fable-footer"><div class="fable-container fable-footer-main"><section class="fable-footer-brand"><strong><img class="fable-footer-brand-mark" src="${brandMark}" alt="" aria-hidden="true"/><span>BestCheckout</span></strong><p>Conversion infrastructure for Shopify brands.</p><div class="fable-trust-badges" aria-label="Trust and compliance badges">${footerTrustBadges.map(renderFooterTrustBadge).join('')}</div></section><nav><a href="#/landing" data-landing-section="home">Home</a><a href="#/landing?section=results" data-landing-section="results">Product</a><a href="#/landing?section=funnels" data-landing-section="funnels">Funnels</a><a href="#/lookbook">Lookbook</a><a href="#/landing?section=how-it-works" data-landing-section="how-it-works">How it works</a><a href="help/">Help Center</a><a href="help/#guide=connect-shopify">Connect guide</a><a href="${ctas.footerHref}">${ctas.footerLabel}</a></nav></div><div class="fable-container fable-footer-bottom"><small>© 2026 BestCheckout. All rights reserved.</small><section class="fable-payment-methods" aria-label="Supported payment methods"><span class="fable-footer-label">Supported payment methods</span><img class="fable-payment-logo" src="${footerPaymentLogo}" alt="American Express, Visa, Mastercard, UnionPay, PayPal, JCB, Discover, and Klarna" loading="lazy" decoding="async"/></section></div></footer>
+      <footer class="fable-footer"><div class="fable-container fable-footer-main"><section class="fable-footer-brand"><strong><img class="fable-footer-brand-mark" src="${brandMark}" alt="" aria-hidden="true"/><span>BestCheckout</span></strong><p>Conversion infrastructure for Shopify brands.</p><div class="fable-trust-badges" aria-label="Trust and compliance badges">${footerTrustBadges.map(renderFooterTrustBadge).join('')}</div></section><nav>${links}<a href="${ctas.footerHref}">${ctas.footerLabel}</a></nav></div><div class="fable-container fable-footer-bottom"><small>© 2026 BestCheckout. All rights reserved.</small><section class="fable-payment-methods" aria-label="Supported payment methods"><span class="fable-footer-label">Supported payment methods</span><img class="fable-payment-logo" src="${footerPaymentLogo}" alt="American Express, Visa, Mastercard, UnionPay, PayPal, JCB, Discover, and Klarna" loading="lazy" decoding="async"/></section></div></footer>
     </div>`;
 }
 
