@@ -11,6 +11,7 @@ window.STORES = [
   { name: 'Lavender Labs', url: 'lavender-labs.myshopify.com', homeState: 'unconfigured' },
   { name: 'Aura Living', url: 'aura-living.myshopify.com', homeState: 'ready' },
   { name: 'Northline Goods', url: 'northline-goods.myshopify.com', homeState: 'live' },
+  { name: 'Kiln Coffee', url: 'kiln-coffee.myshopify.com', homeState: 'live', homeDataKey: 'kiln' },
 ];
 
 window.NAV_MENU = [

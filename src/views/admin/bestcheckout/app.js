@@ -469,6 +469,7 @@ const SHOPIFY_STORES = [
   { id: 'lavender-labs', name: 'Lavender Labs', domain: 'lavender-labs.myshopify.com', checkoutDomain: 'checkout.lavenderlabs.co', previewDomain: 'lavender-labs.preview.bestcheckout.app', bestShopioStoreId: 'bst_20018' },
   { id: 'aura-living', name: 'Aura Living', domain: 'aura-living.myshopify.com', checkoutDomain: 'checkout.auraliving.co', previewDomain: 'aura-living.preview.bestcheckout.app', bestShopioStoreId: 'bst_20031' },
   { id: 'northline', name: 'Northline Goods', domain: 'northline-goods.myshopify.com', checkoutDomain: 'checkout.northlinegoods.co', previewDomain: 'northline-goods.preview.bestcheckout.app', bestShopioStoreId: 'bst_20047' },
+  { id: 'kiln-coffee', name: 'Kiln Coffee', domain: 'kiln-coffee.myshopify.com', checkoutDomain: 'checkout.kilncoffee.co', previewDomain: 'kiln-coffee.preview.bestcheckout.app', bestShopioStoreId: 'bst_20062' },
 ];
 
 function activeShopifyStore() {

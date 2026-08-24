@@ -9,7 +9,7 @@
    #/orders/5042, or 'base' for #/settings/base). Internal navigation just sets
    location.hash; the router re-dispatches. */
 (function () {
-  var V = '20260824-webp1'; // cache-bust for lazy-loaded module scripts
+  var V = '20260824-behind3'; // cache-bust for lazy-loaded module scripts
   var PUBLIC_SHOPIFY_CONNECTION_URL = './?entry=connect-new-shopify-store#/connect-shopify';
   var s = function (p) { return '<svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>'; };
   var ICONS = {
@@ -343,6 +343,29 @@
     if (state === 'unconfigured' || state === 'ready' || state === 'live') return state;
     return 'live';
   }
+  function homeDataPack() {
+    var data = window.DATA_HOME || { periods: {}, storeHealth: [], update: {}, stores: {} };
+    var key = activeStore && activeStore.homeDataKey;
+    var storePack = key && data.stores && data.stores[key];
+    if (storePack && storePack.periods) {
+      return {
+        periods: storePack.periods,
+        storeHealth: storePack.storeHealth || data.storeHealth || [],
+        update: storePack.update || data.update || {}
+      };
+    }
+    return data;
+  }
+  function homeBehindShopify(period) {
+    return !!(period && period.behindShopify);
+  }
+  function homeShopifyLiftHtml(lift) {
+    var text = String(lift || '').trim();
+    // Per metric: only show when this value is ahead of Shopify. A store can
+    // be behind overall while one purchase flow still beats the control.
+    if (!text || text.charAt(0) !== '+') return '';
+    return '<small class="home-positive">' + homeEsc(text) + ' <span>vs Shopify</span></small>';
+  }
   function emptyHomePeriod(period) {
     var source = period || {};
     var labels = source.labels && source.labels.length ? source.labels.slice() : ['—'];
@@ -439,7 +462,7 @@
   }
   function homeFlowPerformanceHtml(period) {
     var rows = (period.flows || []).map(function (flow) {
-      return '<tr><td><a href="#/flows/' + homeEsc(flow.id) + '">' + homeEsc(flow.name) + '</a><small>Attributed in this period</small></td><td>' + homeEsc(flow.sessions) + '</td><td><strong>' + homeEsc(flow.orders) + '</strong></td><td><strong>' + homeEsc(flow.conversion) + '</strong><small class="home-positive">' + homeEsc(flow.lift) + ' <span>vs Shopify</span></small></td><td>' + homeEsc(flow.aov) + '</td><td><strong>' + homeEsc(flow.sales) + '</strong></td></tr>';
+      return '<tr><td><a href="#/flows/' + homeEsc(flow.id) + '">' + homeEsc(flow.name) + '</a><small>Attributed in this period</small></td><td>' + homeEsc(flow.sessions) + '</td><td><strong>' + homeEsc(flow.orders) + '</strong></td><td><strong>' + homeEsc(flow.conversion) + '</strong>' + homeShopifyLiftHtml(flow.lift) + '</td><td>' + homeEsc(flow.aov) + '</td><td><strong>' + homeEsc(flow.sales) + '</strong></td></tr>';
     }).join('');
     if (!rows) {
       rows = '<tr><td colspan="6" class="home-data-empty">No purchase flow results yet.</td></tr>';
@@ -459,7 +482,18 @@
     if (period.empty) {
       return '<section class="home-panel home-data-insight is-empty"><div class="home-section-head"><div><div class="home-overline">This period</div><h2>Waiting for the first paid order</h2><p>Sales and conversion appear after a buyer completes a paid checkout.</p></div></div><div class="home-data-insight-value"><span>Checkout conversion</span><strong>--</strong><small>No checkout data yet</small></div><a class="btn btn-primary" href="#/flows">Review purchase flows</a></section>';
     }
-    return '<section class="home-panel home-data-insight"><div class="home-section-head"><div><div class="home-overline">This period</div><h2>More shoppers complete checkout</h2><p>Your checkout conversion is higher than the Shopify control group. Keep the current setup running, then test the next segment.</p></div></div><div class="home-data-insight-value"><span>Checkout conversion</span><strong>' + homeEsc(period.metrics[2].value) + '</strong><small>' + homeEsc(period.metrics[2].change) + ' <span>vs Shopify</span></small></div><a class="btn btn-primary" href="#/flows">Review purchase flows</a></section>';
+    var conversionMetric = period.metrics && period.metrics[2] ? period.metrics[2] : null;
+    var conversion = conversionMetric ? conversionMetric.value : '--';
+    var behind = homeBehindShopify(period);
+    var title = behind ? 'Keep testing the current setup' : 'More shoppers complete checkout';
+    var body = behind
+      ? 'Review the live purchase flows first. Change one thing at a time so the next period is easier to read.'
+      : 'Your checkout conversion is higher than the Shopify control group. Keep the current setup running, then test the next segment.';
+    var shopifyLift = conversionMetric
+      ? (conversionMetric.shopifyLift != null ? conversionMetric.shopifyLift : (behind ? '' : conversionMetric.change))
+      : '';
+    var lift = homeShopifyLiftHtml(shopifyLift);
+    return '<section class="home-panel home-data-insight' + (behind ? ' is-behind' : '') + '"><div class="home-section-head"><div><div class="home-overline">This period</div><h2>' + title + '</h2><p>' + body + '</p></div></div><div class="home-data-insight-value"><span>Checkout conversion</span><strong>' + homeEsc(conversion) + '</strong>' + lift + '</div><a class="btn btn-primary" href="#/flows">Review purchase flows</a></section>';
   }
   function checkoutLaunchGuideHtml(scenario) {
     // The connection is completed automatically during Shopify authorization.
@@ -522,7 +556,7 @@
   function renderHome() {
     if (isNewStore) { renderNewStoreHome(); return; }
     var scenario = homeScenario();
-    var data = window.DATA_HOME || { periods: {}, storeHealth: [], update: {} };
+    var data = homeDataPack();
     var period = data.periods[homeRange] || data.periods['30d'] || { label: 'Last 30 days', comparison: 'vs previous period', metrics: [], series: [], labels: [], flows: [], offers: [] };
     var hasCheckoutData = scenario === 'live';
     if (!hasCheckoutData) period = emptyHomePeriod(period);
