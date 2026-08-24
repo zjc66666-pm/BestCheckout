@@ -24,7 +24,7 @@
       var legacySection = legacySections[initialHash];
       if (!initialHash || initialHash === '#/' || legacySection) {
         var search = window.location.search;
-        var revision = 'rev=20260724rootwebsite1';
+        var revision = 'rev=20260824webpnav1';
         if (search.indexOf(revision) < 0) search += (search ? '&' : '?') + revision;
         window.location.replace(window.location.pathname + search + '#/landing' + (legacySection ? '?section=' + legacySection : ''));
         return;
