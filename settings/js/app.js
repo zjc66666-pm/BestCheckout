@@ -910,9 +910,9 @@
   const pLogo = (p, hh) => p.logo
     ? payImg(p.logo, hh || 20)
     : '<span class="pm-mono">' + esc(p.name) + '</span>';
-  function pMethPill(connected, on) {
+  function pMethPill(connected) {
     if (!connected) return '<span class="pill pill-gray"><span class="dot"></span>Not connected</span>';
-    return on ? '<span class="pill pill-green"><span class="dot"></span>Connected</span>' : '<span class="pill pill-gray"><span class="dot"></span>Disabled</span>';
+    return '<span class="pill pill-green"><span class="dot"></span>Connected</span>';
   }
   // ① 卡 + Express 单处理方槽位（picker 内连接/切换/管理）
   function pSlot() {
@@ -958,11 +958,11 @@
   // ② 独立支付方式（PayPal / Klarna 自有直连）
   function pIndep() {
     let html = ''; const pp = D.payments.paypal;
-    html += '<div class="panel imeth paypal-method"><div class="imeth-head"><span class="lg">' + payImg('paypal-logo.svg', 24) + '</span><div><div class="nm">PayPal Wallet</div><div class="sub">Independent wallet, self-settling · runs alongside the card processor</div></div><div class="right">' + pMethPill(pp.connected, pp.walletOn) + (pp.connected ? '<span class="sw' + (pp.walletOn ? ' on' : '') + '" data-itg="paypal"><i></i></span><button class="set-prim" data-cfg="paypal">Manage</button>' : '<button class="btn btn-primary" data-cfg="paypal">Connect</button>') + '</div></div></div>';
+    html += '<div class="panel imeth paypal-method"><div class="imeth-head"><span class="lg">' + payImg('paypal-logo.svg', 24) + '</span><div><div class="nm">PayPal Wallet</div><div class="sub">Independent wallet, self-settling · runs alongside the card processor</div></div><div class="right">' + pMethPill(pp.connected) + (pp.connected ? '<button class="set-prim" data-cfg="paypal">Manage</button>' : '<button class="btn btn-primary" data-cfg="paypal">Connect</button>') + '</div></div></div>';
     {
       const k = D.payments.klarna;
       if (k.directConnected) {
-        html += '<div class="panel imeth" style="display:block"><div style="display:flex;align-items:center;gap:13px"><span class="lg">' + payImg('klarna.svg', 24) + '</span><div><div class="nm">Klarna · own direct account</div><div class="sub">Your own Klarna direct account · rates usually better than via a PSP</div></div><div class="right">' + pMethPill(true, k.directOn) + '<span class="sw' + (k.directOn ? ' on' : '') + '" data-itg="klarna_direct"><i></i></span><button class="set-prim" data-cfg="klarna_direct">Manage</button></div></div><div class="dnote">💡 Klarna at checkout uses your direct account; if the active processor also has Klarna enabled, it defers to the direct account automatically to avoid showing twice to buyers.</div></div>';
+        html += '<div class="panel imeth" style="display:block"><div style="display:flex;align-items:center;gap:13px"><span class="lg">' + payImg('klarna.svg', 24) + '</span><div><div class="nm">Klarna · own direct account</div><div class="sub">Your own Klarna direct account · rates usually better than via a PSP</div></div><div class="right">' + pMethPill(true) + '<button class="set-prim" data-cfg="klarna_direct">Manage</button></div></div><div class="dnote">💡 Klarna at checkout uses your direct account; if the active processor also has Klarna enabled, it defers to the direct account automatically to avoid showing twice to buyers.</div></div>';
       } else {
         html += '<div class="panel imeth"><span class="lg">' + payImg('klarna.svg', 24) + '</span><div><div class="nm">Klarna · own direct account</div><div class="sub">Have your own Klarna account? Connect it for better rates and platform routing (otherwise it is rendered by the active processor).</div></div><div class="right"><span class="pill pill-gray"><span class="dot"></span>Not connected</span><button class="btn btn-primary" data-cfg="klarna_direct">Connect</button></div></div>';
       }
@@ -974,8 +974,8 @@
   function pPreview() {
     const a = pActive();
     const express = a ? pExpressFor(a) : [];
-    const hasPaypal = D.payments.paypal.connected && D.payments.paypal.walletOn;
-    const klarnaDirect = D.payments.klarna.directConnected && D.payments.klarna.directOn;
+    const hasPaypal = D.payments.paypal.connected;
+    const klarnaDirect = D.payments.klarna.directConnected;
     const hasCard = !!a;
     if (!express.length && !hasPaypal && !klarnaDirect && !hasCard) return '<div class="muted" style="text-align:center;padding:24px 0;font-size:13px">No payment provider connected yet, buyers can\'t pay.</div>';
     const order = { applepay: 0, googlepay: 1, link: 2, amazonpay: 3, klarna: 4 };
@@ -1179,7 +1179,7 @@
     const preview =
       '<div class="preview-col"><div class="phone"><div class="phone-notch"></div>' +
         '<div class="ck-h">Checkout · methods buyers see</div>' + pPreview() + '</div>' +
-        '<div class="preview-note">What buyers see are the methods lit up by connected providers; flip the switches above and this updates live.</div></div>';
+        '<div class="preview-note">What buyers see are the methods lit up by connected providers.</div></div>';
     paint(
       '<style>' + PAY_CSS + '</style>' +
       '<div class="payv2">' +
@@ -1189,7 +1189,6 @@
       false
     );
     root.querySelectorAll('[data-setproc]').forEach((el) => el.onclick = () => pConfirmSwitch(el.dataset.setproc));
-    root.querySelectorAll('[data-itg]').forEach((el) => el.onclick = () => { const k = el.dataset.itg; if (k === 'paypal') D.payments.paypal.walletOn = !D.payments.paypal.walletOn; else if (k === 'klarna_direct') D.payments.klarna.directOn = !D.payments.klarna.directOn; renderPayments(); });
     root.querySelectorAll('[data-cfg]').forEach((el) => el.onclick = () => pOpenConnect(el.dataset.cfg));
     root.querySelectorAll('[data-refresh]').forEach((el) => el.onclick = () => toast('Synced from the active processor'));
   }

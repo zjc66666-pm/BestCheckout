@@ -708,7 +708,7 @@ window.I18N.extend({
   "② Independent payment methods": "② 独立支付方式",
   "Self-settling — can run alongside the card processor, each on its own rails.": "自带清算，可与卡处理方并存、各走各的通道。",
   "Checkout · methods buyers see": "结账页 · 买家看到的支付方式",
-  "What buyers see are the methods lit up by connected providers; flip the switches above and this updates live.": "买家看到的，是已连接渠道点亮的方式；改上方开关，这里实时变。",
+  "What buyers see are the methods lit up by connected providers.": "买家看到的，是已连接渠道点亮的方式。",
   "Payment connections belong to this store only and are never shared between stores. A newly created store starts with no provider connected, so you connect fresh credentials here.": "支付连接仅属本店，绝不与其它店铺共享。新店开局没有任何收单机构，你在这里连接自己的账户。",
   "Independent wallet, self-settling · runs alongside the card processor": "独立钱包，自带清算 · 与卡处理方并存",
   "PayPal Wallet": "PayPal 钱包",
