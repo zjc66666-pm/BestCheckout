@@ -2905,7 +2905,9 @@
       { method: 'Visa', amount: 'US$ 55.98' },
       { method: 'Visa', amount: 'US$ 28.80' },
     ],
+    'checkout.recovery_url': '../hosted-checkout/index.html?token=rcv_1042_demo',
   };
+  let nfPreviewEvent = '';
   const NF_ITEMS = [
     {
       kind: 'bundle', name: 'Coffee Office Pack', qty: 1, originalPrice: 'US$ 69.97', price: 'US$ 55.98',
@@ -2946,7 +2948,8 @@
   }
   function nfVariablePanel(ev) {
     const tx = (text) => window.I18N && typeof window.I18N.t === 'function' ? window.I18N.t(text) : text;
-    const isOrderEmail = ['checkout_purchase_finalized', 'checkout_refunded'].includes(ev.code);
+    const isAbandoned = ev.code === 'abandoned_checkout';
+    const isOrderEmail = ['checkout_purchase_finalized', 'checkout_refunded', 'abandoned_checkout'].includes(ev.code);
     const item = (token, kind) =>
       '<span class="nf-var-token"><button type="button" class="nf-var-insert" data-insert-token="' + esc(token) + '" data-token-kind="' + kind + '" title="' + tx('Click a variable to insert it at the cursor. Blocks are inserted into the email body.') + '"><code>{{' + esc(token) + '}}</code></button><button type="button" class="nf-var-copy" data-copy-token="' + esc(token) + '" title="' + tx('Copy') + '">' + tx('Copy') + '</button></span>';
     const group = (title, tokens, kind) => tokens.length
@@ -2958,11 +2961,14 @@
     const refundTokens = ev.code === 'checkout_refunded' ? ['refund.amount'] : [];
     const blockTokens = ev.code === 'checkout_refunded'
       ? ['block.refund_summary']
-      : ['block.cta_button', 'block.order_summary', 'block.customer_information'];
+      : isAbandoned
+        ? ['block.cta_button', 'block.order_summary']
+        : ['block.cta_button', 'block.order_summary', 'block.customer_information'];
     return '<section class="nf-variable-panel"><div class="nf-variable-panel-head"><div><div class="nf-variable-panel-title">' + tx('Available variables') + '</div><div class="nf-variable-panel-copy">' + tx('Click a variable to insert it at the cursor. Blocks are inserted into the email body.') + '</div></div><div class="nf-variable-panel-note">' + tx('Only the variables and blocks listed here are supported.') + '</div></div><div class="nf-variable-grid">' +
       group('Customer', ['customer.first_name', 'customer.name'], 'scalar') +
       group('Store', ['store.name', 'store.url', 'store.contact_email'], 'scalar') +
-      (isOrderEmail ? group('Order', orderTokens, 'scalar') + group('Order amounts', amountTokens, 'scalar') + group('Addresses', addressTokens, 'scalar') : '') +
+      group('Checkout', isAbandoned ? ['checkout.recovery_url'] : [], 'scalar') +
+      (isOrderEmail ? group('Order', orderTokens, 'scalar') + group('Order amounts', amountTokens, 'scalar') + (isAbandoned ? '' : group('Addresses', addressTokens, 'scalar')) : '') +
       group('Refund', refundTokens, 'scalar') + group('Prebuilt blocks', blockTokens, 'block') +
     '</div></section>';
   }
@@ -2995,6 +3001,7 @@
       const refundCopy = esc(copy || '').replace(/\{\{\s*refund\.amount\s*\}\}/gi, '<strong>{{refund.amount}}</strong>');
       return '<h2 class="nf-h">' + esc(headline || '') + '</h2><p class="nf-lead">' + refundCopy + '</p>{{block.refund_summary}}';
     }
+    if (ev.code === 'abandoned_checkout') return opening + '{{block.cta_button}}\n{{block.order_summary}}';
     return opening + '{{block.cta_button}}\n{{block.order_summary}}\n{{block.shipping_address}}';
   }
   function nfTemplateSource(ev, headline, copy) {
@@ -3033,24 +3040,31 @@
       '</div>';
     }).join('');
     const totalRow = (label, val) => '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:13.5px;color:#6b7480"><span>' + label + '</span><span>' + val + '</span></div>';
-    const shopifyProductDiscount = (label, amount) => '<div class="nf-email-product-discount"><img src="../settings/assets/shopify-discount-tag.png" alt="" aria-hidden="true"><span>' + esc(label) + (amount ? ' (' + esc(amount) + ')' : '') + '</span></div>';
+    const nfUnbreakMoney = (value) => String(value || '').replace(/\s+/g, '\u00a0');
+    const shopifyProductDiscount = (label, amount) => '<div class="nf-email-product-discount"><img src="../settings/assets/shopify-discount-tag.png" alt="" aria-hidden="true"><span>' + esc(label) + (amount ? ' (' + esc(nfUnbreakMoney(amount)) + ')' : '') + '</span></div>';
     const shopifyItemsRows = (items) => items.map((it) => {
       const discounts = it.discounts || (it.discountCode ? [{ label: it.discountCode, amount: it.discountAmount }] : []);
       const subscription = it.subscription
         ? '<div class="nf-email-subscription"><span>Subscription</span><b>·</b><span>' + esc(it.subscription.cadence) + '</span></div>'
         : '';
       const componentRows = (it.children || []).map((child) =>
-        '<div class="nf-email-bundle-component"><div class="nf-email-bundle-component-image" aria-hidden="true"></div><div class="nf-email-bundle-component-copy"><div><span class="nf-email-included">Included</span><span class="nf-email-bundle-component-title">' + esc(child.name) + '&nbsp;&times;&nbsp;' + child.qty + '</span></div><div class="nf-email-bundle-component-variant">' + esc(child.variant) + '</div></div></div>'
+        '<div class="nf-email-bundle-component"><div class="nf-email-bundle-component-image" aria-hidden="true"></div><div class="nf-email-bundle-component-copy"><div class="nf-email-bundle-component-name"><span class="nf-email-included">Included</span><span class="nf-email-bundle-component-title">' + esc(child.name) + '&nbsp;&times;&nbsp;' + child.qty + '</span></div><div class="nf-email-bundle-component-variant">' + esc(child.variant) + '</div></div></div>'
       ).join('');
+      const variant = it.variant
+        ? '<div class="nf-email-product-variant">' + esc(it.variant) + '</div>'
+        : '';
+      const details = subscription + (discounts.length ? '<div class="nf-email-product-discounts">' + discounts.map((discount) => shopifyProductDiscount(discount.label, discount.amount)).join('') + '</div>' : '') + componentRows;
       return '<div class="nf-email-product-row' + (it.kind === 'bundle' ? ' is-bundle' : '') + '">' +
         '<div class="nf-email-product-image" aria-hidden="true"></div>' +
-        '<div class="nf-email-product-copy"><div class="nf-email-product-title">' + (it.kind === 'bundle' ? '<span class="nf-email-bundle-badge">Bundle</span>' : '') + esc(it.name) + '&nbsp;&times;&nbsp;' + it.qty + '</div>' +
-          '<div class="nf-email-product-variant">' + esc(it.variant || '') + '</div>' + subscription + '<div class="nf-email-product-discounts">' + discounts.map((discount) => shopifyProductDiscount(discount.label, discount.amount)).join('') + '</div>' + componentRows + '</div>' +
+        '<div class="nf-email-product-copy">' +
+          '<div class="nf-email-product-head"><div class="nf-email-product-title">' + (it.kind === 'bundle' ? '<span class="nf-email-bundle-badge">Bundle</span>' : '') + esc(it.name) + '&nbsp;&times;&nbsp;' + it.qty + '</div>' + variant + '</div>' +
+          (details ? '<div class="nf-email-product-details">' + details + '</div>' : '') +
+        '</div>' +
         '<div class="nf-email-product-price">' + (it.originalPrice ? '<del>' + esc(it.originalPrice) + '</del>' : '') + '<span>' + esc(it.price) + '</span></div>' +
       '</div>';
     }).join('');
     const shopifyTotalRow = (label, val, strong) => '<div class="nf-email-total-row' + (strong ? ' is-strong' : '') + '"><span>' + label + '</span><span>' + val + '</span></div>';
-    const shopifyDiscountCode = (code, amount) => '<div class="nf-email-discount-code"><img src="../settings/assets/shopify-discount-tag.png" alt="" aria-hidden="true"><span>' + esc(code) + (amount ? ' (' + esc(amount) + ')' : '') + '</span></div>';
+    const shopifyDiscountCode = (code, amount) => '<div class="nf-email-discount-code"><img src="../settings/assets/shopify-discount-tag.png" alt="" aria-hidden="true"><span>' + esc(code) + (amount ? ' (' + esc(nfUnbreakMoney(amount)) + ')' : '') + '</span></div>';
     const shopifyShippingRows = () => {
       const freeShipping = NF_SAMPLE['order.shipping_discount_code'];
       const shippingValue = freeShipping
@@ -3064,21 +3078,28 @@
     const shopifyRefundTransactions = () => (NF_SAMPLE['refund.transactions'] || []).map((refund) =>
       '<div class="nf-email-refund-payment-row"><div><span>Refund</span><small>' + esc(refund.method || '') + '</small></div><strong>-' + esc(refund.amount || '') + '</strong></div>'
     ).join('');
-    const addressLines = (value) => esc(value || '').replace(/,\s*/g, '<br>');
+    const addressLines = (value) => {
+      const parts = String(value || '').split(/,\s*/).filter(Boolean);
+      if (parts.length >= 5) {
+        return esc(parts[0]) + '<br>' + esc(parts[1]) + '<br>' + esc(parts[2] + ', ' + parts[3]) + '<br>' + esc(parts[4]);
+      }
+      return parts.map((part) => esc(part)).join('<br>');
+    };
+    const infoBlock = (title, value) =>
+      '<div class="nf-email-info-block"><div class="nf-email-info-title">' + title + '</div><div class="nf-email-info-value">' + value + '</div></div>';
     const customerInfo = () =>
       '<section class="nf-email-section nf-email-customer"><div class="nf-email-section-inner">' +
         '<h3>Customer information</h3>' +
-        '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" class="nf-email-customer-grid"><tr>' +
-          '<td width="50%" valign="top" style="padding:0 18px 26px 0"><div class="nf-email-info-title">Shipping address</div><div class="nf-email-info-value">' + addressLines(NF_SAMPLE['order.shipping_address']) + '</div></td>' +
-          '<td width="50%" valign="top" style="padding:0 0 26px 18px"><div class="nf-email-info-title">Billing address</div><div class="nf-email-info-value">' + addressLines(NF_SAMPLE['order.billing_address']) + '</div></td>' +
-        '</tr><tr>' +
-          '<td width="50%" valign="top" style="padding:0 18px 0 0"><div class="nf-email-info-title">Payment</div><div class="nf-email-info-value"><span class="nf-email-payment-brand">' + NF_SAMPLE['order.payment_brand'] + '</span>' + NF_SAMPLE['order.payment_method'] + '</div></td>' +
-          '<td width="50%" valign="top" style="padding:0 0 0 18px"><div class="nf-email-info-title">Shipping method</div><div class="nf-email-info-value">' + NF_SAMPLE['order.shipping_method'] + '</div></td>' +
-        '</tr></table>' +
+        '<div class="nf-email-customer-grid">' +
+          infoBlock('Shipping address', addressLines(NF_SAMPLE['order.shipping_address'])) +
+          infoBlock('Billing address', addressLines(NF_SAMPLE['order.billing_address'])) +
+          infoBlock('Payment', '<span class="nf-email-payment-brand">' + NF_SAMPLE['order.payment_brand'] + '</span>' + NF_SAMPLE['order.payment_method']) +
+          infoBlock('Shipping method', esc(NF_SAMPLE['order.shipping_method'])) +
+        '</div>' +
       '</div></section>';
     if (tag === 'block.cta_button')
       return '<div class="nf-email-actions">' +
-        '<a href="#" class="nf-email-button" style="background:' + color + '">View your order</a>' +
+        '<a href="' + (nfPreviewEvent === 'abandoned_checkout' ? esc(NF_SAMPLE['checkout.recovery_url']) : '#') + '" class="nf-email-button" style="background:' + color + '">' + (nfPreviewEvent === 'abandoned_checkout' ? 'Complete your checkout' : 'View your order') + '</a>' +
         '<span class="nf-email-action-or">or</span><a href="#" class="nf-email-store-link" style="color:' + color + '">Visit our store</a></div>';
     if (tag === 'block.tracking')
       return panel('Tracking number · ' + NF_SAMPLE['shipment.carrier'],
@@ -3127,13 +3148,15 @@
 
   // the rendered email card (device = 'desktop' | 'mobile')
   function nfCardHtml(b, st) {
+    nfPreviewEvent = st.eventCode || '';
     const color = b.primaryColor || '#0066e6';
     const mobile = st.device === 'mobile';
     const width = mobile ? 360 : 600;
+    const unsub = st.eventCode === 'abandoned_checkout' ? '<div class="nf-email-unsub" style="margin-top:10px"><a href="#" style="color:' + color + '">Unsubscribe from marketing emails</a></div>' : '';
     return '<div class="email-card' + (mobile ? ' is-mobile' : '') + (st.eventCode === 'checkout_refunded' ? ' is-refund' : '') + '" style="width:' + width + 'px">' +
       '<div class="nf-email-header"><div class="nf-email-inner"><a href="#" class="nf-email-shop-name">' + esc(b.storeName || 'Your store') + '</a><div class="nf-email-order-number">Order #' + esc(NF_SAMPLE['order.number']) + '</div></div></div>' +
       '<div class="nf-email-body">' + nfExpand(st.body, b) + '</div>' +
-      '<div class="nf-email-footer"><div class="nf-email-inner">If you have any questions, reply to this email or contact us at <a href="mailto:' + esc(nfReplyToAddress()) + '" style="color:' + color + '">' + esc(nfReplyToAddress()) + '</a></div></div>' +
+      '<div class="nf-email-footer"><div class="nf-email-inner">If you have any questions, reply to this email or contact us at <a href="mailto:' + esc(nfReplyToAddress()) + '" style="color:' + color + '">' + esc(nfReplyToAddress()) + '</a>' + unsub + '</div></div>' +
     '</div>';
   }
 
@@ -3723,13 +3746,15 @@
   .email-card .nf-email-subscription span:first-child { color: #555; font-weight: 500; }
   .email-card .nf-email-subscription b { color: #aaa; font-size: 12px; }
   .email-card .nf-email-product-discounts { margin-top: 4px; }
-  .email-card .nf-email-product-discount { display: flex; align-items: center; gap: 5px; margin-top: 3px; color: #777; font-size: 14px; line-height: 1.35; }
-  .email-card .nf-email-product-discount img { display: block; width: 16px; height: 16px; flex: none; }
+  .email-card .nf-email-product-discount { display: flex; align-items: flex-start; gap: 5px; margin-top: 3px; color: #777; font-size: 14px; line-height: 1.35; }
+  .email-card .nf-email-product-discount img { display: block; width: 16px; height: 16px; flex: none; margin-top: 2px; }
+  .email-card .nf-email-product-discount span { min-width: 0; overflow-wrap: break-word; word-break: normal; }
   .email-card .nf-email-bundle-component { display: flex; align-items: flex-start; gap: 9px; margin: 10px 0 0; padding: 10px 0 0 10px; border-top: 1px solid #f0f0f0; }
   .email-card .nf-email-bundle-component-image { width: 36px; height: 36px; flex: none; box-sizing: border-box; border: 1px solid #e4e4e4; border-radius: 3px; background: #fafafa; }
   .email-card .nf-email-bundle-component-copy { min-width: 0; flex: 1; }
-  .email-card .nf-email-included { display: inline-block; margin: 0 6px 0 0; color: #777; font-size: 11px; font-weight: 600; line-height: 1.4; }
-  .email-card .nf-email-bundle-component-title { color: #666; font-size: 13px; font-weight: 500; line-height: 1.4; }
+  .email-card .nf-email-bundle-component-name { display: block; }
+  .email-card .nf-email-included { display: inline-block; margin: 0 6px 0 0; padding: 1px 5px; border-radius: 3px; background: #f4f5f7; color: #8b919c; font-size: 11px; font-weight: 600; line-height: 1.35; vertical-align: 1px; }
+  .email-card .nf-email-bundle-component-title { color: #666; font-size: 13px; font-weight: 500; line-height: 1.4; overflow-wrap: break-word; word-break: normal; }
   .email-card .nf-email-bundle-component-variant { margin-top: 2px; color: #999; font-size: 12px; line-height: 1.4; }
   .email-card .nf-email-product-price { white-space: nowrap; }
   .email-card .nf-email-product-row.is-bundle .nf-email-product-price { padding-top: 1px; }
@@ -3755,6 +3780,8 @@
   .email-card .nf-email-refund-payment-row small { margin-top: 1px; color: #8b8b8b; font-size: 12px; }
   .email-card .nf-email-refund-payment-row strong { color: #545454; font-size: 14px; font-weight: 600; white-space: nowrap; }
   .email-card .nf-email-invoice { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin: 0; padding: 22px 0; border-bottom: 1px solid #e6e6e6; }
+  .email-card .nf-email-customer-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 36px; row-gap: 26px; }
+  .email-card .nf-email-info-block { min-width: 0; }
   .email-card .nf-email-info-title { margin: 0 0 5px; color: #555; font-size: 16px; font-weight: 500; line-height: 1.2; }
   .email-card .nf-email-invoice-meta, .email-card .nf-email-info-value { color: #777; font-size: 16px; line-height: 1.5; }
   .email-card .nf-email-invoice a { font-size: 14px; font-weight: 500; text-decoration: none; white-space: nowrap; }
@@ -3767,11 +3794,27 @@
   .email-card.is-mobile .nf-email-totals, .email-card.is-mobile .nf-email-total-divider, .email-card.is-mobile .nf-email-refund-payments { width: 100%; }
   .email-card.is-mobile .nf-email-header .nf-email-inner { gap: 12px; }
   .email-card.is-mobile .nf-email-shop-name { font-size: 18px; }
-  .email-card.is-mobile .nf-email-product-row { align-items: flex-start; gap: 10px; }
-  .email-card.is-mobile .nf-email-product-image { width: 48px; height: 48px; }
-  .email-card.is-mobile .nf-email-customer-grid, .email-card.is-mobile .nf-email-customer-grid tbody, .email-card.is-mobile .nf-email-customer-grid tr, .email-card.is-mobile .nf-email-customer-grid td { display: block; width: 100% !important; box-sizing: border-box; }
-  .email-card.is-mobile .nf-email-customer-grid td { padding: 0 0 22px !important; }
-  .email-card.is-mobile .nf-email-customer-grid tr:last-child td:last-child { padding-bottom: 0 !important; }
+  .email-card.is-mobile .nf-email-product-row { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; column-gap: 10px; row-gap: 4px; align-items: start; }
+  .email-card.is-mobile .nf-email-product-image { grid-column: 1; grid-row: 1 / -1; align-self: start; width: 48px; height: 48px; }
+  .email-card.is-mobile .nf-email-product-copy { display: contents; }
+  .email-card.is-mobile .nf-email-product-head { grid-column: 2; grid-row: 1; min-width: 0; }
+  .email-card.is-mobile .nf-email-product-price { grid-column: 3; grid-row: 1; }
+  .email-card.is-mobile .nf-email-product-details { grid-column: 2 / -1; min-width: 0; }
+  .email-card.is-mobile .nf-email-product-details > :first-child { margin-top: 0; }
+  .email-card.is-mobile .nf-email-product-title { overflow-wrap: break-word; word-break: normal; }
+  .email-card.is-mobile .nf-email-subscription { flex-wrap: wrap; white-space: normal; }
+  .email-card.is-mobile .nf-email-product-discount { align-items: flex-start; font-size: 13px; }
+  .email-card.is-mobile .nf-email-product-discount span { white-space: normal; overflow-wrap: break-word; word-break: normal; }
+  .email-card.is-mobile .nf-email-bundle-component { padding-left: 0; gap: 8px; }
+  .email-card.is-mobile .nf-email-bundle-component-image { width: 32px; height: 32px; }
+  .email-card.is-mobile .nf-email-bundle-component-name { display: block; }
+  .email-card.is-mobile .nf-email-included { display: inline-block; margin: 0 6px 0 0; }
+  .email-card.is-mobile .nf-email-bundle-component-title { white-space: normal; overflow-wrap: break-word; }
+  .email-card.is-mobile .nf-email-customer-grid { grid-template-columns: 1fr 1fr; column-gap: 16px; row-gap: 18px; }
+  .email-card.is-mobile .nf-email-info-block:nth-child(1),
+  .email-card.is-mobile .nf-email-info-block:nth-child(2) { grid-column: 1 / -1; }
+  .email-card.is-mobile .nf-email-info-title { font-size: 15px; }
+  .email-card.is-mobile .nf-email-info-value { font-size: 15px; line-height: 1.45; }
   .nf-unktag { background: #fff4d6; color: #92660a; border-radius: 4px; padding: 0 4px; font-size: .92em; }
 
   `;

@@ -187,7 +187,8 @@
     chain = chain.then(function () {
       if (id === 'customers' && !window.DATA_ORDERS) return loadScript('orders/js/data.js?v=' + V);
     });
-    var moduleV = id === 'online-store' ? '20260822theme-sync2' : V;
+    var moduleV = id === 'settings' ? '20260826-email-cust1'
+      : id === 'online-store' ? '20260822theme-sync2' : V;
     chain = chain.then(function () {
       if (id === 'online-store' && !window.POST_PURCHASE_ORDER_MOCK)
         return loadScript('assets/post-purchase-order-mock.js?v=' + moduleV);
