@@ -38,7 +38,7 @@ import { renderEditor, mountEditor } from './pages/editor.js?rev=20260719-previe
 import { renderOrders } from './pages/orders.js?rev=20260720-standalone-portal-v145';
 import { renderConnectShopify, renderForgotPasswordCode, renderPasswordResetEmailPage, renderSignIn, renderSignUp, renderSignupVerificationEmailPage } from './pages/auth.js?rev=20260822-logo-landing1';
 import { renderHelpCenter } from './pages/help.js?rev=20260822-prototype-accounts1';
-import { renderLookbookSite, renderMarketingSite } from './pages/website.js?rev=20260824-webp1';
+import { renderLookbookSite, renderMarketingSite } from './pages/website.js?rev=20260827-highlights2';
 import {
   applyPrototypeSession,
   findPrototypeAccount,
@@ -312,6 +312,7 @@ function mountMarketingMotion() {
   const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const revealSelectors = [
     '.fable-outcomes article',
+    '.fable-highlights-grid article',
     '.fable-capability-grid article',
     '.fable-section-title',
     '.fable-value-grid article',

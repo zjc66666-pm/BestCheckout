@@ -7,6 +7,27 @@ const capabilities = [
   { step: '03', iconName: 'shield', title: 'Operate with confidence', description: 'Shopify stays in sync', features: ['Live inventory', 'Order tagging', 'Payment routing'] },
 ];
 
+const heroPoints = [
+  'Customize checkout without Shopify Plus',
+  'No Shopify Payments? Avoid up to 2% in fees',
+  'Richer Checkout, Upsell, Downsell, and Thank you templates',
+];
+
+const highlights = [
+  {
+    iconName: 'pages',
+    figure: 'No Plus',
+    title: 'Customize checkout without Shopify Plus',
+    description: 'Shopify Plus is required to deeply customize native checkout. BestCheckout gives you branded checkout pages, funnels, and post-purchase offers on any paid Shopify plan.',
+  },
+  {
+    iconName: 'card',
+    figure: 'Up to 2%',
+    title: 'No Shopify Payments? Avoid extra Shopify fees',
+    description: 'Without Shopify Payments, Shopify native checkout adds up to 2% on third-party payments. BestCheckout collects on its own checkout page, so that extra Shopify fee does not apply.',
+  },
+];
+
 const outcomes = [
   { value: '12,400', target: 12400, decimals: 0, prefix: '', suffix: '+', label: 'Shopify merchants running BestCheckout' },
   { value: '$2.8', target: 2.8, decimals: 1, prefix: '$', suffix: 'B+', label: 'GMV processed through BestCheckout journeys' },
@@ -363,6 +384,23 @@ function cardIcon(name) {
   return `<span class="fable-card-icon">${icon(name, 22)}</span>`;
 }
 
+function renderHeroPoints() {
+  return '<ul class="fable-hero-points">' + heroPoints.map(function (point) {
+    return '<li>' + icon('check', 14) + '<span>' + point + '</span></li>';
+  }).join('') + '</ul>';
+}
+
+function renderHighlights() {
+  return '<section class="fable-section fable-highlights" id="highlights">' +
+    '<div class="fable-container">' +
+    '<div class="fable-lookbook-intro"><p class="fable-lookbook-kicker">Highlights</p>' +
+    '<h2 class="fable-section-title">More checkout control.<br/>Lower Shopify fees.</h2>' +
+    '<p class="fable-lookbook-lead">Two limits of native Shopify checkout, lifted — without upgrading your plan.</p></div>' +
+    '<div class="fable-highlights-grid">' + highlights.map(function (item) {
+      return '<article>' + cardIcon(item.iconName) + '<strong>' + item.figure + '</strong><h3>' + item.title + '</h3><p>' + item.description + '</p></article>';
+    }).join('') + '</div></div></section>';
+}
+
 function lookbookPage(id) {
   return LOOKBOOK_PAGES.filter(function (item) { return item.id === id; })[0] || null;
 }
@@ -463,12 +501,14 @@ export function renderMarketingSite(session) {
               <span class="fable-eyebrow">${icon('sparkles', 14)} Conversion infrastructure for Shopify</span>
               <h1>Make every checkout<br/><span>feel inevitable.</span></h1>
               <p>Design the path from cart to paid order, launch offers with confidence, and keep your Shopify operations in sync.</p>
+              ${renderHeroPoints()}
               <div class="fable-hero-actions">${marketingPrimaryButton(ctas, '', true)}<a class="fable-button fable-button--outline" href="#/landing?section=results" data-landing-section="results">Explore the product</a></div>
             </div>
             ${workspacePreview()}
           </div>
         </section>
         <section class="fable-outcomes" aria-label="BestCheckout merchant outcomes"><div class="fable-container fable-outcomes-grid">${outcomes.map((item) => `<article><strong data-fable-counter data-fable-counter-target="${item.target}" data-fable-counter-decimals="${item.decimals}" data-fable-counter-prefix="${item.prefix}"><span data-fable-counter-value>${item.value}</span><em>${item.suffix}</em></strong><p>${item.label}</p></article>`).join('')}</div></section>
+        ${renderHighlights()}
         <section class="fable-section fable-capabilities" id="capabilities"><div class="fable-capability-glow" aria-hidden="true"></div><div class="fable-container"><div class="fable-capability-grid">${capabilities.map((item) => `<article><header>${cardIcon(item.iconName)}<b>${item.step}</b></header><h2>${item.title}</h2><p>${item.description}</p><div>${item.features.map((feature) => `<span>${feature}</span>`).join('')}</div></article>`).join('')}</div></div></section>
         ${renderFunnelShowcase()}
         ${renderLookbookTeaser()}
