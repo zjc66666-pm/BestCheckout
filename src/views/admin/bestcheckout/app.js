@@ -38,7 +38,7 @@ import { renderEditor, mountEditor } from './pages/editor.js?rev=20260719-previe
 import { renderOrders } from './pages/orders.js?rev=20260720-standalone-portal-v145';
 import { renderConnectShopify, renderForgotPasswordCode, renderPasswordResetEmailPage, renderSignIn, renderSignUp, renderSignupVerificationEmailPage } from './pages/auth.js?rev=20260822-logo-landing1';
 import { renderHelpCenter } from './pages/help.js?rev=20260822-prototype-accounts1';
-import { renderLookbookSite, renderMarketingSite } from './pages/website.js?rev=20260827-highlights2';
+import { renderLookbookSite, renderMarketingSite } from './pages/website.js?rev=20260827-highlights3';
 import {
   applyPrototypeSession,
   findPrototypeAccount,

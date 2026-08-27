@@ -426,7 +426,7 @@ function renderFunnelShowcase() {
     '<div class="fable-container">' +
     '<div class="fable-lookbook-intro"><p class="fable-lookbook-kicker">Checkout flows</p>' +
     '<h2 class="fable-section-title">Shopify stops at pay.<br/>Your funnel keeps selling.</h2>' +
-    '<p class="fable-lookbook-lead">Shopify gives you one checkout. Split traffic across three, then connect Upsell, Downsell, and Thank you. If nothing matches, buyers stay on Shopify Checkout.</p></div>' +
+    '<p class="fable-lookbook-lead">Split traffic across more than one checkout, then connect Upsell, Downsell, and Thank you. Unmatched carts stay on Shopify Checkout.</p></div>' +
     '<div class="fable-funnel-canvas" aria-label="BestCheckout checkout funnel">' +
     '<div class="fable-funnel-stage"><div class="fable-funnel-entry"><span>' + icon('store', 16) + '</span><span><strong>Shopify cart</strong><small>Split across checkouts Shopify cannot run</small></span></div></div>' +
     '<div class="fable-funnel-rail" aria-hidden="true"></div>' +
@@ -443,7 +443,7 @@ function renderFunnelShowcase() {
     '<div class="fable-funnel-stage">' + funnelNode(thankyou, 'Thank you', 'Writes back to Shopify') + '</div>' +
     '</div>' +
     '<div class="fable-value-grid fable-funnel-points">' +
-    '<article>' + cardIcon('flow') + '<h3>More than one Checkout</h3><p>Shopify gives you a single checkout. Split traffic across living, beauty, and jewelry pages in the same funnel.</p></article>' +
+    '<article>' + cardIcon('flow') + '<h3>More than one Checkout</h3><p>Split traffic across more than one checkout, then connect Upsell, Downsell, and Thank you. Unmatched carts stay on Shopify Checkout.</p></article>' +
     '<article>' + cardIcon('sparkles') + '<h3>Offers after payment</h3><p>One-click Upsell when they say yes. A lighter Downsell when they say no. No extra card entry.</p></article>' +
     '<article>' + cardIcon('shield') + '<h3>Shopify stays the fallback</h3><p>Unmatched carts keep native Shopify Checkout. You never strand a buyer.</p></article>' +
     '</div></div></section>';
