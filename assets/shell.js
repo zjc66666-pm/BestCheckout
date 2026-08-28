@@ -187,7 +187,7 @@
     chain = chain.then(function () {
       if (id === 'customers' && !window.DATA_ORDERS) return loadScript('orders/js/data.js?v=' + V);
     });
-    var moduleV = id === 'settings' ? '20260828-shopify-scopes11'
+    var moduleV = id === 'settings' ? '20260828-shopify-scopes12'
       : id === 'online-store' ? '20260822theme-sync2' : V;
     chain = chain.then(function () {
       if (id === 'online-store' && !window.POST_PURCHASE_ORDER_MOCK)
