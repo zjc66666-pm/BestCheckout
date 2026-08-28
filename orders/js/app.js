@@ -60,7 +60,8 @@
   }
 
   // BestCheckout lists only successful payments from its own checkout. Native
-  // Shopify orders, unpaid checkouts, and abandoned checkouts stay in Shopify.
+  // Paid BestCheckout orders appear here. Unpaid Hosted Checkout orders are
+  // Abandoned checkouts in this workspace. Shopify native abandoned checkouts stay in Shopify.
   function paidBestCheckoutOrders() {
     return (D.ORDERS || []).filter((o) => isBestCheckoutOrder(o) && o.payment_status === 'paid');
   }

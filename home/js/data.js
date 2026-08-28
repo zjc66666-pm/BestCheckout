@@ -20,8 +20,11 @@
           { name: 'Smooth checkout', sessions: '1,274', orders: '812', conversion: '63.7%', aov: '$55.75', sales: '$45,269', lift: '+4.1 pts', id: 'smooth-checkout' }
         ],
         offers: [
-          { type: 'Upsell', title: 'Sleep Bundle offer', rate: '21.4%', sales: '$8,642', note: 'Shoppers accepted after payment', tone: 'blue' },
-          { type: 'Downsell', title: 'Half-size alternative', rate: '9.8%', sales: '$2,910', note: 'Recovered after the first offer was declined', tone: 'violet' }
+          { type: 'Upsell', title: 'Sleep Bundle offer', rate: '21.4%', sales: '$5,420', note: 'Shoppers accepted after payment', tone: 'blue' },
+          { type: 'Upsell', title: 'Magnesium refill', rate: '16.8%', sales: '$2,180', note: 'Shoppers accepted after payment', tone: 'blue' },
+          { type: 'Upsell', title: 'Night recovery pack', rate: '12.6%', sales: '$1,042', note: 'Shoppers accepted after payment', tone: 'blue' },
+          { type: 'Downsell', title: 'Half-size alternative', rate: '9.8%', sales: '$1,860', note: 'Recovered after the first offer was declined', tone: 'violet' },
+          { type: 'Downsell', title: 'Trial bottle', rate: '7.1%', sales: '$1,050', note: 'Recovered after the first offer was declined', tone: 'violet' }
         ]
       },
       '30d': {
@@ -40,8 +43,11 @@
           { name: 'Smooth checkout', sessions: '5,304', orders: '3,405', conversion: '64.2%', aov: '$55.75', sales: '$189,859', lift: '+4.8 pts', id: 'smooth-checkout' }
         ],
         offers: [
-          { type: 'Upsell', title: 'Sleep Bundle offer', rate: '21.4%', sales: '$35,120', note: 'Shoppers accepted after payment', tone: 'blue' },
-          { type: 'Downsell', title: 'Half-size alternative', rate: '9.8%', sales: '$11,240', note: 'Recovered after the first offer was declined', tone: 'violet' }
+          { type: 'Upsell', title: 'Sleep Bundle offer', rate: '21.4%', sales: '$22,020', note: 'Shoppers accepted after payment', tone: 'blue' },
+          { type: 'Upsell', title: 'Magnesium refill', rate: '16.8%', sales: '$8,860', note: 'Shoppers accepted after payment', tone: 'blue' },
+          { type: 'Upsell', title: 'Night recovery pack', rate: '12.6%', sales: '$4,240', note: 'Shoppers accepted after payment', tone: 'blue' },
+          { type: 'Downsell', title: 'Half-size alternative', rate: '9.8%', sales: '$7,180', note: 'Recovered after the first offer was declined', tone: 'violet' },
+          { type: 'Downsell', title: 'Trial bottle', rate: '7.1%', sales: '$4,060', note: 'Recovered after the first offer was declined', tone: 'violet' }
         ]
       },
       '90d': {
@@ -60,8 +66,11 @@
           { name: 'Smooth checkout', sessions: '14,894', orders: '9,373', conversion: '62.9%', aov: '$55.94', sales: '$524,404', lift: '+4.2 pts', id: 'smooth-checkout' }
         ],
         offers: [
-          { type: 'Upsell', title: 'Sleep Bundle offer', rate: '21.4%', sales: '$92,750', note: 'Shoppers accepted after payment', tone: 'blue' },
-          { type: 'Downsell', title: 'Half-size alternative', rate: '9.8%', sales: '$29,380', note: 'Recovered after the first offer was declined', tone: 'violet' }
+          { type: 'Upsell', title: 'Sleep Bundle offer', rate: '21.4%', sales: '$58,140', note: 'Shoppers accepted after payment', tone: 'blue' },
+          { type: 'Upsell', title: 'Magnesium refill', rate: '16.8%', sales: '$23,400', note: 'Shoppers accepted after payment', tone: 'blue' },
+          { type: 'Upsell', title: 'Night recovery pack', rate: '12.6%', sales: '$11,210', note: 'Shoppers accepted after payment', tone: 'blue' },
+          { type: 'Downsell', title: 'Half-size alternative', rate: '9.8%', sales: '$18,760', note: 'Recovered after the first offer was declined', tone: 'violet' },
+          { type: 'Downsell', title: 'Trial bottle', rate: '7.1%', sales: '$10,620', note: 'Recovered after the first offer was declined', tone: 'violet' }
         ]
       }
     },
@@ -87,8 +96,10 @@
               { name: 'Smooth checkout', sessions: '1,162', orders: '618', conversion: '53.2%', aov: '$54.38', sales: '$33,607', lift: '', id: 'smooth-checkout' }
             ],
             offers: [
-              { type: 'Upsell', title: 'Add the travel mug', rate: '12.6%', sales: '$2,180', note: 'Shoppers accepted after payment', tone: 'blue' },
-              { type: 'Downsell', title: 'Half-bag alternative', rate: '6.4%', sales: '$1,060', note: 'Recovered after the first offer was declined', tone: 'violet' }
+              { type: 'Upsell', title: 'Add the travel mug', rate: '12.6%', sales: '$1,480', note: 'Shoppers accepted after payment', tone: 'blue' },
+              { type: 'Upsell', title: 'Add paper filters', rate: '9.2%', sales: '$700', note: 'Shoppers accepted after payment', tone: 'blue' },
+              { type: 'Downsell', title: 'Half-bag alternative', rate: '6.4%', sales: '$680', note: 'Recovered after the first offer was declined', tone: 'violet' },
+              { type: 'Downsell', title: 'Just the beans', rate: '4.8%', sales: '$380', note: 'Recovered after the first offer was declined', tone: 'violet' }
             ]
           },
           '30d': {
@@ -108,8 +119,10 @@
               { name: 'Smooth checkout', sessions: '4,792', orders: '2,520', conversion: '52.6%', aov: '$53.43', sales: '$134,644', lift: '', id: 'smooth-checkout' }
             ],
             offers: [
-              { type: 'Upsell', title: 'Add the travel mug', rate: '12.4%', sales: '$8,640', note: 'Shoppers accepted after payment', tone: 'blue' },
-              { type: 'Downsell', title: 'Half-bag alternative', rate: '6.2%', sales: '$4,230', note: 'Recovered after the first offer was declined', tone: 'violet' }
+              { type: 'Upsell', title: 'Add the travel mug', rate: '12.4%', sales: '$5,860', note: 'Shoppers accepted after payment', tone: 'blue' },
+              { type: 'Upsell', title: 'Add paper filters', rate: '9.1%', sales: '$2,780', note: 'Shoppers accepted after payment', tone: 'blue' },
+              { type: 'Downsell', title: 'Half-bag alternative', rate: '6.2%', sales: '$2,710', note: 'Recovered after the first offer was declined', tone: 'violet' },
+              { type: 'Downsell', title: 'Just the beans', rate: '4.6%', sales: '$1,520', note: 'Recovered after the first offer was declined', tone: 'violet' }
             ]
           },
           '90d': {
@@ -129,8 +142,10 @@
               { name: 'Smooth checkout', sessions: '13,876', orders: '7,242', conversion: '52.2%', aov: '$53.59', sales: '$388,089', lift: '', id: 'smooth-checkout' }
             ],
             offers: [
-              { type: 'Upsell', title: 'Add the travel mug', rate: '12.1%', sales: '$24,380', note: 'Shoppers accepted after payment', tone: 'blue' },
-              { type: 'Downsell', title: 'Half-bag alternative', rate: '6.1%', sales: '$11,830', note: 'Recovered after the first offer was declined', tone: 'violet' }
+              { type: 'Upsell', title: 'Add the travel mug', rate: '12.1%', sales: '$16,540', note: 'Shoppers accepted after payment', tone: 'blue' },
+              { type: 'Upsell', title: 'Add paper filters', rate: '8.8%', sales: '$7,840', note: 'Shoppers accepted after payment', tone: 'blue' },
+              { type: 'Downsell', title: 'Half-bag alternative', rate: '6.1%', sales: '$7,560', note: 'Recovered after the first offer was declined', tone: 'violet' },
+              { type: 'Downsell', title: 'Just the beans', rate: '4.5%', sales: '$4,270', note: 'Recovered after the first offer was declined', tone: 'violet' }
             ]
           }
         }

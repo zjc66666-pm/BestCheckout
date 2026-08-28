@@ -54,7 +54,42 @@
     analytics: svg('<path d="M4 19V10M10 19V5M16 19v-7M22 19H2"/>', 18),
     facebook:  svg('<path d="M14.5 4.5h-2.2A3.3 3.3 0 0 0 9 7.8V10H6v4h3v6h4v-6h3l.8-4H13V8.2c0-.8.3-1.2 1.3-1.2h2.5V3.2c-.7-.1-1.5-.2-2.3-.2Z"/>', 18),
     google:    svg('<path d="M20.5 12.2c0 4.7-3.2 8-8.3 8A8.2 8.2 0 1 1 12 3.8c2.1 0 3.8.8 5.1 2L15 7.8A4.8 4.8 0 1 0 16 13h-3.8V10h8.1c.1.5.2 1.1.2 2.2Z"/>', 18),
+    external: svg('<path d="M14 5h5v5"/><path d="M10 14 19 5"/><path d="M19 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/>', 14),
+    alert: svg('<path d="M10.3 4.2 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/>', 16),
   };
+
+  // Backend returns required[] and existing[]. This prototype keeps the same
+  // contract: compare the two lists and do not group scopes on the merchant UI.
+  const SHOPIFY_SCOPES_DOCS = 'https://shopify.dev/docs/api/usage/access-scopes';
+  const SHOPIFY_REQUIRED_SCOPES = [
+    'read_customers', 'read_discounts', 'read_inventory', 'write_order_edits', 'read_order_edits',
+    'read_orders', 'write_orders', 'read_products', 'read_reports', 'read_script_tags',
+    'write_script_tags', 'read_shipping', 'write_draft_orders', 'read_draft_orders', 'read_legal_policies'
+  ];
+
+  function currentShopifyStore() {
+    const stores = window.STORES || [];
+    const name = (window.SITE && window.SITE.store) || (stores[0] && stores[0].name) || 'Lavender Labs';
+    return stores.filter((store) => store.name === name)[0] || stores[0] || { name: name, url: 'lavender-labs.myshopify.com' };
+  }
+
+  function shopifyStoreHandle(store) {
+    return String((store && store.url) || '').replace(/\.myshopify\.com$/i, '') || 'lavender-labs';
+  }
+
+  // Store A (first connected store) has a complete grant. Store B is the
+  // common “created the app with too few scopes” case used in this prototype.
+  function shopifyGrantedScopeIds(store) {
+    const healthy = typeof window.shopifyPermissionsHealthy === 'function'
+      ? window.shopifyPermissionsHealthy(store && store.name)
+      : !(window.STORES && window.STORES[1] && store && store.name === window.STORES[1].name);
+    if (!healthy) return ['read_products', 'read_inventory', 'read_discounts'];
+    return SHOPIFY_REQUIRED_SCOPES.slice();
+  }
+
+  function shopifyAdminUrl(store) {
+    return 'https://admin.shopify.com/store/' + encodeURIComponent(shopifyStoreHandle(store));
+  }
 
   // The shared shell translates lazily rendered views at runtime. Register this
   // page's copy here so the Chinese interface stays coherent without changing
@@ -402,7 +437,28 @@
       'Meta configuration disconnected.': 'Meta 配置已断开。',
       'GA4 configuration disconnected.': 'GA4 配置已断开。',
       'GTM configuration disconnected.': 'GTM 配置已断开。',
+      'App permissions': '应用权限',
+      'Shopify API access scopes': 'Shopify API 权限范围',
+      'Docs': '文档',
+      'Required scopes': '所需权限',
+      'Granted scopes': '已授予权限',
+      'Missing scopes': '缺少的权限',
+      'Review the Shopify scopes granted to this store.': '查看此店铺已授予的 Shopify 权限。',
+      'Compare the required list with the scopes already granted to this store.': '对照此店铺已授予的权限和所需权限列表。',
+      'Healthy': '健康',
+      'Insufficient permissions': '权限不足',
+      'All required permissions are granted. Downstream checkout, sync, and order write-back can run.': '所需权限已全部授予。下游结账、同步和订单回写可以正常进行。',
+      'Some required permissions were not selected when this app was created. Downstream checkout, sync, or order write-back can fail until you re-authorize.': '创建应用时未勾选部分必需权限。重新授权前，下游结账、同步或订单回写可能失败。',
+      'Needs re-authorization': '需要重新授权',
+      'Ready for checkout': '可用于结账',
+      'Re-authorize on Shopify': '在 Shopify 重新授权',
+      'Opening Shopify to re-authorize this store': '正在打开 Shopify 以重新授权此店铺',
+      'Copy': '复制',
+      'Missing scopes copied': '缺少的权限已复制',
+      'Granted scopes copied': '已授予权限已复制',
     }).addRules([
+      { re: /^(\d+) of (\d+) required permissions granted$/, zh: function (m) { return '已授予 ' + m[1] + ' / ' + m[2] + ' 项必需权限'; } },
+      { re: /^Granted scopes: (.+)$/, zh: function (m) { return '已授予权限：' + m[1]; } },
       { re: /^(\d+) channels active$/, zh: function (m) { return m[1] + ' 个渠道已启用'; } },
       { re: /^(\d+) channels connected$/, zh: function (m) { return m[1] + ' 个渠道已连接'; } },
       { re: /^(\d+) min ago$/, zh: function (m) { return m[1] + ' 分钟前'; } },
@@ -729,9 +785,24 @@
       renderShopifyConnectionSetup();
       return;
     }
+    const store = currentShopifyStore();
+    const grantedIds = shopifyGrantedScopeIds(store);
+    const missingScopes = SHOPIFY_REQUIRED_SCOPES.filter((scope) => grantedIds.indexOf(scope) === -1);
+    const permissionsHealthy = missingScopes.length === 0;
+    const grantedCount = SHOPIFY_REQUIRED_SCOPES.length - missingScopes.length;
     const syncRow = (name, count, detail) =>
       '<div class="bc-store-row"><div><strong>' + esc(name) + '</strong><span>' + esc(detail) + '</span></div><div class="bc-store-row-end"><b>' + esc(count) + '</b></div></div>';
     const status = '<span class="pill pill-green"><span class="dot"></span>Connected</span>';
+    const permissionStatus = permissionsHealthy
+      ? '<span class="pill pill-green bc-scope-status"><span class="dot"></span>Healthy</span>'
+      : '<span class="pill pill-orange bc-scope-status"><span class="dot"></span>Insufficient permissions</span>';
+    const missingList = missingScopes.join(',');
+    const grantedList = grantedIds.join(',');
+    const scopeChip = (scope, kind) => '<code class="bc-scope-chip' + (kind ? ' is-' + kind : '') + '">' + esc(scope) + '</code>';
+    const missingChips = missingScopes.map((scope) => scopeChip(scope, 'miss')).join('');
+    const grantedChips = grantedIds.map((scope) => scopeChip(scope, 'ok')).join('');
+    const grantedPanel = '<div class="bc-scope-panel is-ok"><div class="bc-scope-panel-head"><small>Granted scopes<span class="bc-scope-count">' + grantedIds.length + '</span></small><button type="button" data-act="copy-granted-scopes">Copy</button></div><div class="bc-scope-chips">' + grantedChips + '</div></div>';
+    const missingPanel = '<div class="bc-scope-panel is-miss"><div class="bc-scope-panel-head"><small>Missing scopes<span class="bc-scope-count">' + missingScopes.length + '</span></small><button type="button" data-act="copy-missing-scopes">Copy</button></div><div class="bc-scope-chips">' + missingChips + '</div></div>';
     const credentialRow = (key, label) => {
       const isVisible = !!shopifyCredentialVisible[key];
       const value = shopifyAppCredentials[key];
@@ -743,11 +814,14 @@
     };
     const body =
       '<style>' +
-        '.bc-store-kicker{font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--ink-muted);text-transform:uppercase;margin-bottom:10px}.bc-store-name{font-size:17px;font-weight:700;color:var(--ink);margin-bottom:4px}.bc-store-domain{font-size:13px;color:var(--ink-muted)}.bc-store-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px;padding-top:16px;border-top:1px solid var(--hair)}.bc-store-fact small{display:block;color:var(--ink-muted);font-size:11px;margin-bottom:4px}.bc-store-fact strong{display:block;color:var(--ink-body);font-size:13px;font-weight:600;line-height:1.4}.bc-credentials{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px}.bc-credential small{display:block;margin-bottom:6px;color:var(--ink-muted);font-size:11px;font-weight:600}.bc-credential-control{display:flex;align-items:center;min-width:0;height:38px;border:1px solid var(--ctl);border-radius:8px;background:#fff}.bc-credential-control code{min-width:0;flex:1;overflow:hidden;padding-left:11px;color:var(--ink-body);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;letter-spacing:.035em;text-overflow:ellipsis;white-space:nowrap}.bc-credential-toggle{display:grid;place-items:center;width:36px;height:36px;flex:none;border:0;border-radius:7px;background:transparent;color:var(--ink-muted);cursor:pointer}.bc-credential-toggle:hover{background:#f1f5fa;color:var(--brand)}.bc-credential-toggle:focus-visible{outline:2px solid var(--brand);outline-offset:1px}.bc-sync-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.bc-sync-status{margin-top:2px;white-space:nowrap}.bc-store-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 0;border-top:1px solid var(--hair)}.bc-store-row:first-child{border-top:0;padding-top:0}.bc-store-row strong{display:block;font-size:13.5px;color:var(--ink)}.bc-store-row span,.bc-store-row small{display:block;font-size:12px;color:var(--ink-muted);margin-top:3px;line-height:1.45}.bc-store-row-end{display:flex;align-items:center;gap:10px;white-space:nowrap}.bc-store-row-end>b{font-size:13px;color:var(--ink)}.bc-writeback{display:flex;align-items:flex-start;gap:11px;padding:14px 16px}.bc-writeback-ico{width:28px;height:28px;display:grid;place-items:center;flex:none;border-radius:50%;background:#e8f8ef;color:#14834c}.bc-writeback strong{display:block;font-size:13.5px;color:var(--ink);margin-bottom:4px}.bc-writeback p{margin:0;color:var(--ink-muted);font-size:12.5px;line-height:1.55}.bc-writeback-links{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:12.5px;font-weight:500}.bc-connection-option{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:13px 0;border-top:1px solid var(--hair)}.bc-connection-option:first-child{padding-top:0;border-top:0}.bc-connection-option strong{display:block;font-size:13px;color:var(--ink)}.bc-connection-option span{display:block;font-size:12px;color:var(--ink-muted);line-height:1.5;margin-top:3px}@media(max-width:760px){.bc-store-facts,.bc-credentials{grid-template-columns:1fr;gap:10px}.bc-sync-heading{align-items:flex-start;flex-direction:column}.bc-store-row,.bc-connection-option{align-items:flex-start;flex-direction:column}.bc-store-row-end{flex-direction:row;align-items:center}}' +
+        '.bc-store-kicker{font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--ink-muted);text-transform:uppercase;margin-bottom:10px}.bc-store-name{font-size:17px;font-weight:700;color:var(--ink);margin-bottom:4px}.bc-store-domain{font-size:13px;color:var(--ink-muted)}.bc-store-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px;padding-top:16px;border-top:1px solid var(--hair)}.bc-store-fact small{display:block;color:var(--ink-muted);font-size:11px;margin-bottom:4px}.bc-store-fact strong{display:block;color:var(--ink-body);font-size:13px;font-weight:600;line-height:1.4}.bc-credentials{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px}.bc-credential small{display:block;margin-bottom:6px;color:var(--ink-muted);font-size:11px;font-weight:600}.bc-credential-control{display:flex;align-items:center;min-width:0;height:38px;border:1px solid var(--ctl);border-radius:8px;background:#fff}.bc-credential-control code{min-width:0;flex:1;overflow:hidden;padding-left:11px;color:var(--ink-body);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;letter-spacing:.035em;text-overflow:ellipsis;white-space:nowrap}.bc-credential-toggle{display:grid;place-items:center;width:36px;height:36px;flex:none;border:0;border-radius:7px;background:transparent;color:var(--ink-muted);cursor:pointer}.bc-credential-toggle:hover{background:#f1f5fa;color:var(--brand)}.bc-credential-toggle:focus-visible{outline:2px solid var(--brand);outline-offset:1px}.bc-scope-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.bc-scope-title{display:flex;align-items:center;gap:6px}.bc-scope-title .card-title{margin:0}.bc-scope-docs{display:inline-grid;place-items:center;width:18px;height:18px;border:1px solid var(--ctl);border-radius:50%;color:var(--ink-muted);font-size:12px;font-weight:700;line-height:1;text-decoration:none}.bc-scope-docs:hover{border-color:var(--brand);color:var(--brand)}.bc-scope-status{margin-top:2px;white-space:nowrap}.bc-scope-summary{margin:8px 0 12px;color:var(--ink-muted);font-size:12px}.bc-scope-compare{display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px}.bc-scope-panel{min-width:0;padding:12px 14px;border:1px solid var(--hair);border-radius:10px;background:#fafbfd}.bc-scope-panel.is-miss{border-color:#f3d2a4;background:#fffdf8}.bc-scope-panel.is-ok{border-color:#ccebd8;background:#f6fbf8}.bc-scope-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}.bc-scope-panel-head small{display:flex;align-items:center;gap:8px;margin:0;font-size:12px;font-weight:650}.bc-scope-panel.is-miss .bc-scope-panel-head small{color:#9a4b00}.bc-scope-panel.is-ok .bc-scope-panel-head small{color:#14834c}.bc-scope-panel-head button{border:0;background:none;color:var(--brand);padding:0;font:inherit;font-size:12.5px;font-weight:650;cursor:pointer}.bc-scope-count{display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:999px;border:1px solid currentColor;background:#fff;font-size:11px;font-weight:650;line-height:1}.bc-scope-chips{display:flex;flex-wrap:wrap;gap:8px}.bc-scope-chip{display:inline-flex;align-items:center;height:26px;padding:0 9px;border:1px solid #d7deea;border-radius:6px;background:#fff;color:#3b4a63;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1;white-space:nowrap}.bc-scope-chip.is-miss{border-color:#f0c48a;background:#fff6ea;color:#9a4b00}.bc-scope-chip.is-ok{border-color:#b7e4c7;background:#eef9f2;color:#14834c}.bc-scope-alert{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:12px;padding:11px 12px;border:1px solid #f3d2a4;border-radius:10px;background:#fff8ee;color:#7a4b09;font-size:12.5px;line-height:1.5}.bc-scope-alert>div{display:flex;align-items:flex-start;gap:8px;min-width:0}.bc-scope-alert svg{flex:none;margin-top:1px}.bc-scope-alert .btn{display:inline-flex;align-items:center;gap:6px;flex:none}.bc-sync-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.bc-sync-status{margin-top:2px;white-space:nowrap}.bc-store-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 0;border-top:1px solid var(--hair)}.bc-store-row:first-child{border-top:0;padding-top:0}.bc-store-row strong{display:block;font-size:13.5px;color:var(--ink)}.bc-store-row span,.bc-store-row small{display:block;font-size:12px;color:var(--ink-muted);margin-top:3px;line-height:1.45}.bc-store-row-end{display:flex;align-items:center;gap:10px;white-space:nowrap}.bc-store-row-end>b{font-size:13px;color:var(--ink)}.bc-writeback{display:flex;align-items:flex-start;gap:11px;padding:14px 16px}.bc-writeback-ico{width:28px;height:28px;display:grid;place-items:center;flex:none;border-radius:50%;background:#e8f8ef;color:#14834c}.bc-writeback strong{display:block;font-size:13.5px;color:var(--ink);margin-bottom:4px}.bc-writeback p{margin:0;color:var(--ink-muted);font-size:12.5px;line-height:1.55}.bc-writeback-links{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:12.5px;font-weight:500}.bc-connection-option{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:13px 0;border-top:1px solid var(--hair)}.bc-connection-option:first-child{padding-top:0;border-top:0}.bc-connection-option strong{display:block;font-size:13px;color:var(--ink)}.bc-connection-option span{display:block;font-size:12px;color:var(--ink-muted);line-height:1.5;margin-top:3px}@media(max-width:760px){.bc-store-facts,.bc-credentials,.bc-scope-compare{grid-template-columns:1fr;gap:10px}.bc-scope-heading,.bc-sync-heading,.bc-scope-alert{align-items:flex-start;flex-direction:column}.bc-scope-alert .btn{width:100%;justify-content:center}.bc-store-row,.bc-connection-option{align-items:flex-start;flex-direction:column}.bc-store-row-end{flex-direction:row;align-items:center}}' +
       '</style><style>.bc-sync-panel{overflow:hidden;padding:0!important}.bc-sync-heading{position:relative;align-items:center;padding:16px 18px;background:linear-gradient(120deg,#f2f7ff 0%,#fbfdff 72%);border-bottom:1px solid #d7e4f1;box-shadow:inset 3px 0 0 #4f83d8}.bc-sync-heading .card-title{color:#263b55;font-size:14px;font-weight:750}.bc-sync-heading .muted{color:#657a94!important;line-height:1.45}.bc-sync-content{padding:0 18px 16px;background:#fff}.bc-sync-content .bc-store-row:first-child{padding-top:14px}.bc-sync-actions{display:flex;justify-content:flex-start;padding-top:13px;border-top:1px solid var(--hair)}@media(max-width:760px){.bc-sync-heading{padding:14px 16px}.bc-sync-content{padding:0 16px 14px}}</style>' +
       pageHead('Shopify connection', 'Review the Shopify store and syncs that power your BestCheckout purchase experience.') +
-      '<section class="panel card-pad mb-4"><div class="bc-store-kicker">Connected Shopify store</div><div class="flex items-start justify-between" style="gap:12px"><div><div class="bc-store-name">Lavender Labs</div><div class="bc-store-domain">lavender-labs.myshopify.com</div></div>' + status + '</div><div class="bc-store-facts"><div class="bc-store-fact"><small>Shop name</small><strong>Lavender Labs</strong></div><div class="bc-store-fact"><small>Myshopify domain</small><strong>lavender-labs.myshopify.com</strong></div><div class="bc-store-fact"><small>Connection status</small><strong>Ready for checkout</strong></div></div></section>' +
+      '<section class="panel card-pad mb-4"><div class="bc-store-kicker">Connected Shopify store</div><div class="flex items-start justify-between" style="gap:12px"><div><div class="bc-store-name">' + esc(store.name) + '</div><div class="bc-store-domain">' + esc(store.url) + '</div></div>' + status + '</div><div class="bc-store-facts"><div class="bc-store-fact"><small>Shop name</small><strong>' + esc(store.name) + '</strong></div><div class="bc-store-fact"><small>Myshopify domain</small><strong>' + esc(store.url) + '</strong></div><div class="bc-store-fact"><small>Connection status</small><strong>' + (permissionsHealthy ? 'Ready for checkout' : 'Needs re-authorization') + '</strong></div></div></section>' +
       '<section class="panel card-pad mb-4">' + sectionTitle('Shopify app credentials', 'Saved when you connected this store. Values stay hidden until you choose to reveal them.') + '<div class="bc-credentials">' + credentialRow('clientId', 'Client ID') + credentialRow('secret', 'Secret') + '</div></section>' +
+      '<section class="panel card-pad mb-4"><div class="bc-scope-heading"><div><div class="bc-scope-title"><div class="card-title">App permissions</div><a class="bc-scope-docs" href="' + SHOPIFY_SCOPES_DOCS + '" target="_blank" rel="noopener" aria-label="Shopify API access scopes" title="Shopify API access scopes">?</a></div><div class="muted" style="font-size:12.5px;margin-top:2px">Review the Shopify scopes granted to this store.</div></div>' + permissionStatus + '</div><div class="bc-scope-summary">' + esc(grantedCount + ' of ' + SHOPIFY_REQUIRED_SCOPES.length + ' required permissions granted') + '</div><div class="bc-scope-compare">' + grantedPanel + (permissionsHealthy ? '' : missingPanel) + '</div>' + (permissionsHealthy
+        ? '<p class="muted" style="margin:12px 0 0;font-size:12.5px;line-height:1.55">All required permissions are granted. Downstream checkout, sync, and order write-back can run.</p>'
+        : '<div class="bc-scope-alert"><div>' + I.alert + '<span>Some required permissions were not selected when this app was created. Downstream checkout, sync, or order write-back can fail until you re-authorize.</span></div><button type="button" class="btn btn-primary" data-act="reauth-shopify"><span>Re-authorize on Shopify</span>' + I.external + '</button></div>') + '</section>' +
       '<section class="panel mb-4 bc-sync-panel"><div class="bc-sync-heading"><div>' + sectionTitle('Shopify → BestCheckout data sync', 'BestCheckout reads Shopify as the source of truth for checkout. Data flows one way into BestCheckout.') + '</div><span class="pill pill-green bc-sync-status"><span class="dot"></span><span data-sync-summary>All data synced · 5 min ago</span></span></div>' +
         '<div class="bc-sync-content"><div class="bc-sync-rows">' +
           syncRow('Products, variants & inventory', '1,310 products', 'Product selection, SKU, price, and inventory checks') +
@@ -782,6 +856,21 @@
       shopifyCredentialVisible[key] = !shopifyCredentialVisible[key];
       renderShopifyStore();
     });
+    const copyMissing = root.querySelector('[data-act="copy-missing-scopes"]');
+    if (copyMissing) copyMissing.onclick = () => {
+      try { navigator.clipboard.writeText(missingList); } catch (e) {}
+      toast('Missing scopes copied');
+    };
+    const copyGranted = root.querySelector('[data-act="copy-granted-scopes"]');
+    if (copyGranted) copyGranted.onclick = () => {
+      try { navigator.clipboard.writeText(grantedList); } catch (e) {}
+      toast('Granted scopes copied');
+    };
+    const reauth = root.querySelector('[data-act="reauth-shopify"]');
+    if (reauth) reauth.onclick = () => {
+      window.open(shopifyAdminUrl(store), '_blank', 'noopener');
+      toast('Opening Shopify to re-authorize this store');
+    };
   }
 
   // Add font — mirrors fontModel.tsx: "Font:" label + Ant Select(mode=multiple) of

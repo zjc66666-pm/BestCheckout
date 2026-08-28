@@ -7,6 +7,7 @@ export const APP_NAV = [
   { id: 'funnels', label: 'Checkout flows', icon: 'flow', productionPath: '/app/funnels' },
   { id: 'pages', label: 'Checkout pages', icon: 'pages', productionPath: '/app/pages' },
   { id: 'orders', label: 'Orders', icon: 'orders', productionPath: '/app/orders' },
+  { id: 'abandoned-checkouts', label: 'Abandoned checkouts', icon: 'orders', productionPath: '/app/abandoned-checkouts' },
   { id: 'performance', label: 'Performance', icon: 'analytics', productionPath: '/app/performance' },
   { id: 'activity', label: 'Activity', icon: 'activity', productionPath: '/app/activity' },
   { id: 'settings', label: 'Settings', icon: 'settings', productionPath: '/app/settings' },

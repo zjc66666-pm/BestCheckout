@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lavender Labs · Hosted Checkout</title>
+  <link rel="icon" href="../assets/brand-mark.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+  <style>
+    :root { --ink:#1f2430; --muted:#62708d; --line:#e6eaf0; --brand:#5b4dff; --page:#f6f7fb; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 14px/1.5 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--ink); background: var(--page); }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 28px 20px 48px; display: grid; grid-template-columns: minmax(0, 1.15fr) 320px; gap: 28px; }
+    .brand { font-size: 13px; font-weight: 800; letter-spacing: .04em; }
+    .note { margin: 0 0 16px; padding: 10px 12px; border: 1px solid #d7e4f7; border-radius: 8px; background: #f4f8ff; color: #1d4f91; font-size: 12.5px; }
+    h1 { margin: 0 0 6px; font-size: 22px; }
+    .eyebrow { margin: 0 0 18px; color: var(--muted); font-size: 12.5px; }
+    .section { margin-bottom: 22px; }
+    .section h2 { margin: 0 0 10px; font-size: 15px; }
+    label { display: block; margin: 0 0 6px; font-size: 12.5px; font-weight: 600; }
+    input[type="email"] { width: 100%; height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; font: inherit; }
+    input.is-invalid { border-color: #c2410c; }
+    .err { color: #c2410c; font-size: 12px; margin: 6px 0 0; }
+    .consent { display: flex; gap: 8px; align-items: flex-start; margin-top: 10px; color: var(--muted); font-size: 13px; }
+    .pay { width: 100%; height: 46px; border: 0; border-radius: 8px; background: var(--brand); color: #fff; font: 700 14px/1 Inter, sans-serif; cursor: pointer; }
+    .card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+    .item { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+    .total { display: flex; justify-content: space-between; padding-top: 10px; border-top: 1px solid var(--line); font-weight: 700; }
+    .ok { margin: 0 0 16px; padding: 10px 12px; border: 1px solid #b7e0c8; border-radius: 8px; background: #eef9f2; color: #17663c; }
+    @media (max-width: 800px) { .wrap { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section>
+      <div class="brand">LAVENDER LABS</div>
+      <p class="eyebrow">BestCheckout Hosted Checkout · unpaid order is created when this page opens</p>
+      <div id="notice"></div>
+      <h1>Checkout</h1>
+      <div class="section">
+        <h2>Contact</h2>
+        <label for="email">Email</label>
+        <input id="email" type="email" placeholder="you@example.com" autocomplete="email" />
+        <div class="err" id="email-error" hidden></div>
+        <label class="consent"><input id="marketing" type="checkbox" /><span>Email me with news and offers. Required for abandoned checkout reminders.</span></label>
+      </div>
+      <div class="section">
+        <h2>Payment</h2>
+        <button class="pay" id="pay" type="button">PAY NOW</button>
+      </div>
+    </section>
+    <aside class="card">
+      <div class="item"><span>Sleep Reset Starter Kit</span><strong>$64.00</strong></div>
+      <div class="total"><span>Total</span><span>$64.00</span></div>
+    </aside>
+  </main>
+  <script>
+    const KEY = 'bc_unpaid_hosted_checkout';
+    const WINDOW_MS = 48 * 60 * 60 * 1000;
+    const params = new URLSearchParams(location.search);
+    const token = params.get('token') || '';
+
+    function read() {
+      try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { return null; }
+    }
+    function write(record) {
+      localStorage.setItem(KEY, JSON.stringify(record));
+    }
+    function notice(text, kind) {
+      const el = document.getElementById('notice');
+      el.className = kind === 'ok' ? 'ok' : 'note';
+      el.textContent = text;
+      el.hidden = !text;
+    }
+
+    function startOrReuse() {
+      const existing = read();
+      const now = Date.now();
+      if (token && existing && existing.token !== token) {
+        notice('This recovery link does not match the current unpaid checkout.');
+        return existing;
+      }
+      if (existing && existing.status === 'unpaid' && now - existing.startedAt < WINDOW_MS && (!token || existing.token === token)) {
+        existing.lastActivityAt = now;
+        write(existing);
+        notice('Continuing unpaid order ' + existing.orderSn + '. A new checkout was not created.');
+        return existing;
+      }
+      const record = {
+        orderSn: token ? 'EN1049' : 'EN' + String(1100 + (now % 800)),
+        token: token || ('rcv_bc_' + now.toString(36)),
+        email: existing && existing.email ? existing.email : '',
+        marketing: existing ? !!existing.marketing : false,
+        status: 'unpaid',
+        abandonStatus: 'in_progress',
+        startedAt: now,
+        lastActivityAt: now,
+      };
+      write(record);
+      if (!token) {
+        const url = new URL(location.href);
+        url.searchParams.set('token', record.token);
+        history.replaceState({}, '', url);
+      }
+      notice('Checkout started. Unpaid order ' + record.orderSn + ' was created.');
+      return record;
+    }
+
+    const record = startOrReuse();
+    const email = document.getElementById('email');
+    const marketing = document.getElementById('marketing');
+    const error = document.getElementById('email-error');
+    email.value = record.email || '';
+    marketing.checked = !!record.marketing;
+    if (record.status === 'paid') notice('Payment captured on unpaid order ' + record.orderSn + '. This checkout is recovered.', 'ok');
+
+    function validEmail(value) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+    }
+    function persistContact() {
+      const current = read() || record;
+      current.email = email.value.trim();
+      current.marketing = marketing.checked;
+      current.lastActivityAt = Date.now();
+      write(current);
+    }
+    email.addEventListener('change', function () {
+      const value = email.value.trim();
+      if (value && !validEmail(value)) {
+        email.classList.add('is-invalid');
+        error.hidden = false;
+        error.textContent = 'Enter a valid email address.';
+        return;
+      }
+      email.classList.remove('is-invalid');
+      error.hidden = true;
+      persistContact();
+    });
+    marketing.addEventListener('change', persistContact);
+    document.getElementById('pay').addEventListener('click', function () {
+      const value = email.value.trim();
+      if (!value || !validEmail(value)) {
+        email.classList.add('is-invalid');
+        error.hidden = false;
+        error.textContent = 'Enter a valid email address.';
+        return;
+      }
+      const current = read() || record;
+      current.status = 'paid';
+      current.abandonStatus = 'recovered';
+      current.email = value;
+      current.recoveredAt = Date.now();
+      write(current);
+      notice('Payment captured on unpaid order ' + current.orderSn + '. This checkout is recovered.', 'ok');
+    });
+  </script>
+</body>
+</html>

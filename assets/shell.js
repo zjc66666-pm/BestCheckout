@@ -9,7 +9,7 @@
    #/orders/5042, or 'base' for #/settings/base). Internal navigation just sets
    location.hash; the router re-dispatches. */
 (function () {
-  var V = '20260825-paytoggle1'; // cache-bust for lazy-loaded module scripts
+  var V = '20260827-multi-offers1'; // cache-bust for lazy-loaded module scripts
   var PUBLIC_SHOPIFY_CONNECTION_URL = './?entry=connect-new-shopify-store#/connect-shopify';
   var s = function (p) { return '<svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>'; };
   var ICONS = {
@@ -187,7 +187,7 @@
     chain = chain.then(function () {
       if (id === 'customers' && !window.DATA_ORDERS) return loadScript('orders/js/data.js?v=' + V);
     });
-    var moduleV = id === 'settings' ? '20260826-email-cust1'
+    var moduleV = id === 'settings' ? '20260828-shopify-scopes11'
       : id === 'online-store' ? '20260822theme-sync2' : V;
     chain = chain.then(function () {
       if (id === 'online-store' && !window.POST_PURCHASE_ORDER_MOCK)
@@ -470,14 +470,24 @@
     }
     return '<section class="home-panel home-flow-performance"><div class="home-section-head"><div><h2>Purchase flow performance</h2><p>Compare purchase flow results during the selected period.</p></div><a class="home-text-link" href="#/flows">Manage purchase flows</a></div><div class="home-data-table-wrap"><table class="home-data-table"><thead><tr><th>Purchase flow</th><th>Entered checkout</th><th>Completed orders</th><th>Conversion</th><th>Average order value</th><th>Sales</th></tr></thead><tbody>' + rows + '</tbody></table></div></section>';
   }
+  function homeOfferSalesValue(offer) {
+    return Number(String((offer && offer.sales) || '').replace(/[^0-9.]/g, '')) || 0;
+  }
+  function homeOfferCards(period) {
+    return (period.offers || []).slice().sort(function (a, b) {
+      var typeRank = (a.type === 'Downsell' ? 1 : 0) - (b.type === 'Downsell' ? 1 : 0);
+      if (typeRank) return typeRank;
+      return homeOfferSalesValue(b) - homeOfferSalesValue(a);
+    });
+  }
   function homeOfferPerformanceHtml(period) {
-    var offers = (period.offers || []).map(function (offer) {
+    var offers = homeOfferCards(period).map(function (offer) {
       return '<article class="home-offer-card"><span class="home-offer-tag home-offer-' + homeEsc(offer.tone) + '">' + homeEsc(offer.type) + '</span><strong>' + homeEsc(offer.title) + '</strong><p>' + homeEsc(offer.note) + '</p><div><span><small>Accept rate</small><b>' + homeEsc(offer.rate) + '</b></span><span><small>Added sales</small><b>' + homeEsc(offer.sales) + '</b></span></div></article>';
     }).join('');
     if (!offers) {
       offers = '<div class="home-offer-empty">No Upsell or Downsell results yet.</div>';
     }
-    return '<section class="home-offer-section"><div class="home-section-head home-offer-section-head"><div><h2>Offer performance</h2><p>Revenue and acceptance rate for Upsell and Downsell offers.</p></div><a class="home-text-link" href="#/flows">Manage offers</a></div><div class="home-offer-grid">' + offers + '</div></section>';
+    return '<section class="home-offer-section"><div class="home-section-head home-offer-section-head"><div><h2>Offer performance</h2><p>Each Upsell and Downsell is listed separately for the selected period.</p></div><a class="home-text-link" href="#/flows">Manage offers</a></div><div class="home-offer-grid">' + offers + '</div></section>';
   }
   function homeDataInsightHtml(period) {
     if (period.empty) {
@@ -501,18 +511,33 @@
     // The remaining steps mirror the buyer journey and link to the workspace
     // where each launch outcome is configured.
     var connected = shopifyConnectionState === 'connected';
-    var launchReady = scenario === 'ready' || scenario === 'live';
+    var permissionsHealthy = typeof window.shopifyPermissionsHealthy === 'function'
+      ? window.shopifyPermissionsHealthy(SITE.store)
+      : true;
+    var launchReady = (scenario === 'ready' || scenario === 'live') && permissionsHealthy;
     var tasks = [
       connected
         ? { done: true, title: 'Shopify store connected', desc: 'Products, discounts and delivery options are ready for checkout.' }
-        : { done: false, current: true, title: 'Connect your Shopify store', desc: 'Connect your custom app to sync products, orders, and checkout data.', href: './?entry=connect-new-shopify-store#/connect-shopify', action: 'Connect' },
+        : { done: false, current: true, title: 'Connect your Shopify store', desc: 'Connect your custom app to sync products, orders, and checkout data.', href: './?entry=connect-new-shopify-store#/connect-shopify', action: 'Connect' }
+    ];
+    if (connected && !permissionsHealthy) {
+      tasks.push({
+        done: false,
+        current: true,
+        title: 'Grant required Shopify permissions',
+        desc: 'Some required Admin API scopes were not selected when this app was created. Re-authorize before sending live traffic.',
+        href: '#/settings/base',
+        action: 'Review permissions'
+      });
+    }
+    tasks.push(
       launchReady
         ? { done: true, title: 'Set checkout domain', desc: 'Use a branded, secure address throughout checkout, Upsell, Downsell, and Thank you pages.' }
-        : { done: false, current: connected, title: 'Set checkout domain', desc: 'Use a branded, secure address throughout checkout, Upsell, Downsell, and Thank you pages.', href: '#/settings/domains', action: 'Set up' },
+        : { done: false, current: connected && permissionsHealthy, title: 'Set checkout domain', desc: 'Use a branded, secure address throughout checkout, Upsell, Downsell, and Thank you pages.', href: '#/settings/domains', action: 'Set up' },
       launchReady
         ? { done: true, title: 'Connect payment service', desc: 'Choose how buyers can pay and complete a test payment.' }
         : { done: false, title: 'Connect payment service', desc: 'Choose how buyers can pay and complete a test payment.', href: '#/settings/payments', action: 'Set up' }
-    ];
+    );
     var complete = tasks.filter(function (task) { return task.done; }).length;
     var rows = tasks.map(function (task) {
       var state = task.done ? ' done' : task.current ? ' current' : '';
@@ -759,8 +784,9 @@
             var name = row.getAttribute('data-store');
             closeHdrMenus();
             if (name === SITE.store) return;
-            // PRD 7.3: open the chosen store admin in a new tab
-            window.open('app/index.html?store=' + encodeURIComponent(name) + '#/home', '_blank', 'noopener');
+            var dest = new URL(window.location.href);
+            dest.searchParams.set('store', name);
+            window.location.assign(dest.pathname + dest.search + dest.hash);
           };
         });
       });

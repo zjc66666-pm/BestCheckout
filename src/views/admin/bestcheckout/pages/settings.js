@@ -27,7 +27,7 @@ function renderEmails(state) {
   const emails = [
     { name: text('Order confirmation', '订单确认'), detail: text('Sent after payment is confirmed, including accepted post-purchase items.', '付款确认后发送，包含已接受的购后加购商品。'), state: text('On', '已开启') },
     { name: text('Payment receipt', '付款收据'), detail: text('Gives buyers a clear record of the payment captured by BestCheckout.', '向买家提供 BestCheckout 收款成功的清晰凭证。'), state: text('On', '已开启') },
-    { name: text('Abandoned checkout reminder', '未完成结账提醒'), detail: text('Optional recovery message for buyers who leave before payment.', '向付款前离开的买家发送可选的挽回提醒。'), state: text('Draft', '草稿') },
+    { name: text('Abandoned checkout reminder', '未完成结账提醒'), detail: text('One recovery email for subscribed buyers who leave an unpaid Hosted Checkout.', '向离开未付款 Hosted Checkout 且已同意营销的买家发送一封挽回邮件。'), state: text('On', '已开启') },
   ].map(function (item) { return '<article class="checkout-email-card"><span>' + icon('email', 18) + '</span><div><strong>' + escapeHtml(item.name) + '</strong><p>' + escapeHtml(item.detail) + '</p></div><em>' + escapeHtml(item.state) + '</em><button type="button" class="button button-secondary" data-action="edit-checkout-email">' + escapeHtml(text('Customize', '自定义')) + '</button></article>'; }).join('');
   return '<div class="settings-stack">'
     + banner('info', text('Emails use your checkout brand', '邮件沿用你的 Checkout 品牌'), text('Logo, colors and sender details are shared with your checkout pages so buyers recognize every message.', 'Logo、颜色与发件信息会与 Checkout 页面保持一致，让买家能够识别每一封邮件。'))

@@ -35,7 +35,7 @@ import { renderPerformance } from './pages/performance.js?rev=20260720-standalon
 import { renderActivity } from './pages/activity.js?rev=20260720-standalone-portal-v150';
 import { renderSettings } from './pages/settings.js?rev=20260720-standalone-portal-v150';
 import { renderEditor, mountEditor } from './pages/editor.js?rev=20260719-preview-session-v92';
-import { renderOrders } from './pages/orders.js?rev=20260720-standalone-portal-v145';
+import { renderAbandonedCheckouts, renderOrders } from './pages/orders.js?rev=20260825-abandoned1';
 import { renderConnectShopify, renderForgotPasswordCode, renderPasswordResetEmailPage, renderSignIn, renderSignUp, renderSignupVerificationEmailPage } from './pages/auth.js?rev=20260822-logo-landing1';
 import { renderHelpCenter } from './pages/help.js?rev=20260822-prototype-accounts1';
 import { renderLookbookSite, renderMarketingSite } from './pages/website.js?rev=20260827-highlights3';
@@ -688,6 +688,7 @@ function pageForRoute(route) {
   if (name === 'funnels') return renderFunnels(state, route);
   if (name === 'pages') return renderPages(state);
   if (name === 'orders') return renderOrders(state, route);
+  if (name === 'abandoned-checkouts') return renderAbandonedCheckouts(state, route);
   if (name === 'performance') return renderPerformance(state);
   if (name === 'activity') return renderActivity(state);
   if (name === 'settings') return renderSettings(state, route);
@@ -1440,6 +1441,19 @@ function handleAction(action, element) {
   }
   if (action === 'open-orders-activity') {
     setRoute('activity');
+    return;
+  }
+  if (action === 'send-abandoned-email') {
+    showToast('Recovery email sent');
+    return;
+  }
+  if (action === 'copy-abandoned-link') {
+    const link = new URL('../hosted-checkout/index.html?token=rcv_bc_1049', location.href).href;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(link).then(function () { showToast('Recovery link copied'); }).catch(function () { showToast('Could not copy recovery link'); });
+    } else {
+      showToast('Could not copy recovery link');
+    }
     return;
   }
   if (action === 'retry-order-sync') {

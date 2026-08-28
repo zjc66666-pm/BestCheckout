@@ -14,11 +14,21 @@ window.STORES = [
   { name: 'Kiln Coffee', url: 'kiln-coffee.myshopify.com', homeState: 'live', homeDataKey: 'kiln' },
 ];
 
+// Store A has a complete Shopify grant. Store B is the “too few scopes at
+// app creation” case used on Overview and Shopify connection.
+window.shopifyPermissionsHealthy = function (storeName) {
+  var stores = window.STORES || [];
+  var name = storeName || (window.SITE && window.SITE.store) || '';
+  return !(stores[1] && name === stores[1].name);
+};
+
 window.NAV_MENU = [
   { id: 'home', label: 'Overview', icon: 'home', route: '#/home', desc: 'Setup, attention items, and checkout data for this store.' },
   { id: 'flows', label: 'Purchase flows', icon: 'apps', route: '#/flows', desc: 'Choose who sees each checkout, Upsell, and Downsell flow.' },
   { id: 'pages', label: 'Checkout pages', icon: 'page', route: '#/pages', desc: 'Customize Checkout, Upsell, Downsell, and Thank you pages.' },
-  { id: 'orders', label: 'Orders', icon: 'inbox', route: '#/orders', desc: 'Orders created in BestCheckout and written back to Shopify.' },
+  { id: 'orders', label: 'Orders', icon: 'inbox', route: '#/orders', desc: 'Paid BestCheckout orders written back to Shopify.', children: [
+    { id: 'abandoned-checkouts', label: 'Abandoned checkouts', route: '#/abandoned-checkouts', desc: 'Recover unpaid Hosted Checkout orders that never reached Shopify.' },
+  ] },
   {
     id: 'settings', label: 'Settings', icon: 'settings', route: '#/settings/base', desc: 'Manage the Shopify connection and checkout services.',
     children: [
@@ -59,6 +69,7 @@ window.ROUTE_MODULE = {
   flows: 'bestcheckout',
   pages: 'bestcheckout',
   orders: 'orders',
+  'abandoned-checkouts': 'abandoned-checkouts',
   payments: 'settings',
   domains: 'settings',
   notifications: 'settings',

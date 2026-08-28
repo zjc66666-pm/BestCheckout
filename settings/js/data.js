@@ -50,6 +50,13 @@ window.DATA_SETTINGS = {
           config: { enabled: false, subject: 'Refund notification', preheader: 'Total amount refunded: {{refund.amount}}. It may take up to 10 days for this refund to appear in your account.',
             headline: 'Your order has been refunded', copy: 'Total amount refunded: {{refund.amount}}. It may take up to 10 days for this refund to appear in your account.', updatedAt: '' } },
       ] },
+      { key: 'marketing', label: 'Marketing emails', events: [
+        { code: 'abandoned_checkout', name: 'Abandoned checkout reminder', cls: 'Marketing', priority: 'P2',
+          trigger: 'checkout_abandoned',
+          desc: 'Sent once to a subscribed buyer 60 minutes after an unpaid Hosted Checkout becomes abandoned. Shopify native abandoned checkouts stay in Shopify.',
+          config: { enabled: true, subject: 'You left items in checkout', preheader: 'Finish your order for {{store.name}} before it expires.',
+            headline: 'Your checkout is still waiting', copy: 'You left items in checkout. Use the button below to return to the same unpaid Hosted Checkout and finish payment.', updatedAt: '2026-08-25' } },
+      ] },
     ],
   },
 
@@ -77,6 +84,8 @@ window.DATA_SETTINGS = {
       // auto_take_order_timer (days, default 7)
       prefix: 'EN',
       autoCancelMinutes: 360,
+      abandonThresholdMinutes: 60,
+      recoveryWindowHours: 48,
       autoReceiveDays: 7,
     },
     // Social login — in the live admin only Google login is rendered (the

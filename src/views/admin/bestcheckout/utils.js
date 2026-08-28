@@ -44,7 +44,7 @@ export function setRoute(path) {
 
 export function getRouteName(route) {
   const first = route.segments[0] || 'landing';
-  return ['home', 'funnels', 'pages', 'orders', 'performance', 'activity', 'settings'].includes(first) ? first : 'home';
+  return ['home', 'funnels', 'pages', 'orders', 'abandoned-checkouts', 'performance', 'activity', 'settings'].includes(first) ? first : 'home';
 }
 
 export function formatDateTime(date, locale) {

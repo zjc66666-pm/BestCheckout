@@ -3,6 +3,28 @@ window.I18N.extend({
   // ===================== ORDERS =====================
   // ---- page title ----
   "Orders": "订单",
+  "Abandoned checkouts": "未完成结账",
+  "Abandoned checkout": "未完成结账",
+  "Open": "未完成",
+  "Recoverable": "可挽回",
+  "No contact": "无联系方式",
+  "Phone only": "仅有手机号",
+  "This abandoned checkout has a phone number only. Copy the recovery link instead.": "此弃单只有手机号。请改为复制恢复链接。",
+  "Recovered": "已挽回",
+  "Expired": "已过期",
+  "Last step": "停留步骤",
+  "Abandoned": "已弃单",
+  "Recovery": "挽回",
+  "Ready to send": "可发送",
+  "Reminder sent": "已发送提醒",
+  "Send recovery email": "发送挽回邮件",
+  "Copy recovery link": "复制恢复链接",
+  "Open recovery page": "打开恢复页",
+  "Recovery email sent": "挽回邮件已发送",
+  "Recovery link copied": "恢复链接已复制",
+  "Abandoned checkout reminder": "未完成结账提醒",
+  "Marketing emails": "营销邮件",
+  "Timeline": "时间线",
 
   // ---- list tabs (data.js TABS) ----
   "All": "全部",
