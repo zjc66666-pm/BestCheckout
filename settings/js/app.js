@@ -2397,6 +2397,30 @@
   };
   const PLATFORM_IP = '76.223.54.18';
   const PLATFORM_CNAME = 'connect.bestcheckout.com';
+  const DNS_PROVIDER_META = {
+    GoDaddy: {
+      color: '#00a4a6',
+      ink: '#111111',
+      host: 'sso.godaddy.com',
+      loginTitle: 'Sign in to GoDaddy',
+      button: 'Sign in',
+    },
+    Cloudflare: {
+      color: '#f6821f',
+      ink: '#1d1f20',
+      host: 'dash.cloudflare.com',
+      loginTitle: 'Log in to Cloudflare',
+      button: 'Log in',
+    },
+    Namecheap: {
+      color: '#de3723',
+      ink: '#1a1a1a',
+      host: 'ap.www.namecheap.com',
+      loginTitle: 'Sign in to Namecheap',
+      button: 'Sign in',
+    },
+  };
+  let dnsProviderLoggedIn = {};
 
   const DOMAIN_STYLES = `
   .dom-wrap { width: 100%; max-width: none; margin: 0; }
@@ -2492,7 +2516,7 @@
               ? 'DNS is verified, but SSL could not be issued yet. Retry SSL to start issuance again.'
               : 'Connect a supported provider to create the DNS record automatically, or add one CNAME yourself.';
     const statusProgress = checkoutDomain.status === 'pending_verification'
-      ? '<div class="domain-progress"><span class="ssl-spin"></span><div><strong>' + (flowMode === 'automatic' ? 'Creating DNS record automatically' : 'Waiting for DNS records') + '</strong><br/>' + (flowMode === 'automatic' ? esc(checkoutDomain.provider || 'Your DNS provider') + ' is creating and checking the CNAME for ' + esc(checkoutDomain.custom) + '.' : 'Add the CNAME record, then return here to verify the connection.') + '</div><div class="domain-progress-actions">' + (flowMode === 'manual' ? '<button class="btn btn-primary" data-resume-domain>Verify now</button>' : '<button class="btn btn-primary" data-resume-domain>Continue verification</button>') + '</div></div>'
+      ? '<div class="domain-progress"><span class="ssl-spin"></span><div><strong>' + (flowMode === 'automatic' ? 'Checking public DNS record' : 'Waiting for DNS records') + '</strong><br/>' + (flowMode === 'automatic' ? esc(checkoutDomain.provider || 'Your DNS provider') + ' already wrote the CNAME. BestCheckout is confirming it for ' + esc(checkoutDomain.custom) + '.' : 'Add the CNAME record, then return here to verify the connection.') + '</div><div class="domain-progress-actions">' + (flowMode === 'manual' ? '<button class="btn btn-primary" data-resume-domain>Verify now</button>' : '<button class="btn btn-primary" data-resume-domain>Continue verification</button>') + '</div></div>'
       : checkoutDomain.status === 'dns_error'
         ? '<div class="domain-progress is-error"><span>' + I.info + '</span><div><strong>DNS record not found</strong><br/>We could not find this DNS record yet. Check the record details, then verify again.</div><div class="domain-progress-actions"><button class="btn btn-primary" data-resume-domain>Retry DNS</button></div></div>'
         : checkoutDomain.status === 'ssl_pending'
@@ -2505,7 +2529,7 @@
       : checkoutDomain.status !== 'not_connected'
         ? statusProgress
         : '<div class="domain-path-grid">' +
-            '<article class="domain-path domain-path-primary"><div class="domain-path-head"><span class="domain-path-icon">' + I.globe + '</span><div><strong>Automatic setup</strong><small>Recommended · no DNS record to copy</small></div><span class="domain-recommended">Recommended</span></div><p>Authorize your DNS provider once. BestCheckout creates and monitors the checkout record, then provisions SSL.</p><div class="domain-provider-list"><span>GoDaddy</span><span>Cloudflare</span><span>Namecheap</span></div><button class="btn btn-primary" type="button" data-open-auto-domain>Connect DNS provider</button></article>' +
+            '<article class="domain-path domain-path-primary"><div class="domain-path-head"><span class="domain-path-icon">' + I.globe + '</span><div><strong>Automatic setup</strong><small>Recommended · no DNS record to copy</small></div><span class="domain-recommended">Recommended</span></div><p>Authorize your DNS provider once. BestCheckout writes this checkout CNAME, then provisions SSL.</p><div class="domain-provider-list"><span>GoDaddy</span><span>Cloudflare</span><span>Namecheap</span></div><button class="btn btn-primary" type="button" data-open-auto-domain>Connect DNS provider</button></article>' +
             '<article class="domain-path"><div class="domain-path-head"><span class="domain-path-icon domain-path-icon-muted">' + I.info + '</span><div><strong>Manual setup</strong><small>Add one CNAME record</small></div></div><p>Add one CNAME record yourself. BestCheckout verifies it and provisions SSL once the record is found.</p><button class="btn btn-gray" data-open-manual-domain>Show CNAME record</button></article>' +
           '</div>';
     const sslAssurance = '<style>.domain-ssl-assurance{display:flex;align-items:flex-start;gap:10px;margin-top:16px;padding:13px 14px;border:1px solid #dce5f5;border-radius:8px;background:#f7f9fc;color:var(--ink-body)}.domain-ssl-assurance>span{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#e8f6ee;color:#16875b;flex:none}.domain-ssl-assurance svg{width:14px;height:14px}.domain-ssl-assurance strong{display:block;color:var(--ink);font-size:13px;line-height:1.4}.domain-ssl-assurance p{margin:3px 0 0;color:var(--ink-muted);font-size:12.5px;line-height:1.5}</style><aside class="domain-ssl-assurance"><span>' + I.check + '</span><div><strong>SSL is automatic</strong><p>BestCheckout automatically issues and renews the SSL certificate for every checkout domain. You never need to manage a certificate or server.</p></div></aside>';
@@ -2627,12 +2651,233 @@
   }
 
   function openDnsProviderModal() {
-    const option = (name, checked) => '<label class="dns-provider-option"><input type="radio" name="dns-provider" value="' + name + '"' + (checked ? ' checked' : '') + '/><span class="dns-provider-radio"></span><span><strong>' + name + '</strong><small>Authorize BestCheckout to create and monitor only this checkout record.</small></span></label>';
+    const option = (name, checked) => '<label class="dns-provider-option"><input type="radio" name="dns-provider" value="' + name + '"' + (checked ? ' checked' : '') + '/><span class="dns-provider-radio"></span><span><strong>' + name + '</strong><small>One-time authorization to add only this checkout CNAME.</small></span></label>';
+    const current = checkoutDomain.provider && checkoutDomain.provider !== 'Manual DNS' ? checkoutDomain.provider : 'GoDaddy';
     modal({
       title: (checkoutDomain.verificationMode === 'manual' || domainStep === 'manual') ? 'Switch to automatic DNS setup' : 'Connect a DNS provider', width: 560, okText: 'Continue',
-      body: '<style>.dns-provider-intro{font-size:13px;line-height:1.55;color:var(--ink-muted);margin-bottom:14px}.dns-provider-domain{padding:10px 12px;margin-bottom:14px;border-radius:8px;background:#f5f8fd;color:var(--ink);font-size:13px}.dns-provider-option{display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid var(--hair);border-radius:9px;margin-top:8px;cursor:pointer}.dns-provider-option:hover{border-color:#a8c7ff;background:#fbfdff}.dns-provider-option input{position:absolute;opacity:0}.dns-provider-radio{width:16px;height:16px;margin-top:2px;border:1px solid #aeb8c8;border-radius:50%;flex:none}.dns-provider-option input:checked + .dns-provider-radio{border:5px solid var(--brand)}.dns-provider-option strong{display:block;color:var(--ink);font-size:13.5px}.dns-provider-option small{display:block;margin-top:3px;color:var(--ink-muted);font-size:12px;line-height:1.45}</style><div class="dns-provider-intro">Choose where DNS for <b>' + esc(shopifyDomain.primaryDomain) + '</b> is managed. BestCheckout will add <b>' + esc(checkoutDomain.custom) + '</b> automatically after you authorize the provider.</div><div class="dns-provider-domain">No manual CNAME record is required with a supported provider.</div>' + option('GoDaddy', true) + option('Cloudflare') + option('Namecheap'),
-      onOk: (m, close) => { const selected = m.querySelector('input[name="dns-provider"]:checked'); checkoutDomain.provider = selected ? selected.value : 'GoDaddy'; checkoutDomain.verificationMode = 'automatic'; checkoutDomain.verificationAttempt = 0; checkoutDomain.isChecking = false; checkoutDomain.status = 'pending_verification'; close(); location.hash = '#/settings/domains/automatic'; },
+      body: '<style>.dns-provider-intro{font-size:13px;line-height:1.55;color:var(--ink-muted);margin-bottom:14px}.dns-provider-domain{padding:10px 12px;margin-bottom:14px;border-radius:8px;background:#f5f8fd;color:var(--ink);font-size:13px}.dns-provider-option{display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid var(--hair);border-radius:9px;margin-top:8px;cursor:pointer}.dns-provider-option:hover{border-color:#a8c7ff;background:#fbfdff}.dns-provider-option input{position:absolute;opacity:0}.dns-provider-radio{width:16px;height:16px;margin-top:2px;border:1px solid #aeb8c8;border-radius:50%;flex:none}.dns-provider-option input:checked + .dns-provider-radio{border:5px solid var(--brand)}.dns-provider-option strong{display:block;color:var(--ink);font-size:13.5px}.dns-provider-option small{display:block;margin-top:3px;color:var(--ink-muted);font-size:12px;line-height:1.45}</style><div class="dns-provider-intro">Choose where DNS for <b>' + esc(shopifyDomain.primaryDomain) + '</b> is managed. BestCheckout will add <b>' + esc(checkoutDomain.custom) + '</b> automatically after you authorize the provider.</div><div class="dns-provider-domain">No manual CNAME record is required with a supported provider.</div>' + option('GoDaddy', current === 'GoDaddy') + option('Cloudflare', current === 'Cloudflare') + option('Namecheap', current === 'Namecheap'),
+      onOk: (m, close) => {
+        const selected = m.querySelector('input[name="dns-provider"]:checked');
+        checkoutDomain.provider = selected ? selected.value : 'GoDaddy';
+        checkoutDomain.verificationMode = 'automatic';
+        checkoutDomain.verificationAttempt = 0;
+        checkoutDomain.isChecking = false;
+        close();
+        location.hash = dnsProviderLoggedIn[checkoutDomain.provider]
+          ? '#/settings/domains/provider-authorize'
+          : '#/settings/domains/provider-login';
+      },
     });
+  }
+
+  function dnsProviderInfo(name) {
+    return DNS_PROVIDER_META[name] || DNS_PROVIDER_META.GoDaddy;
+  }
+
+  function checkoutCnameHost() {
+    return (checkoutDomain.custom || 'checkout.yourdomain.com').split('.')[0] || 'checkout';
+  }
+
+  function removeDnsProviderOverlay() {
+    const el = document.getElementById('bc-dns-provider-overlay');
+    if (!el) return;
+    if (el._onEsc) document.removeEventListener('keydown', el._onEsc);
+    el.remove();
+  }
+
+  function cancelDnsProviderAuthorization() {
+    removeDnsProviderOverlay();
+    location.hash = '#/settings/domains';
+    toast('Authorization cancelled. Your checkout domain was not changed.', 'warning');
+  }
+
+  function finishDnsProviderAuthorization() {
+    checkoutDomain.status = 'pending_verification';
+    checkoutDomain.verificationMode = 'automatic';
+    checkoutDomain.verificationAttempt = 0;
+    checkoutDomain.isChecking = false;
+    removeDnsProviderOverlay();
+    location.hash = '#/settings/domains/automatic';
+  }
+
+  function dnsProviderOverlayBody(step, provider, meta) {
+    const host = checkoutCnameHost();
+    const domain = checkoutDomain.custom;
+    const zone = shopifyDomain.primaryDomain;
+    if (step === 'login') {
+      return '<div class="bc-dns-prov-brand">' + esc(provider) + '</div>' +
+        '<h2 class="bc-dns-prov-title">' + esc(meta.loginTitle) + '</h2>' +
+        '<p class="bc-dns-prov-lead">Sign in to authorize a one-time DNS update for <b>' + esc(zone) + '</b>.</p>' +
+        '<label class="bc-dns-prov-label" for="bc-dns-email">Account email</label>' +
+        '<input id="bc-dns-email" class="bc-dns-prov-input" data-dns-email type="email" autocomplete="username" placeholder="you@example.com"/>' +
+        '<div class="bc-dns-prov-err" data-err="dns-email"></div>' +
+        '<label class="bc-dns-prov-label" for="bc-dns-password">Account password</label>' +
+        '<input id="bc-dns-password" class="bc-dns-prov-input" data-dns-password type="password" autocomplete="current-password" placeholder="Enter password"/>' +
+        '<div class="bc-dns-prov-err" data-err="dns-password"></div>' +
+        '<p class="bc-dns-prov-hint">Prototype: any email and password will continue.</p>' +
+        '<button type="button" class="bc-dns-prov-primary" data-dns-signin>' + esc(meta.button) + '</button>' +
+        '<button type="button" class="bc-dns-prov-link" data-dns-skip-login>Already signed in? Continue to authorization</button>';
+    }
+    if (step === 'authorize') {
+      const proxyRow = provider === 'Cloudflare'
+        ? '<div class="bc-dns-rec"><span>Proxy</span><strong>DNS only</strong></div>'
+        : '';
+      const proxyNote = provider === 'Cloudflare'
+        ? '<p class="bc-dns-prov-warn">This record must stay DNS only. Do not enable the orange cloud.</p>'
+        : '';
+      return '<div class="bc-dns-prov-brand">' + esc(provider) + '</div>' +
+        '<h2 class="bc-dns-prov-title">Authorize DNS records from BestCheckout</h2>' +
+        '<p class="bc-dns-prov-lead">This is a one-time authorization. BestCheckout will not get permission to make later DNS changes.</p>' +
+        '<div class="bc-dns-prov-app"><strong>BestCheckout</strong><span>wants to add one checkout CNAME on <b>' + esc(zone) + '</b></span></div>' +
+        '<p class="bc-dns-prov-copy">' + esc(provider) + ' will write the following record for <b>' + esc(domain) + '</b>.</p>' +
+        '<div class="bc-dns-rec-card">' +
+          '<div class="bc-dns-rec"><span>Record type</span><strong>CNAME</strong></div>' +
+          '<div class="bc-dns-rec"><span>Host</span><strong>' + esc(host) + '</strong></div>' +
+          '<div class="bc-dns-rec"><span>Content</span><strong>' + PLATFORM_CNAME + '</strong></div>' +
+          '<div class="bc-dns-rec"><span>TTL</span><strong>Auto</strong></div>' +
+          proxyRow +
+        '</div>' +
+        '<p class="bc-dns-prov-warn">If this host already has a record, authorizing replaces it with this CNAME.</p>' +
+        proxyNote +
+        '<div class="bc-dns-prov-actions"><button type="button" class="bc-dns-prov-ghost" data-dns-cancel>Cancel</button><button type="button" class="bc-dns-prov-primary" data-dns-authorize>Authorize</button></div>';
+    }
+    return '<div class="bc-dns-prov-brand">' + esc(provider) + '</div>' +
+      '<div class="bc-dns-prov-ok">' + I.check + '</div>' +
+      '<h2 class="bc-dns-prov-title">Successfully updated DNS records</h2>' +
+      '<p class="bc-dns-prov-lead">The CNAME for <b>' + esc(domain) + '</b> now points to <b>' + PLATFORM_CNAME + '</b>.</p>' +
+      '<p class="bc-dns-prov-copy">Close this window to continue verification in BestCheckout. SSL is issued after the public record is found.</p>' +
+      '<button type="button" class="bc-dns-prov-primary" data-dns-finish>Close and continue</button>';
+  }
+
+  function mountDnsProviderOverlay(step) {
+    if (!checkoutDomain.provider || checkoutDomain.provider === 'Manual DNS') checkoutDomain.provider = 'GoDaddy';
+    checkoutDomain.verificationMode = 'automatic';
+    const provider = checkoutDomain.provider;
+    const meta = dnsProviderInfo(provider);
+    const host = checkoutCnameHost();
+    const url = 'https://' + meta.host + '/domainconnect/v2/domainTemplates/providers/bestcheckout.com/services/checkout-cname?domain=' + encodeURIComponent(shopifyDomain.primaryDomain) + '&host=' + encodeURIComponent(host);
+    removeDnsProviderOverlay();
+    const overlay = h(
+      '<div id="bc-dns-provider-overlay" class="bc-dns-prov-overlay" role="dialog" aria-modal="true" aria-label="' + esc(provider) + ' authorization">' +
+        '<style>' +
+          '.bc-dns-prov-overlay{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:24px;background:rgb(15 23 42 / 42%)}' +
+          '.bc-dns-prov-win{width:min(560px,100%);max-height:min(88vh,760px);display:flex;flex-direction:column;border-radius:12px;overflow:hidden;background:#fff;box-shadow:0 24px 60px rgb(15 23 42 / 28%)}' +
+          '.bc-dns-prov-chrome{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#eceff3;border-bottom:1px solid #d7dde6}' +
+          '.bc-dns-prov-dots{display:flex;gap:5px;flex:none}' +
+          '.bc-dns-prov-dots i{width:10px;height:10px;border-radius:50%;background:#c5ccd6}' +
+          '.bc-dns-prov-url{min-width:0;flex:1;display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;background:#fff;color:#526072;font-size:12px;line-height:1.3}' +
+          '.bc-dns-prov-url span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
+          '.bc-dns-prov-x{width:28px;height:28px;border:0;border-radius:6px;background:transparent;color:#526072;cursor:pointer}' +
+          '.bc-dns-prov-x:hover{background:#e2e7ee}' +
+          '.bc-dns-prov-sim{padding:7px 16px;background:#f6f8fb;color:#5b6573;font-size:11.5px;font-weight:650;letter-spacing:.01em;border-bottom:1px solid #e7ecf2}' +
+          '.bc-dns-prov-body{padding:22px 24px 24px;overflow:auto}' +
+          '.bc-dns-prov-brand{color:' + meta.color + ';font-size:20px;font-weight:750;letter-spacing:-.03em;line-height:1}' +
+          '.bc-dns-prov-title{margin:14px 0 0;color:' + meta.ink + ';font-size:22px;font-weight:700;line-height:1.25}' +
+          '.bc-dns-prov-lead,.bc-dns-prov-copy{margin:8px 0 0;color:#526072;font-size:13.5px;line-height:1.55}' +
+          '.bc-dns-prov-label{display:block;margin:16px 0 6px;color:' + meta.ink + ';font-size:12.5px;font-weight:650}' +
+          '.bc-dns-prov-input{width:100%;height:40px;padding:0 12px;border:1px solid #cfd6e0;border-radius:8px;background:#fff;color:' + meta.ink + ';font-size:14px}' +
+          '.bc-dns-prov-input:focus{outline:2px solid ' + meta.color + ';outline-offset:1px;border-color:' + meta.color + '}' +
+          '.bc-dns-prov-input.err{border-color:#d92d20}' +
+          '.bc-dns-prov-err{min-height:16px;margin-top:5px;color:#d92d20;font-size:12px;line-height:1.4}' +
+          '.bc-dns-prov-hint{margin:8px 0 0;color:#6b7380;font-size:12px;line-height:1.45}' +
+          '.bc-dns-prov-primary{display:block;width:100%;margin-top:16px;height:42px;border:0;border-radius:8px;background:' + meta.color + ';color:#fff;font-size:14px;font-weight:700;cursor:pointer}' +
+          '.bc-dns-prov-primary:hover{filter:brightness(.96)}' +
+          '.bc-dns-prov-ghost{height:42px;padding:0 16px;border:1px solid #cfd6e0;border-radius:8px;background:#fff;color:' + meta.ink + ';font-size:14px;font-weight:650;cursor:pointer}' +
+          '.bc-dns-prov-link{display:block;width:100%;margin-top:10px;border:0;background:transparent;color:' + meta.color + ';font-size:12.5px;font-weight:650;cursor:pointer;text-align:center}' +
+          '.bc-dns-prov-app{display:flex;flex-direction:column;gap:3px;margin-top:16px;padding:12px 13px;border:1px solid #e5eaf1;border-radius:9px;background:#f8fafc}' +
+          '.bc-dns-prov-app strong{color:' + meta.ink + ';font-size:14px}' +
+          '.bc-dns-prov-app span{color:#526072;font-size:12.5px;line-height:1.45}' +
+          '.bc-dns-rec-card{margin-top:14px;border:1px solid #e5eaf1;border-radius:9px;overflow:hidden}' +
+          '.bc-dns-rec{display:grid;grid-template-columns:88px 1fr;gap:10px;padding:10px 13px;border-top:1px solid #eef2f7;font-size:13px}' +
+          '.bc-dns-rec:first-child{border-top:0}' +
+          '.bc-dns-rec span{color:#6b7380}' +
+          '.bc-dns-rec strong{color:' + meta.ink + ';font-weight:650;overflow-wrap:anywhere}' +
+          '.bc-dns-prov-warn{margin:12px 0 0;padding:10px 12px;border-radius:8px;background:#fff7ed;color:#9a3412;font-size:12.5px;line-height:1.5}' +
+          '.bc-dns-prov-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}' +
+          '.bc-dns-prov-actions .bc-dns-prov-primary{width:auto;margin-top:0;padding:0 18px}' +
+          '.bc-dns-prov-ok{display:grid;place-items:center;width:44px;height:44px;margin-top:8px;border-radius:50%;background:#e8f8ef;color:#16875b}' +
+          '@media(max-width:640px){.bc-dns-prov-overlay{padding:0;align-items:end}.bc-dns-prov-win{width:100%;max-height:94vh;border-radius:12px 12px 0 0}.bc-dns-prov-actions{flex-direction:column-reverse}.bc-dns-prov-actions .bc-dns-prov-primary,.bc-dns-prov-ghost{width:100%}}' +
+        '</style>' +
+        '<div class="bc-dns-prov-win">' +
+          '<div class="bc-dns-prov-chrome">' +
+            '<span class="bc-dns-prov-dots" aria-hidden="true"><i></i><i></i><i></i></span>' +
+            '<div class="bc-dns-prov-url"><span>' + I.globe + '</span><span>' + esc(url) + '</span></div>' +
+            '<button type="button" class="bc-dns-prov-x" data-dns-close aria-label="Close">' + I.x + '</button>' +
+          '</div>' +
+          '<div class="bc-dns-prov-sim">Simulated ' + esc(provider) + ' window · prototype</div>' +
+          '<div class="bc-dns-prov-body">' + dnsProviderOverlayBody(step, provider, meta) + '</div>' +
+        '</div>' +
+      '</div>'
+    );
+    overlay._onEsc = (e) => {
+      if (e.key !== 'Escape') return;
+      if (step === 'done') finishDnsProviderAuthorization();
+      else cancelDnsProviderAuthorization();
+    };
+    document.addEventListener('keydown', overlay._onEsc);
+    overlay.onclick = (e) => {
+      if (e.target !== overlay) return;
+      if (step === 'done') finishDnsProviderAuthorization();
+      else cancelDnsProviderAuthorization();
+    };
+    const closeBtn = overlay.querySelector('[data-dns-close]');
+    if (closeBtn) closeBtn.onclick = () => {
+      if (step === 'done') finishDnsProviderAuthorization();
+      else cancelDnsProviderAuthorization();
+    };
+    const signin = overlay.querySelector('[data-dns-signin]');
+    if (signin) signin.onclick = () => submitDnsProviderLogin(overlay);
+    const skip = overlay.querySelector('[data-dns-skip-login]');
+    if (skip) skip.onclick = () => {
+      dnsProviderLoggedIn[provider] = true;
+      location.hash = '#/settings/domains/provider-authorize';
+    };
+    const cancel = overlay.querySelector('[data-dns-cancel]');
+    if (cancel) cancel.onclick = cancelDnsProviderAuthorization;
+    const authorize = overlay.querySelector('[data-dns-authorize]');
+    if (authorize) authorize.onclick = () => {
+      checkoutDomain.status = 'pending_verification';
+      location.hash = '#/settings/domains/provider-done';
+    };
+    const finish = overlay.querySelector('[data-dns-finish]');
+    if (finish) finish.onclick = finishDnsProviderAuthorization;
+    overlay.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' || !e.target || e.target.tagName !== 'INPUT') return;
+      e.preventDefault();
+      if (signin) signin.click();
+    });
+    document.body.appendChild(overlay);
+    const email = overlay.querySelector('[data-dns-email]');
+    if (email) email.focus();
+  }
+
+  function submitDnsProviderLogin(overlay) {
+    const emailInput = overlay.querySelector('[data-dns-email]');
+    const passInput = overlay.querySelector('[data-dns-password]');
+    const email = ((emailInput || {}).value || '').trim();
+    const password = (passInput || {}).value || '';
+    setErr(overlay, 'dns-email', '');
+    setErr(overlay, 'dns-password', '');
+    if (emailInput) emailInput.classList.remove('err');
+    if (passInput) passInput.classList.remove('err');
+    let blocked = false;
+    if (!email) {
+      setErr(overlay, 'dns-email', 'Enter your email.');
+      if (emailInput) emailInput.classList.add('err');
+      blocked = true;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setErr(overlay, 'dns-email', 'Enter a valid email.');
+      if (emailInput) emailInput.classList.add('err');
+      blocked = true;
+    }
+    if (!password) {
+      setErr(overlay, 'dns-password', 'Enter your password.');
+      if (passInput) passInput.classList.add('err');
+      blocked = true;
+    }
+    if (blocked) return;
+    dnsProviderLoggedIn[checkoutDomain.provider || 'GoDaddy'] = true;
+    location.hash = '#/settings/domains/provider-authorize';
   }
 
   // Both setup paths share the same domain lifecycle. The path only decides who
@@ -2719,24 +2964,37 @@
     root.querySelectorAll('[data-domain-back]').forEach((el) => el.onclick = () => { location.hash = '#/settings/domains'; });
   }
 
+  function automaticCnameRecapHtml(provider) {
+    const host = checkoutCnameHost();
+    return '<div class="dns-tbl" style="margin-top:14px"><div class="dns-tr dns-th"><div class="dns-cell">Type</div><div class="dns-cell">Name</div><div class="dns-cell">Value</div></div><div class="dns-tr"><div class="dns-cell dns-mono">CNAME</div><div class="dns-cell dns-mono">' + esc(host) + '</div><div class="dns-cell dns-mono">' + PLATFORM_CNAME + '</div></div></div><div class="muted" style="font-size:12px;line-height:1.45;margin-top:8px">Written once at ' + esc(provider) + '. Shown here for confirmation only.</div>';
+  }
+
   function renderAutomaticDomainSetup() {
     const provider = checkoutDomain.provider || 'GoDaddy';
     const status = checkoutDomain.status;
     const checking = checkoutDomain.isChecking;
-    if (checking || status === 'ssl_pending') return renderCheckoutDomainBindingScreen('automatic');
+    if (status === 'pending_verification' && !checking) {
+      advanceCheckoutDomainVerification('automatic');
+      return;
+    }
+    const pageTitle = (status === 'ssl_pending' || status === 'ssl_failed')
+      ? 'Securing ' + esc(checkoutDomain.custom)
+      : 'Checking DNS for ' + esc(checkoutDomain.custom);
     const body = checking
-      ? '<div class="ssl-pill"><span class="ssl-spin"></span>' + (status === 'ssl_failed' ? 'Restarting SSL issuance…' : 'Checking DNS records…') + '</div>'
+      ? '<div class="checkout-domain-verification is-pending"><span class="ssl-spin"></span><div><strong>' + (status === 'ssl_failed' ? 'Restarting SSL issuance' : 'Checking public DNS record') + '</strong><p>' + (status === 'ssl_failed' ? 'BestCheckout is starting SSL issuance again for this verified DNS record.' : 'BestCheckout is confirming the public CNAME for ' + esc(checkoutDomain.custom) + '.') + '</p></div></div>'
       : status === 'dns_error'
-        ? '<div class="checkout-domain-verification is-error"><span>' + I.info + '</span><div><strong>DNS record not found</strong><p>BestCheckout could not confirm the DNS record created with ' + esc(provider) + '. Retry DNS to create and verify it again.</p></div></div>'
+        ? '<div class="checkout-domain-verification is-error"><span>' + I.info + '</span><div><strong>DNS record not found</strong><p>BestCheckout could not confirm the public CNAME yet. The record may still be propagating. Retry to check again.</p></div></div>'
         : status === 'ssl_pending'
           ? '<div class="checkout-domain-verification is-pending"><span class="ssl-spin"></span><div><strong>SSL certificate is being issued</strong><p>DNS is verified. BestCheckout is securing ' + esc(checkoutDomain.custom) + ' now.</p></div></div>'
           : status === 'ssl_failed'
             ? '<div class="checkout-domain-verification is-error"><span>' + I.info + '</span><div><strong>DNS verified, SSL needs attention</strong><p>The DNS record is resolving, but SSL could not be issued yet. Retry to start SSL issuance again.</p></div></div>'
-            : '<div class="checkout-domain-verification is-pending"><span class="ssl-spin"></span><div><strong>Creating DNS record automatically</strong><p>BestCheckout is asking ' + esc(provider) + ' to create and verify the CNAME for ' + esc(checkoutDomain.custom) + '.</p></div></div>';
+            : '<div class="checkout-domain-verification is-pending"><span class="ssl-spin"></span><div><strong>Checking public DNS record</strong><p>BestCheckout is confirming the public CNAME for ' + esc(checkoutDomain.custom) + '.</p></div></div>';
     const action = checking || status === 'ssl_pending'
       ? ''
-      : '<button class="btn btn-primary" data-verify-automatic-domain>' + (status === 'dns_error' ? 'Retry DNS' : status === 'ssl_failed' ? 'Retry SSL' : 'Check connection') + '</button>';
-    paint('<style>' + DOMAIN_STYLES + '.checkout-domain-verification{display:flex;align-items:flex-start;gap:10px;margin-top:16px;padding:12px 13px;border:1px solid var(--hair);border-radius:8px;font-size:12.5px;line-height:1.5}.checkout-domain-verification>span{display:inline-flex;flex:none;margin-top:1px}.checkout-domain-verification .ssl-spin{margin-top:3px}.checkout-domain-verification strong{display:block;font-size:13px}.checkout-domain-verification p{margin:3px 0 0}.checkout-domain-verification.is-error{border-color:#fecaca;background:#fff7f7;color:#a13b2b}.checkout-domain-verification.is-pending{border-color:#c9d9f7;background:#f7faff;color:var(--ink-body)}</style><div class="dom-wrap"><div class="flex items-center gap-3 mb-4"><button class="back-btn" data-domain-back title="Back">' + I.chevL + '</button><div><div class="page-title" style="font-size:20px">Connect ' + esc(checkoutDomain.custom) + '</div><div class="muted" style="font-size:13px;margin-top:2px">Automatic DNS setup with ' + esc(provider) + '</div></div></div><div class="dstep"><span class="sp ok"><span class="sn">' + I.check + '</span>Choose domain</span><span class="ln"></span><span class="sp ok"><span class="sn">' + I.check + '</span>Connect provider</span><span class="ln"></span><span class="sp on"><span class="sn">3</span>Verify</span></div><section class="panel card-pad"><div class="card-title">BestCheckout will finish the setup</div><div class="muted" style="font-size:13px;line-height:1.6;margin-top:5px">' + esc(provider) + ' is authorized to create and monitor the CNAME for <b>' + esc(checkoutDomain.custom) + '</b>. No record needs to be copied into ' + esc(provider) + '.</div>' + body + '<div class="flex justify-end gap-2 mt-4"><button class="btn btn-gray" data-domain-back>Verify later</button>' + action + '</div></section></div>', false);
+      : (status === 'dns_error' || status === 'ssl_failed')
+        ? '<button class="btn btn-primary" data-verify-automatic-domain>' + (status === 'dns_error' ? 'Retry DNS' : 'Retry SSL') + '</button>'
+        : '';
+    paint('<style>' + DOMAIN_STYLES + '.checkout-domain-verification{display:flex;align-items:flex-start;gap:10px;margin-top:16px;padding:12px 13px;border:1px solid var(--hair);border-radius:8px;font-size:12.5px;line-height:1.5}.checkout-domain-verification>span{display:inline-flex;flex:none;margin-top:1px}.checkout-domain-verification .ssl-spin{margin-top:3px}.checkout-domain-verification strong{display:block;font-size:13px}.checkout-domain-verification p{margin:3px 0 0}.checkout-domain-verification.is-error{border-color:#fecaca;background:#fff7f7;color:#a13b2b}.checkout-domain-verification.is-pending{border-color:#c9d9f7;background:#f7faff;color:var(--ink-body)}</style><div class="dom-wrap"><div class="flex items-center gap-3 mb-4"><button class="back-btn" data-domain-back title="Back">' + I.chevL + '</button><div><div class="page-title" style="font-size:20px">' + pageTitle + '</div><div class="muted" style="font-size:13px;margin-top:2px">Automatic DNS setup with ' + esc(provider) + '</div></div></div><div class="dstep"><span class="sp ok"><span class="sn">' + I.check + '</span>Choose domain</span><span class="ln"></span><span class="sp ok"><span class="sn">' + I.check + '</span>Connect provider</span><span class="ln"></span><span class="sp on"><span class="sn">3</span>Verify</span></div><section class="panel card-pad"><div class="card-title">Public DNS record</div><div class="muted" style="font-size:13px;line-height:1.6;margin-top:5px">' + esc(provider) + ' already wrote this CNAME. BestCheckout is confirming the public record, then issuing SSL. Your default checkout address stays available.</div>' + automaticCnameRecapHtml(provider) + body + '<div class="flex justify-end gap-2 mt-4"><button class="btn btn-gray" data-domain-back>Verify later</button>' + action + '</div></section></div>', false);
     root.querySelectorAll('[data-domain-back]').forEach((el) => el.onclick = () => { location.hash = '#/settings/domains'; });
     const verify = root.querySelector('[data-verify-automatic-domain]'); if (verify) verify.onclick = () => advanceCheckoutDomainVerification('automatic');
   }
@@ -2875,6 +3133,11 @@
     if (domainStep === 'manual') return renderManualDomainSetup();
     if (domainStep === 'add') return renderAddDomainDNS();
     if (domainStep === 'bound') return renderAddDomainBound();
+    if (domainStep === 'provider-login' || domainStep === 'provider-authorize' || domainStep === 'provider-done') {
+      renderDomainList();
+      mountDnsProviderOverlay(domainStep.replace('provider-', ''));
+      return;
+    }
     return renderDomainList();
   }
   function validDomain(v) {
@@ -4416,6 +4679,7 @@
     root.addEventListener('change', onEdit);
   }
   function show(rest) {
+    removeDnsProviderOverlay();
     curRest = rest || '';
     const parts = String(rest || '').split('/').filter(Boolean);
     const key = ROUTES[parts[0]] ? parts[0] : 'base';
