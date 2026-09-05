@@ -114,7 +114,7 @@ window.I18N.extend({
   "Unfulfilled": "未发货",
 
   // ---- inline order source tags ----
-  "Bundle": "捆绑销售",
+  "Bundle": "套装",
   "Subscription": "订阅",
   "View contract": "查看合约",
   "BestCheckout": "BestCheckout",
@@ -387,7 +387,7 @@ window.I18N.addRules([
   { re: /^(\d+) components? · (\d+) free gifts?$/, zh: function (m) { return m[1] + ' 个组件 · ' + m[2] + ' 件免费赠品'; } },
   { re: /^(\d+) components?$/, zh: function (m) { return m[1] + ' 个组件'; } },
   { re: /^(\d+) free gifts?$/, zh: function (m) { return m[1] + ' 件免费赠品'; } },
-  { re: /^(Bundle|Subscription|Product) discount \((.+)\)$/, zh: function (m) { return ({ Bundle: '套餐', Subscription: '订阅', Product: '商品' })[m[1]] + '优惠（' + m[2] + '）'; } },
+  { re: /^(Bundle|Subscription|Product) discount \((.+)\)$/, zh: function (m) { return ({ Bundle: '套装', Subscription: '订阅', Product: '商品' })[m[1]] + '优惠（' + m[2] + '）'; } },
   { re: /^Payment captured · (.+)$/, zh: function (m) { return '支付已扣款 · ' + m[1]; } },
   { re: /^Refund cannot exceed the paid amount \((.+)\).$/, zh: function (m) { return '退款金额不能超过已付金额（' + m[1] + '）。'; } },
   { re: /^(Full|Partial) refund of (.+) issued · (.+)$/, zh: function (m) { return (m[1] === 'Full' ? '全额' : '部分') + '退款 ' + m[2] + ' 已发出 · ' + m[3]; } },

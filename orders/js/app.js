@@ -197,16 +197,16 @@
         '<div class="tabs" style="padding:0 8px" id="ord-tabs">' + tabsHtml + '</div>' +
         // filter bar (search.tsx: keyword group / time group / total-range chip)
         '<div class="card-pad" style="padding-bottom:8px">' +
-          '<div class="flex items-start gap-2" style="flex-wrap:wrap">' +
-            '<div class="flex" style="min-width:428px">' +
+          '<div class="filter-bar">' +
+            '<div class="flex items-center" style="min-width:428px">' +
               '<select class="filter-select" id="kw-type" style="width:160px;border-top-right-radius:0;border-bottom-right-radius:0">' + kwOpts + '</select>' +
               '<div style="position:relative;flex:1">' +
                 '<input class="filter-input" id="kw-input" placeholder="Search" value="' + esc(LST.kw) + '" style="width:100%;padding-left:12px;padding-right:52px;border-top-left-radius:0;border-bottom-left-radius:0;margin-left:-1px" />' +
                 '<span class="kw-clear" data-kw-clear title="Clear">&times;</span>' +
-                '<span style="position:absolute;right:10px;top:9px;color:var(--ink-muted)">' + I.search + '</span>' +
+                '<span class="filter-ico">' + I.search + '</span>' +
               '</div>' +
             '</div>' +
-            '<div class="flex" style="min-width:428px">' +
+            '<div class="flex items-center" style="min-width:428px">' +
               '<select class="filter-select" id="time-type" style="width:160px;border-top-right-radius:0;border-bottom-right-radius:0">' + timeOpts + '</select>' +
               // dual-month English range picker (widgets.js) — hidden inputs keep ids so wireList reads them
               '<div class="ui-range filter-input" data-ui-range style="width:268px;border-top-left-radius:0;border-bottom-left-radius:0;margin-left:-1px;padding-left:12px;padding-right:10px">' +
@@ -577,7 +577,7 @@
   function subscriptionContractReference(sub) {
     if (!sub || !sub.id) return '';
     return '<span aria-hidden="true" class="muted">&middot;</span>' +
-      '<span style="color:var(--ink-body);font-weight:500">' + esc(sub.id) + '</span>';
+      '<a href="#/subscriptions/contracts/' + encodeURIComponent(sub.id) + '" style="color:var(--brand);font-weight:500;text-decoration:none">' + esc(sub.id) + '</a>';
   }
   function subscriptionDiscountLabel(discount) {
     const label = String((discount && discount.name) || '').trim();
@@ -636,8 +636,8 @@
   // Recurring-order strip at the top of the Product card — links back to the contract.
   function subOrderStrip(sub) {
     return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:10px 12px;background:#eef4ff;border:1px solid #d6e4ff;border-radius:8px;margin-bottom:12px;font-size:12.5px">' +
-      '<span style="color:#1d4ed8"><b>Recurring order</b> · from ' + esc(sub.id) + ' · cycle ' + sub.cycle + (sub.next ? ' · next charge ' + esc(sub.next) : '') + '</span>' +
-      '<span style="color:#1d4ed8;font-weight:600;white-space:nowrap">Subscription details included</span>' +
+      '<span style="color:#1d4ed8"><b>Recurring order</b> · from <a href="#/subscriptions/contracts/' + encodeURIComponent(sub.id) + '" style="color:inherit;font-weight:700;text-decoration:none">' + esc(sub.id) + '</a> · cycle ' + sub.cycle + (sub.next ? ' · next charge ' + esc(sub.next) : '') + '</span>' +
+      '<a href="#/subscriptions/contracts/' + encodeURIComponent(sub.id) + '" style="color:#1d4ed8;font-weight:600;white-space:nowrap;text-decoration:none">View contract →</a>' +
     '</div>';
   }
   // Bundle group block — component SKUs (+ gifts) under one header with a subtotal.
@@ -858,7 +858,7 @@
       const stage = cycle > 1 ? 'Renewal · cycle ' + cycle : 'Initial order · cycle 1';
       const schedule = contract.schedule ? String(contract.schedule).replace(/\s*\([^)]*\)\s*$/, '') : 'Delivery schedule recorded';
       return '<div style="padding:12px 0' + (index ? ';border-top:1px solid var(--hair)' : '') + '">' +
-        '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px"><div style="min-width:0"><div style="font-size:13px;font-weight:600;color:var(--ink)">' + esc(contract.id || 'Subscription contract') + '</div><div class="muted" style="font-size:12px;line-height:1.5;margin-top:3px">' + esc(schedule) + (contract.product ? ' · ' + esc(contract.product) : '') + '</div></div><span style="flex:none;color:#1d4ed8;background:#eef4ff;border-radius:999px;padding:3px 7px;font-size:11.5px;font-weight:600;white-space:nowrap">' + esc(stage) + '</span></div>' +
+        '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px"><div style="min-width:0"><div style="font-size:13px;font-weight:600;color:var(--ink)">' + (contract.id ? '<a href="#/subscriptions/contracts/' + encodeURIComponent(contract.id) + '" style="color:var(--brand);text-decoration:none">' + esc(contract.id) + '</a>' : 'Subscription contract') + '</div><div class="muted" style="font-size:12px;line-height:1.5;margin-top:3px">' + esc(schedule) + (contract.product ? ' · ' + esc(contract.product) : '') + '</div></div><span style="flex:none;color:#1d4ed8;background:#eef4ff;border-radius:999px;padding:3px 7px;font-size:11.5px;font-weight:600;white-space:nowrap">' + esc(stage) + '</span></div>' +
         (contract.next ? '<div style="font-size:12px;color:var(--ink-body);margin-top:7px">Next charge <strong>' + esc(contract.next) + '</strong></div>' : '') +
       '</div>';
     }).join('');

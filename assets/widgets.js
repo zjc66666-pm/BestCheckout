@@ -26,6 +26,22 @@
 
   // ---------- shared popover layer ----------
   var openLayer = null;
+  function placePop(anchor, panel, opts) {
+    opts = opts || {};
+    var r = anchor.getBoundingClientRect();
+    var pw = panel.offsetWidth, ph = panel.offsetHeight;
+    var gap = opts.gap != null ? opts.gap : 4;
+    var left = r.left;
+    if (opts.align === 'right') left = r.right - pw;
+    if (left + pw > window.innerWidth - 8) left = window.innerWidth - 8 - pw;
+    if (left < 8) left = 8;
+    var top = r.bottom + gap;
+    var spaceBelow = window.innerHeight - 8 - top;
+    var spaceAbove = r.top - 8 - gap;
+    if (!opts.preferBelow && ph > spaceBelow && spaceAbove > spaceBelow) top = r.top - gap - ph;
+    panel.style.top = top + 'px';
+    panel.style.left = left + 'px';
+  }
   function closePop() {
     if (!openLayer) return;
     var l = openLayer; openLayer = null;
@@ -42,15 +58,7 @@
     panel.classList.add('menu-pop');
     layer.appendChild(panel);
     document.body.appendChild(layer);
-    var r = anchor.getBoundingClientRect();
-    var pw = panel.offsetWidth, ph = panel.offsetHeight;
-    var left = r.left, top = r.bottom + 6;
-    if (opts.align === 'right') left = r.right - pw;
-    if (left + pw > window.innerWidth - 8) left = window.innerWidth - 8 - pw;
-    if (left < 8) left = 8;
-    if (top + ph > window.innerHeight - 8) top = Math.max(8, r.top - 6 - ph); // flip up
-    panel.style.top = top + 'px';
-    panel.style.left = left + 'px';
+    placePop(anchor, panel, opts);
     layer._close = closePop;
     layer._out = function (e) { if (!panel.contains(e.target) && !anchor.contains(e.target)) closePop(); };
     setTimeout(function () { document.addEventListener('mousedown', layer._out, true); }, 0);
@@ -63,6 +71,25 @@
   }
 
   // ---------- 1. custom select ----------
+  function fitSelectToOptions(sel, btn) {
+    if (!btn || !btn.isConnected) return;
+    var cs = window.getComputedStyle(btn);
+    var probe = document.createElement('span');
+    probe.style.cssText = 'position:absolute;left:-9999px;top:0;visibility:hidden;white-space:nowrap;font:' + cs.font;
+    document.body.appendChild(probe);
+    var max = 0;
+    Array.prototype.forEach.call(sel.options, function (o) {
+      probe.textContent = o.textContent || '';
+      if (probe.offsetWidth > max) max = probe.offsetWidth;
+    });
+    document.body.removeChild(probe);
+    var padL = parseFloat(cs.paddingLeft) || 10;
+    var padR = parseFloat(cs.paddingRight) || 10;
+    var gap = parseFloat(cs.gap || cs.columnGap) || 8;
+    btn.style.width = Math.ceil(max + padL + padR + gap + 14 + 8) + 'px';
+    btn.style.flex = 'none';
+  }
+
   function enhanceSelect(sel) {
     sel.setAttribute('data-ui', '1');
     var btn = document.createElement('div');
@@ -75,11 +102,22 @@
     btn.insertAdjacentHTML('beforeend', CHEV);
     function curText() { var o = sel.options[sel.selectedIndex]; return o ? o.textContent : ''; }
     function sync() { label.textContent = curText(); }
+    function syncDisabled() {
+      var off = !!sel.disabled;
+      btn.classList.toggle('is-disabled', off);
+      btn.setAttribute('aria-disabled', off ? 'true' : 'false');
+    }
     sync();
+    syncDisabled();
     sel.style.display = 'none';
     sel.parentNode.insertBefore(btn, sel);
+    if (sel.hasAttribute('data-ui-fit')) {
+      fitSelectToOptions(sel, btn);
+      setTimeout(function () { fitSelectToOptions(sel, btn); }, 0);
+    }
 
     btn.onclick = function () {
+      if (sel.disabled) return;
       if (openLayer && openLayer._owner === btn) { closePop(); return; }
       var panel = document.createElement('div');
       panel.className = 'ui-select-pop';
@@ -291,27 +329,34 @@
 
   // ---------- shared product picker (one implementation for collections / bundles / subscriptions) ----------
   // opts: { multiple:true, selected:[names], max:100, products:[], categories:[], fields:[], statusOptions:[], onConfirm:function(products){} }
+  // categories is optional. BestCheckout product pickers omit it — Shopify Category / productType is not synced.
+  // Status is always shown. Shopify DRAFT / ARCHIVED / UNLISTED are grouped as Draft.
   // products passed to onConfirm are the full picked rows ({name, sku, price, ...}).
   // variants: number of SKUs (1 = single-variant). priceMax > price = a price range. partial = some variants out of stock.
   var PP_PRODUCTS = [
-    { name: 'Neurix Focus & Energy Gum', sku: 'GUM-FE',  price: 34.99, priceMax: 39.99, variants: 4, inv: 1240, status: 'active', cat: 'supplements' },
-    { name: 'Peppermint Gum',            sku: 'GUM-PEP', price: 12.00, variants: 1, inv: 860,  status: 'active', cat: 'supplements' },
-    { name: 'Spearmint Gum',             sku: 'GUM-SPE', price: 12.00, variants: 1, inv: 540,  status: 'active', cat: 'supplements' },
-    { name: 'Watermelon Gum',            sku: 'GUM-WAT', price: 12.00, variants: 3, inv: 0,    status: 'active', cat: 'supplements' },
-    { name: 'Ginger Gum',                sku: 'GUM-GIN', price: 12.00, variants: 1, inv: 120,  status: 'draft',  cat: 'supplements' },
-    { name: 'Energy Drink Mix',          sku: 'DRK-ENE', price: 29.00, priceMax: 34.00, variants: 5, inv: 430,  status: 'active', cat: 'beverages' },
-    { name: 'Focus Capsules',            sku: 'CAP-FOC', price: 39.00, priceMax: 45.00, variants: 2, inv: 210,  status: 'active', cat: 'supplements' },
-    { name: 'Sleep Gummies',             sku: 'GUM-SLP', price: 24.00, priceMax: 28.00, variants: 3, inv: 780,  status: 'active', cat: 'supplements' },
-    { name: 'Greens Powder',             sku: 'PWD-GRN', price: 35.00, variants: 1, inv: 90,   status: 'active', cat: 'beverages' },
-    { name: 'Signature Blend Coffee',    sku: 'COF-500', price: 24.00, priceMax: 30.00, variants: 4, inv: 1500, status: 'active', cat: 'beverages', partial: true },
-    { name: 'Cold Brew Concentrate',     sku: 'COF-CB',  price: 28.00, priceMax: 32.00, variants: 2, inv: 340,  status: 'active', cat: 'beverages' },
-    { name: 'Shaker Bottle',             sku: 'ACC-SHK', price: 9.99,  variants: 1, inv: 2000, status: 'active', cat: 'accessories' },
+    { name: 'Daily Multivitamin (60 ct)', sku: 'VIT-60',  id: '8211044098164', price: 38.00, variants: 1, inv: 980,  status: 'active', cat: 'supplements' },
+    { name: 'Neurix Focus & Energy Gum', sku: 'GUM-12',  id: '8392014826808', price: 34.99, priceMax: 39.99, variants: 4, inv: 1240, status: 'active', cat: 'supplements' },
+    { name: 'Peppermint Gum',            sku: 'GUM-PEP', id: '8392014957876', price: 12.00, variants: 1, inv: 860,  status: 'active', cat: 'supplements' },
+    { name: 'Spearmint Gum',             sku: 'GUM-SPE', id: '8392015088944', price: 12.00, variants: 1, inv: 540,  status: 'active', cat: 'supplements' },
+    { name: 'Watermelon Gum',            sku: 'GUM-WAT', id: '8392015220012', price: 12.00, variants: 3, inv: 0,    status: 'active', cat: 'supplements' },
+    { name: 'Ginger Gum',                sku: 'GUM-GIN', id: '8392015351080', price: 12.00, variants: 1, inv: 120,  status: 'draft',  cat: 'supplements' },
+    { name: 'Energy Drink Mix',          sku: 'DRK-ENE', id: '8392015482148', price: 29.00, priceMax: 34.00, variants: 5, inv: 430,  status: 'active', cat: 'beverages' },
+    { name: 'Focus Capsules',            sku: 'CAP-FOC', id: '8392015613216', price: 39.00, priceMax: 45.00, variants: 2, inv: 210,  status: 'active', cat: 'supplements' },
+    { name: 'Sleep Gummies',             sku: 'GUM-SLP', id: '8392015744284', price: 24.00, priceMax: 28.00, variants: 3, inv: 780,  status: 'active', cat: 'supplements' },
+    { name: 'Greens Powder',             sku: 'PWD-GRN', id: '8392015875352', price: 35.00, variants: 1, inv: 90,   status: 'active', cat: 'beverages' },
+    { name: 'Signature Blend Coffee',    sku: 'COF-500', id: '8211044229232', price: 24.00, priceMax: 30.00, variants: 4, inv: 1500, status: 'active', cat: 'beverages', partial: true },
+    { name: 'Vitamin C Serum Refill 30ml', sku: 'SKN-VC30', id: '8211044360300', price: 52.00, variants: 1, inv: 260, status: 'active', cat: 'supplements' },
+    { name: 'Limited Winter Candle',     sku: 'CND-WIN', id: '8211044491368', price: 28.00, variants: 1, inv: 40,   status: 'archived', cat: 'accessories' },
+    { name: 'Cold Brew Concentrate',     sku: 'COF-CB',  id: '8211044753504', price: 28.00, priceMax: 32.00, variants: 2, inv: 340,  status: 'active', cat: 'beverages' },
+    { name: 'Shaker Bottle',             sku: 'ACC-SHK', id: '8211044622436', price: 9.99,  variants: 1, inv: 2000, status: 'active', cat: 'accessories' },
   ];
   var PP_IMGS = ['https://silixwear.com/cdn/shop/files/Dark-GRAY.jpg?v=1776154216&width=120', 'https://silixwear.com/cdn/shop/files/01_cf6e37ef-a0ab-4c82-ac61-c30d06d3111e.jpg?width=120', 'https://silixwear.com/cdn/shop/files/01_50091071-d25f-4060-9fce-acd28e12ce10.jpg?width=120', 'https://silixwear.com/cdn/shop/files/7_3bd5ccd0-0637-4559-b7be-1cd8196b15d4.jpg?width=120'];
   PP_PRODUCTS.forEach(function (p, i) { p.image = PP_IMGS[i % PP_IMGS.length]; });
-  var PP_CATS = [{ value: 'supplements', label: 'Supplements' }, { value: 'beverages', label: 'Beverages' }, { value: 'accessories', label: 'Accessories' }];
-  var PP_FIELDS = [{ value: 'name', label: 'Product name' }, { value: 'sku', label: 'SKU' }];
-  var PP_STATUS = [['active', 'Active'], ['draft', 'Draft']];
+  var PP_FIELDS = [
+    { value: 'name', label: 'Product title', placeholder: 'Search product title' },
+    { value: 'id', label: 'Shopify product ID', placeholder: 'Search Shopify product ID' },
+    { value: 'sku', label: 'SKU', placeholder: 'Search SKU' },
+  ];
   var SRCH_ICO = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>';
   var X_ICO = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
   function ppMoney(n) { return '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: (n % 1 ? 2 : 0), maximumFractionDigits: 2 }); }
@@ -321,6 +366,8 @@
     return txt + (badge ? ' <span style="color:#c2620f;background:#fff2e6;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:600;white-space:nowrap">' + badge + '</span>' : '');
   }
   function ppPrice(p) { return (p.priceMax && p.priceMax > p.price) ? ppMoney(p.price) + ' ~ ' + ppMoney(p.priceMax) : ppMoney(p.price); }
+  function ppNormStatus(p) { return String((p && p.status) || '').toLowerCase() === 'active' ? 'active' : 'draft'; }
+  var PP_STATUS = [['active', 'Active'], ['draft', 'Draft']];
 
   function productPicker(opts) {
     opts = opts || {};
@@ -330,9 +377,9 @@
     // Subscriptions, Bundles and BestCheckout share this picker.  Callers can
     // provide their own catalog while keeping the same filtering/table UX.
     var products = (opts.products && opts.products.length ? opts.products : PP_PRODUCTS).slice();
-    var categories = opts.categories || PP_CATS;
+    var categories = (opts.categories && opts.categories.length) ? opts.categories : [];
     var fields = opts.fields || PP_FIELDS;
-    var statusOptions = opts.statusOptions || PP_STATUS;
+    var statusOptions = (opts.statusOptions && opts.statusOptions.length) ? opts.statusOptions : PP_STATUS;
     var st = { field: 'name', kw: '', kwApplied: '', cat: '', priceMin: '', priceMax: '', priceApplied: false, status: [], page: 1, size: 8, sel: new Set(opts.selected || []) };
     var backdrop = document.createElement('div'); backdrop.className = 'modal-backdrop';
     if (opts.zIndex != null) backdrop.style.zIndex = String(opts.zIndex);
@@ -343,20 +390,38 @@
 
     function filtered() {
       var rows = products.slice();
-      if (st.kwApplied) { var q = st.kwApplied.toLowerCase(); rows = rows.filter(function (p) { return (st.field === 'sku' ? p.sku : p.name).toLowerCase().indexOf(q) >= 0; }); }
-      if (st.cat) rows = rows.filter(function (p) { return p.cat === st.cat; });
+      if (st.kwApplied) {
+        var q = st.kwApplied.toLowerCase();
+        rows = rows.filter(function (p) {
+          if (st.field === 'sku') return String(p.sku || '').toLowerCase().indexOf(q) >= 0;
+          if (st.field === 'id') {
+            var raw = String(p.id || '').toLowerCase();
+            var digits = q.replace(/\D/g, '');
+            return raw.indexOf(q) >= 0 || !!(digits && raw.replace(/\D/g, '').indexOf(digits) >= 0);
+          }
+          return String(p.name || '').toLowerCase().indexOf(q) >= 0;
+        });
+      }
+      if (categories.length && st.cat) rows = rows.filter(function (p) { return p.cat === st.cat; });
       if (st.priceApplied) { var lo = st.priceMin !== '' ? Number(st.priceMin) : -Infinity, hi = st.priceMax !== '' ? Number(st.priceMax) : Infinity; rows = rows.filter(function (p) { var pmax = p.priceMax != null ? p.priceMax : p.price; return pmax >= lo && p.price <= hi; }); }
-      if (st.status.length) rows = rows.filter(function (p) { return st.status.indexOf(p.status) >= 0; });
+      if (st.status.length) rows = rows.filter(function (p) { return st.status.indexOf(ppNormStatus(p)) >= 0; });
       return rows;
     }
     function statusTxt() { var match = statusOptions.filter(function (s) { return s[0] === st.status[0]; })[0]; return st.status.length === 1 ? (match ? match[1] : 'Status') : (st.status.length > 1 ? st.status.length + ' selected' : 'Status'); }
-    function priceTxt() { var mn = st.priceMin !== '' ? ppMoney(st.priceMin) : 'Min', mx = st.priceMax !== '' ? ppMoney(st.priceMax) : 'Max'; return mn + ' - ' + mx; }
+    function priceTxt() {
+      var hasMin = st.priceMin !== '';
+      var hasMax = st.priceMax !== '';
+      if (hasMin && hasMax) return ppMoney(st.priceMin) + ' - ' + ppMoney(st.priceMax);
+      if (hasMin) return ppMoney(st.priceMin) + '+';
+      if (hasMax) return ppMoney(0) + ' - ' + ppMoney(st.priceMax);
+      return 'Price range';
+    }
     function tagList() {
       var t = [];
-      if (st.cat) t.push(['category', 'Category', (categories.filter(function (c) { return c.value === st.cat; })[0] || {}).label]);
+      if (categories.length && st.cat) t.push(['category', 'Category', (categories.filter(function (c) { return c.value === st.cat; })[0] || {}).label]);
       if (st.kwApplied) t.push(['keyword', (fields.filter(function (f) { return f.value === st.field; })[0] || {}).label, st.kwApplied]);
       if (st.priceApplied) t.push(['price', 'Price range', priceTxt()]);
-      if (st.status.length) t.push(['status', 'Status', st.status.map(function (s) { return s.charAt(0).toUpperCase() + s.slice(1); }).join(', ')]);
+      if (st.status.length) t.push(['status', 'Status', st.status.map(function (s) { var m = statusOptions.filter(function (o) { return o[0] === s; })[0]; return (m && m[1]) || s; }).join(', ')]);
       return t;
     }
     function pagerHtml(page, pages) {
@@ -366,34 +431,40 @@
     }
     var IMG = '<span style="width:36px;height:36px;border-radius:6px;background:#e9ecf2;color:#9aa3b2;display:grid;place-items:center;font-size:9px;font-weight:600;flex:none">IMG</span>';
 
-    function paint() {
+    function paint(keep) {
+      keep = keep || {};
       var rows = filtered(); var pages = Math.max(1, Math.ceil(rows.length / st.size));
       if (st.page > pages) st.page = pages;
       var pageRows = rows.slice((st.page - 1) * st.size, (st.page - 1) * st.size + st.size);
       var fieldOpts = fields.map(function (f) { return '<option value="' + f.value + '"' + (st.field === f.value ? ' selected' : '') + '>' + f.label + '</option>'; }).join('');
-      var catOpts = '<option value="">Category</option>' + categories.map(function (c) { return '<option value="' + c.value + '"' + (st.cat === c.value ? ' selected' : '') + '>' + c.label + '</option>'; }).join('');
+      var catHtml = categories.length
+        ? '<select class="filter-select" id="pp-cat" style="width:170px"><option value="">Category</option>' + categories.map(function (c) { return '<option value="' + c.value + '"' + (st.cat === c.value ? ' selected' : '') + '>' + c.label + '</option>'; }).join('') + '</select>'
+        : '';
+      var statusHtml = '<div class="sel-trigger" id="pp-status" style="width:118px"><span class="' + (st.status.length ? '' : 'muted') + '">' + statusTxt() + '</span>' + CHEV + '</div>';
       var tg = tagList();
       var rowHtml = function (p) {
         var on = st.sel.has(p.name);
         return '<tr data-pp="' + escAttr(p.name) + '" style="cursor:pointer">' +
           '<td style="width:44px"><input type="' + (multiple ? 'checkbox' : 'radio') + '"' + (on ? ' checked' : '') + ' style="width:15px;height:15px;accent-color:var(--brand);pointer-events:none" /></td>' +
-          '<td><div class="flex items-center gap-2"><span style="width:36px;height:36px;border-radius:6px;overflow:hidden;background:#e9ecf2;flex:none;display:inline-block">' + (p.image ? '<img src="' + escAttr(p.image) + '" alt="" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.remove()" />' : IMG) + '</span><span style="color:var(--ink)">' + escAttr(p.name) + '</span></div></td>' +
+          '<td><div class="flex items-center gap-2"><span style="width:36px;height:36px;border-radius:6px;overflow:hidden;background:#e9ecf2;flex:none;display:inline-block">' + (p.image ? '<img src="' + escAttr(p.image) + '" alt="" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.remove()" />' : IMG) + '</span><div style="min-width:0"><div style="color:var(--ink)">' + escAttr(p.name) + '</div>' +
+            ((p.sku || p.id) ? '<div class="muted" style="font-size:12px">' + escAttr([p.sku, p.id].filter(Boolean).join(' · ')) + '</div>' : '') +
+          '</div></div></td>' +
           '<td class="muted" style="font-size:13px">' + ppInventory(p) + '</td>' +
           '<td>' + ppPrice(p) + '</td>' +
-          '<td>' + (p.status === 'active' ? '<span class="pill pill-green">Active</span>' : '<span class="pill pill-gray">Draft</span>') + '</td>' +
+          '<td>' + (ppNormStatus(p) === 'active' ? '<span class="pill pill-green">Active</span>' : '<span class="pill pill-gray">Draft</span>') + '</td>' +
         '</tr>';
       };
       m.innerHTML =
         '<div class="modal-head flex items-center justify-between"><span>' + (multiple ? 'Add products' : 'Add product') + '</span><span data-x style="cursor:pointer">' + X_ICO + '</span></div>' +
         '<div class="modal-body">' +
           '<div class="flex items-center gap-2" style="flex-wrap:wrap">' +
-            '<div class="flex" style="width:340px"><select class="filter-select" id="pp-field" style="width:140px;border-top-right-radius:0;border-bottom-right-radius:0">' + fieldOpts + '</select>' +
-              '<div style="position:relative;flex:1"><input class="filter-input" id="pp-kw" placeholder="Search" value="' + escAttr(st.kw) + '" style="width:100%;padding-right:30px;border-top-left-radius:0;border-bottom-left-radius:0;margin-left:-1px" /><span style="position:absolute;right:9px;top:9px;color:var(--ink-muted)">' + SRCH_ICO + '</span></div></div>' +
-            '<select class="filter-select" id="pp-cat" style="width:170px">' + catOpts + '</select>' +
+            '<div class="flex items-center"><select class="filter-select" id="pp-field" data-ui-fit data-ui-match-width style="border-top-right-radius:0;border-bottom-right-radius:0">' + fieldOpts + '</select>' +
+              '<div style="position:relative;width:248px"><input class="filter-input" id="pp-kw" placeholder="' + escAttr((fields.filter(function (f) { return f.value === st.field; })[0] || {}).placeholder || 'Search') + '" value="' + escAttr(st.kw) + '" style="width:100%;padding-left:12px;padding-right:30px;border-top-left-radius:0;border-bottom-left-radius:0;margin-left:-1px" /><span class="filter-ico">' + SRCH_ICO + '</span></div></div>' +
+            catHtml +
             '<div class="sel-trigger" id="pp-price" style="width:170px"><span class="' + (st.priceApplied ? '' : 'muted') + '">' + (st.priceApplied ? priceTxt() : 'Price range') + '</span>' + CHEV + '</div>' +
-            '<div class="sel-trigger" id="pp-status" style="width:150px"><span class="' + (st.status.length ? '' : 'muted') + '">' + statusTxt() + '</span>' + CHEV + '</div>' +
+            statusHtml +
           '</div>' +
-          (tg.length ? '<div class="flex gap-2" style="flex-wrap:wrap;margin-top:8px" id="pp-tags">' + tg.map(function (t) { return '<span class="field-pill" data-clear="' + t[0] + '"><span class="muted">' + escAttr(t[1]) + ':</span> ' + escAttr(t[2]) + ' <span class="x">&times;</span></span>'; }).join('') + '</div>' : '') +
+          (tg.length ? '<div class="flex items-center gap-2" style="flex-wrap:wrap;margin-top:8px" id="pp-tags">' + tg.map(function (t) { return '<span class="field-pill" data-clear="' + t[0] + '"><span class="muted">' + escAttr(t[1]) + ':</span><span>' + escAttr(t[2]) + '</span><span class="x"></span></span>'; }).join('') + '</div>' : '') +
           '<div style="border:1px solid var(--hair);border-radius:8px;overflow:hidden;margin-top:12px"><div style="max-height:380px;overflow:auto"><table class="tbl"><thead><tr><th style="width:44px"></th><th>Product</th><th style="width:150px">Inventory</th><th style="width:100px">Price</th><th style="width:100px">Status</th></tr></thead><tbody id="pp-tbody">' +
             (pageRows.length ? pageRows.map(rowHtml).join('') : '<tr><td colspan="5" style="text-align:center;padding:36px" class="muted">No products match these filters.</td></tr>') +
           '</tbody></table></div></div>' +
@@ -408,20 +479,27 @@
       kw.oninput = function () { st.kw = kw.value; if (!kw.value.trim() && st.kwApplied) { st.kwApplied = ''; st.page = 1; paint(); } };
       kw.onkeydown = function (e) { if (e.key === 'Enter') { st.kwApplied = st.kw.trim(); st.page = 1; paint(); } };
       kw.onblur = function () { st.kwApplied = st.kw.trim(); st.page = 1; paint(); };
-      var cat = m.querySelector('#pp-cat'); cat.onchange = function () { st.cat = cat.value; st.page = 1; paint(); };
-      var statusChip = m.querySelector('#pp-status'); statusChip.onclick = function () { openStatusPop(statusChip); };
+      var cat = m.querySelector('#pp-cat');
+      if (cat) cat.onchange = function () { st.cat = cat.value; st.page = 1; paint(); };
+      var statusChip = m.querySelector('#pp-status');
+      if (statusChip) statusChip.onclick = function () { openStatusPop(statusChip); };
       var priceChip = m.querySelector('#pp-price'); if (priceChip) priceChip.onclick = function () { openPricePop(priceChip); };
       m.querySelectorAll('#pp-tags [data-clear]').forEach(function (tgl) { tgl.onclick = function () { var k = tgl.getAttribute('data-clear'); if (k === 'category') st.cat = ''; if (k === 'keyword') { st.kw = ''; st.kwApplied = ''; } if (k === 'price') { st.priceApplied = false; st.priceMin = ''; st.priceMax = ''; } if (k === 'status') st.status = []; st.page = 1; paint(); }; });
       m.querySelectorAll('#pp-tbody tr[data-pp]').forEach(function (tr) { tr.onclick = function () { var name = tr.getAttribute('data-pp'); if (multiple) { if (st.sel.has(name)) st.sel.delete(name); else if (st.sel.size < max) st.sel.add(name); } else { st.sel = new Set([name]); } paint(); }; });
       m.querySelectorAll('.pg-item[data-pg]').forEach(function (el) { el.onclick = function () { st.page = Number(el.getAttribute('data-pg')); paint(); }; });
       var ok = m.querySelector('[data-ok]'); if (ok) ok.onclick = function () { if (st.sel.size === 0) return; var picked = products.filter(function (p) { return st.sel.has(p.name); }); close(); onConfirm(picked); };
       if (window.UI && window.UI.scan) window.UI.scan(m);
+      if (window.I18N && window.I18N.apply) window.I18N.apply(m);
+      if (keep.statusPop) {
+        var nextStatus = m.querySelector('#pp-status');
+        if (nextStatus) openStatusPop(nextStatus);
+      }
     }
     function openStatusPop(anchor) {
       var panel = document.createElement('div'); panel.style.minWidth = '150px'; panel.style.padding = '6px';
-      panel.innerHTML = statusOptions.map(function (s) { return '<label class="flex items-center gap-2" style="padding:7px 10px;cursor:pointer;border-radius:6px"><input type="checkbox" data-v="' + s[0] + '"' + (st.status.indexOf(s[0]) >= 0 ? ' checked' : '') + ' style="width:15px;height:15px;accent-color:var(--brand)" /><span style="font-size:13px">' + s[1] + '</span></label>'; }).join('');
-      panel.querySelectorAll('input[data-v]').forEach(function (cb) { cb.onchange = function () { var v = cb.getAttribute('data-v'); if (cb.checked) { if (st.status.indexOf(v) < 0) st.status.push(v); } else st.status = st.status.filter(function (x) { return x !== v; }); st.page = 1; paint(); }; });
-      openPop(anchor, panel);
+      panel.innerHTML = statusOptions.map(function (s) { return '<label class="flex items-center gap-2" style="padding:6px 10px;cursor:pointer;border-radius:6px;line-height:1"><input type="checkbox" data-v="' + s[0] + '"' + (st.status.indexOf(s[0]) >= 0 ? ' checked' : '') + ' style="width:15px;height:15px;margin:0;accent-color:var(--brand);flex:none" /><span style="font-size:13px;line-height:1">' + s[1] + '</span></label>'; }).join('');
+      panel.querySelectorAll('input[data-v]').forEach(function (cb) { cb.onchange = function () { var v = cb.getAttribute('data-v'); if (cb.checked) { if (st.status.indexOf(v) < 0) st.status.push(v); } else st.status = st.status.filter(function (x) { return x !== v; }); st.page = 1; paint({ statusPop: true }); }; });
+      openPop(anchor, panel, { preferBelow: true, gap: 4 });
     }
     function openPricePop(anchor) {
       var panel = document.createElement('div'); panel.style.minWidth = '300px'; panel.style.padding = '14px';
@@ -437,7 +515,7 @@
         '</div>';
       panel.querySelector('[data-pp-papply]').onclick = function () { st.priceMin = panel.querySelector('#pp-pmin').value; st.priceMax = panel.querySelector('#pp-pmax').value; st.priceApplied = (st.priceMin !== '' || st.priceMax !== ''); st.page = 1; closePop(); paint(); };
       panel.querySelector('[data-pp-pclear]').onclick = function () { st.priceMin = ''; st.priceMax = ''; st.priceApplied = false; st.page = 1; closePop(); paint(); };
-      openPop(anchor, panel);
+      openPop(anchor, panel, { preferBelow: true, gap: 4 });
     }
     paint();
   }
@@ -479,7 +557,7 @@
     m.innerHTML =
       '<div class="modal-head flex items-center justify-between"><span>Add bundle</span><span data-x style="cursor:pointer">' + X_ICO + '</span></div>' +
       '<div class="modal-body">' +
-        '<div style="position:relative;width:340px"><input class="filter-input" id="bp-kw" placeholder="Search bundles" style="width:100%;padding-right:30px" /><span style="position:absolute;right:9px;top:9px;color:var(--ink-muted)">' + SRCH_ICO + '</span></div>' +
+        '<div style="position:relative;width:340px"><input class="filter-input" id="bp-kw" placeholder="Search bundles" style="width:100%;padding-right:30px" /><span class="filter-ico">' + SRCH_ICO + '</span></div>' +
         '<div style="border:1px solid var(--hair);border-radius:8px;overflow:hidden;margin-top:12px"><div style="max-height:380px;overflow:auto"><table class="tbl"><thead><tr><th style="width:44px"></th><th>Bundle</th><th style="width:180px">Parent product</th><th style="width:150px">Template</th><th style="width:90px">Status</th></tr></thead><tbody id="bp-tbody"></tbody></table></div></div>' +
       '</div>' +
       '<div class="modal-foot flex items-center justify-end gap-3"><button class="btn btn-default" data-cancel>Cancel</button><button class="btn btn-primary" disabled data-ok>Add bundle</button></div>';

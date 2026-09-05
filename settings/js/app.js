@@ -56,6 +56,8 @@
     google:    svg('<path d="M20.5 12.2c0 4.7-3.2 8-8.3 8A8.2 8.2 0 1 1 12 3.8c2.1 0 3.8.8 5.1 2L15 7.8A4.8 4.8 0 1 0 16 13h-3.8V10h8.1c.1.5.2 1.1.2 2.2Z"/>', 18),
     external: svg('<path d="M14 5h5v5"/><path d="M10 14 19 5"/><path d="M19 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/>', 14),
     alert: svg('<path d="M10.3 4.2 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/>', 16),
+    refresh: svg('<path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v5h-5"/>', 16),
+    eye: svg('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>', 16),
   };
 
   // Backend returns required[] and existing[]. This prototype keeps the same
@@ -63,7 +65,7 @@
   const SHOPIFY_SCOPES_DOCS = 'https://shopify.dev/docs/api/usage/access-scopes';
   const SHOPIFY_REQUIRED_SCOPES = [
     'read_customers', 'read_discounts', 'read_inventory', 'write_order_edits', 'read_order_edits',
-    'read_orders', 'write_orders', 'read_products', 'read_reports', 'read_script_tags',
+    'read_orders', 'write_orders', 'read_products', 'read_purchase_options', 'read_reports', 'read_script_tags',
     'write_script_tags', 'read_shipping', 'write_draft_orders', 'read_draft_orders', 'read_legal_policies'
   ];
 
@@ -91,11 +93,185 @@
     return 'https://admin.shopify.com/store/' + encodeURIComponent(shopifyStoreHandle(store));
   }
 
+  function subscriptionState() {
+    if (!D.subscriptions) D.subscriptions = { lastSyncedLabel: 'just now', sellingPlans: [], contracts: [] };
+    if (!D.subscriptions.contracts) D.subscriptions.contracts = [];
+    return D.subscriptions;
+  }
+
+  function subscriptionSummary() {
+    const plans = (subscriptionState().sellingPlans || []);
+    const shopify = plans.filter((p) => p.origin !== 'bestcheckout');
+    const local = plans.filter((p) => p.origin === 'bestcheckout');
+    const mapped = shopify.filter((p) => p.mapping === 'mapped').length;
+    const unmatched = shopify.filter((p) => p.mapping === 'unmatched').length;
+    const skipped = shopify.filter((p) => p.mapping === 'skipped').length;
+    return {
+      total: plans.length,
+      shopify: shopify.length,
+      local: local.length,
+      mapped: mapped,
+      unmatched: unmatched,
+      skipped: skipped,
+      countLabel: shopify.length + ' Shopify · ' + local.length + ' checkout-only',
+      headline: shopify.length + ' from Shopify · ' + local.length + ' created here · last refresh ' + (subscriptionState().lastSyncedLabel || 'just now'),
+    };
+  }
+
+  function intervalLabel(interval) {
+    if (!interval) return '—';
+    const unit = interval.every === 1 ? interval.unit : interval.unit + 's';
+    return 'Every ' + interval.every + ' ' + unit;
+  }
+  function checkoutCadenceLabel(interval) {
+    const every = Number(interval && interval.every);
+    const raw = String((interval && interval.unit) || '').toLowerCase();
+    if (!every || !raw) return 'Delivery every 1 month';
+    const unit = every === 1 ? raw.replace(/s$/, '') : (/s$/.test(raw) ? raw : raw + 's');
+    return 'Delivery every ' + every + ' ' + unit;
+  }
+
+  function discountLabel(discount) {
+    if (!discount) return '—';
+    if (discount.type === 'percent') return discount.value + '% off';
+    return '$' + Number(discount.value).toFixed(2) + ' off';
+  }
+
+  function mappingPill(mapping) {
+    if (mapping === 'mapped') return '<span class="pill pill-green">Ready to use</span>';
+    if (mapping === 'unmatched') return '<span class="pill pill-orange">Product not synced</span>';
+    if (mapping === 'skipped') return '<span class="pill pill-gray">Not used</span>';
+    return '<span class="pill pill-orange">Product not synced</span>';
+  }
+
+  function refreshSellingPlans(done) {
+    const state = subscriptionState();
+    state.lastSyncedLabel = 'just now';
+    state.lastSyncedAt = '2026-09-05 14:10';
+    toast('Subscriptions refreshed from Shopify');
+    if (done) done();
+  }
+
   // The shared shell translates lazily rendered views at runtime. Register this
   // page's copy here so the Chinese interface stays coherent without changing
   // the English source strings used by the rest of the prototype.
   if (window.I18N && window.I18N.extend) {
     window.I18N.extend({
+      'Subscriptions': '订阅',
+      'Plans': '订阅',
+      'Contracts': '合同',
+      'Created after a successful BestCheckout payment. Shopify app contracts stay in that app.': '支付成功后才会在 BestCheckout 生成。Shopify 订阅应用里的合同仍留在原应用。',
+      'Contract ID': '合同 ID',
+      'Search customer': '搜索客户',
+      'Search email': '搜索邮箱',
+      'Search plan': '搜索订阅',
+      'Search subscription': '搜索订阅',
+      'Subscription': '订阅',
+      'Search contract ID': '搜索合同 ID',
+      'No contracts in this view.': '这个视图里还没有合同。',
+      'Next charge': '下次扣款',
+      'Past due': '逾期',
+      'Cancelled': '已取消',
+      'Frequency': '周期',
+      'Amount per cycle': '每期金额',
+      'Charges completed': '已扣款次数',
+      'Billing schedule': '扣款计划',
+      'Upcoming orders': '即将扣款',
+      'Past orders': '历史订单',
+      'Activity log': '活动记录',
+      'Change shipping address': '修改收货地址',
+      'Retry payment now': '立即重试扣款',
+      'Update payment method': '更新支付方式',
+      'Cancel subscription': '取消订阅',
+      'Cancel this subscription? It will stop future charges.': '取消这份订阅？之后将不再扣款。',
+      'Edit shipping address': '编辑收货地址',
+      'This contract was not found': '找不到这份合同。',
+      'Selling plans from Shopify': '来自 Shopify 的订阅',
+      'Imported from Shopify Selling Plans. Create or edit them in Shopify or your subscription app.': '从 Shopify 导入。请在 Shopify 或订阅应用中创建和编辑。',
+      'Sync Shopify selling plans, or create a checkout-only plan that stays off the product page.': '可同步 Shopify 订阅，也可在这里创建只出现在结账页、不出现在商品详情页的订阅。',
+      'Sync Shopify subscriptions, or create a checkout-only subscription that stays off the product page.': '可同步 Shopify 订阅，也可在这里创建只出现在结账页、不出现在商品详情页的订阅。',
+      'Refresh Shopify subscriptions, or create a checkout-only subscription that stays off the product page.': '可刷新 Shopify 订阅，也可创建只出现在结账页、不出现在商品详情页的订阅。',
+      'Shopify-imported subscriptions stay on the product page. Subscriptions created in BestCheckout appear at checkout only. Multipack prices belong in Bundles.': '从 Shopify 导入的订阅仍会出现在商品详情页。在 BestCheckout 创建的订阅只出现在结账页。多件装价格请到套装里设置。',
+      'Product-level subscriptions imported from Shopify': '从 Shopify 导入的商品级订阅',
+      'Subscriptions refreshed from Shopify': '已从 Shopify 刷新订阅',
+      'This subscription was not found': '找不到这条订阅。',
+      'No subscriptions yet. Refresh Shopify or add a checkout-only subscription.': '还没有订阅。请刷新 Shopify，或添加一条仅结账页订阅。',
+      'Add subscription': '添加订阅',
+      'Create subscription': '创建订阅',
+      'Edit subscription': '编辑订阅',
+      'View subscription': '查看订阅',
+      'Back': '返回',
+      'Save subscription': '保存订阅',
+      'Delete subscription': '删除订阅',
+      'Subscription name': '订阅名称',
+      'Subscription ID': '订阅 ID',
+      'Subscription details': '订阅详情',
+      'Search subscription name': '搜索订阅名称',
+      'Search subscription ID': '搜索订阅 ID',
+      'Product title': '商品标题',
+      'Shopify product ID': 'Shopify 商品 ID',
+      'Search product title': '搜索商品标题',
+      'Search Shopify product ID': '搜索 Shopify 商品 ID',
+      'Search SKU': '搜索 SKU',
+      'Refresh subscriptions': '刷新订阅',
+      'Please enter a subscription name.': '请输入订阅名称。',
+      'Shopify imported subscriptions are read-only here. Change them in Shopify or the subscription app, then refresh.': '从 Shopify 导入的订阅在这里只能查看。请到 Shopify 或订阅应用里修改，然后刷新。',
+      'This imported subscription already appears on the Shopify product page.': '这条导入订阅已经出现在 Shopify 商品详情页。',
+      'BestCheckout does not write this subscription to Shopify. Buyers will not see it on the product page.': 'BestCheckout 不会把这条订阅写回 Shopify。买家在商品详情页看不到它。',
+      'Checkout applies this subscription when the cart contains this product.': '购物车包含该商品时，结账会套用这条订阅。',
+      'Imported Shopify subscriptions stay read-only.': '从 Shopify 导入的订阅在这里只能查看。',
+      'Delete this checkout-only subscription? Checkout will stop offering it.': '删除这条仅结账页订阅？结账将不再提供该优惠。',
+      'Subscription list': '订阅列表',
+      'Refresh': '刷新',
+      'Ready to use': '可用',
+      'Product not synced': '商品未同步',
+      'Not used': '未使用',
+      'Selling plan': '订阅',
+      'Interval': '周期',
+      'Discount': '折扣',
+      'Source app': '来源应用',
+      'View subscriptions': '查看订阅',
+      'Refresh selling plans': '刷新订阅',
+      'Add plan': '添加订阅',
+      'Edit plan': '编辑订阅',
+      'Create plan': '创建订阅',
+      'Save plan': '保存订阅',
+      'Checkout only': '仅结账页',
+      'Product page + checkout': '商品页 + 结账页',
+      'Shown on': '展示位置',
+      'BestCheckout': 'BestCheckout',
+      'Source': '来源',
+      'Plan name': '订阅名称',
+      'Shopify product': 'Shopify 商品',
+      'Plan details': '订阅详情',
+      'Shown as the subscription line in checkout.': '只用于后台列表，不会出现在结账行。',
+      'Used in the BestCheckout list only. Checkout shows Delivery every {interval}, not this name.': '只用于 BestCheckout 后台列表。结账行按周期拼接，例如 Delivery every 1 month，不会显示这个名称。',
+      'e.g. Subscribe & save': '例如 Subscribe & save',
+      'Every': '每',
+      'Add product': '添加商品',
+      'Change': '更换',
+      'No product selected': '未选择商品',
+      'Checkout preview': '结账预览',
+      'Billing interval': '计费周期',
+      'This offer stays off the Shopify product page.': '该优惠不会出现在 Shopify 商品详情页。',
+      'This imported plan already appears on the Shopify product page.': '这条导入订阅已经出现在 Shopify 商品详情页。',
+      'Create a checkout-only subscription that shoppers see after they start checkout.': '创建一个只在结账页出现的订阅，买家进入结账后才会看到。',
+      'Shopify imported plans are read-only here. Change them in Shopify or the subscription app, then refresh.': '从 Shopify 导入的订阅在这里只能查看。请到 Shopify 或订阅应用里修改，然后刷新。',
+      'Please enter a plan name.': '请输入订阅名称。',
+      'Select a Shopify product.': '请选择一个 Shopify 商品。',
+      'Interval must be at least 1.': '周期间隔必须不小于 1。',
+      'Enter a discount greater than 0.': '请输入大于 0 的折扣。',
+      'Percentage discount cannot exceed 100.': '百分比折扣不能超过 100。',
+      'All sources': '全部来源',
+      'All visibility': '全部展示位置',
+      'Plan ID': '订阅 ID',
+      'Search plan name': '搜索订阅名称',
+      'Search product': '搜索商品',
+      'Search plan ID': '搜索订阅 ID',
+      'Reset': '重置',
+      'Shopify': 'Shopify',
+      '% off': '% 折扣',
+      '$ off': '金额折扣',
       'Manage the transactional messages your store sends automatically.': '管理店铺自动发送的事务邮件。',
       'Sender identity': '发件身份',
       'Manage sender identity': '管理发件身份',
@@ -456,8 +632,36 @@
       'Copy': '复制',
       'Missing scopes copied': '缺少的权限已复制',
       'Granted scopes copied': '已授予权限已复制',
+      'Products, variants & inventory': '商品、款式与库存',
+      'Product selection, SKU, price, and inventory checks': '商品选择、SKU、价格和库存校验',
+      'Collection selectors, collection rules, and product filters': '系列选择器、系列规则和商品筛选',
+      'Customers & order history': '客户与历史订单',
+      'Customer eligibility, tags, and returning-customer rules': '客户资格、标签和回头客规则',
+      'Discounts & discount codes': '折扣与折扣码',
+      'Automatic discounts, discount codes, and offer eligibility': '自动折扣、折扣码和优惠资格',
+      'Shipping zones, rates & delivery profiles': '配送区域、运费与配送方案',
+      'Accurate shipping calculation after the buyer enters an address': '买家填写地址后计算准确运费',
+      'Store settings': '店铺设置',
+      'Store currency, timezone, and brand defaults': '店铺币种、时区和品牌默认值',
+      'All data synced · just now': '全部数据已同步 · 刚刚',
+      'Syncing data…': '正在同步数据…',
+      'Shopify data sync completed': 'Shopify 数据同步完成',
     }).addRules([
       { re: /^(\d+) of (\d+) required permissions granted$/, zh: function (m) { return '已授予 ' + m[1] + ' / ' + m[2] + ' 项必需权限'; } },
+      { re: /^(\d+) mapped · (\d+) unmatched · last refresh (.+)$/, zh: function (m) {
+        var when = m[3] === 'just now' ? '刚刚' : (/^(\d+) min ago$/.test(m[3]) ? (m[3].match(/^(\d+)/)[1] + ' 分钟前') : m[3]);
+        return m[1] + ' 可用 · ' + m[2] + ' 商品未同步 · 上次刷新 ' + when;
+      } },
+      { re: /^All data synced · (.+)$/, zh: function (m) {
+        var when = m[1] === 'just now' ? '刚刚' : (/^(\d+) min ago$/.test(m[1]) ? (m[1].match(/^(\d+)/)[1] + ' 分钟前') : m[1]);
+        return '全部数据已同步 · ' + when;
+      } },
+      { re: /^([\d,]+) products$/, zh: function (m) { return m[1] + ' 个商品'; } },
+      { re: /^([\d,]+) collections$/, zh: function (m) { return m[1] + ' 个系列'; } },
+      { re: /^([\d,]+) customers$/, zh: function (m) { return m[1] + ' 位客户'; } },
+      { re: /^(\d+) active$/, zh: function (m) { return m[1] + ' 个生效中'; } },
+      { re: /^(\d+) profiles$/, zh: function (m) { return m[1] + ' 个方案'; } },
+      { re: /^(\d+) plans$/, zh: function (m) { return m[1] + ' 个计划'; } },
       { re: /^Granted scopes: (.+)$/, zh: function (m) { return '已授予权限：' + m[1]; } },
       { re: /^(\d+) channels active$/, zh: function (m) { return m[1] + ' 个渠道已启用'; } },
       { re: /^(\d+) channels connected$/, zh: function (m) { return m[1] + ' 个渠道已连接'; } },
@@ -526,9 +730,11 @@
   // ===========================================================================
   // `centered` pages mirror the real admin's centered w-[860px] forms.
   function paint(bodyHtml, centered) {
+    const wrap = centered === 'full'
+      ? bodyHtml
+      : '<div class="set-page' + (centered ? ' set-narrow' : '') + '">' + bodyHtml + '</div>';
     root.innerHTML =
-      '<style>' + STYLES + '</style>' +
-      '<div class="set-page' + (centered ? ' set-narrow' : '') + '">' + bodyHtml + '</div>';
+      '<style>' + STYLES + '</style>' + wrap;
     if (window.I18N && window.I18N.apply) window.I18N.apply(root);
     // wire generic toggles (visual only)
     root.querySelectorAll('[data-toggle]').forEach((el) => el.onclick = () => el.classList.toggle('on'));
@@ -814,7 +1020,7 @@
     };
     const body =
       '<style>' +
-        '.bc-store-kicker{font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--ink-muted);text-transform:uppercase;margin-bottom:10px}.bc-store-name{font-size:17px;font-weight:700;color:var(--ink);margin-bottom:4px}.bc-store-domain{font-size:13px;color:var(--ink-muted)}.bc-store-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px;padding-top:16px;border-top:1px solid var(--hair)}.bc-store-fact small{display:block;color:var(--ink-muted);font-size:11px;margin-bottom:4px}.bc-store-fact strong{display:block;color:var(--ink-body);font-size:13px;font-weight:600;line-height:1.4}.bc-credentials{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px}.bc-credential small{display:block;margin-bottom:6px;color:var(--ink-muted);font-size:11px;font-weight:600}.bc-credential-control{display:flex;align-items:center;min-width:0;height:38px;border:1px solid var(--ctl);border-radius:8px;background:#fff}.bc-credential-control code{min-width:0;flex:1;overflow:hidden;padding-left:11px;color:var(--ink-body);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;letter-spacing:.035em;text-overflow:ellipsis;white-space:nowrap}.bc-credential-toggle{display:grid;place-items:center;width:36px;height:36px;flex:none;border:0;border-radius:7px;background:transparent;color:var(--ink-muted);cursor:pointer}.bc-credential-toggle:hover{background:#f1f5fa;color:var(--brand)}.bc-credential-toggle:focus-visible{outline:2px solid var(--brand);outline-offset:1px}.bc-scope-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.bc-scope-title{display:flex;align-items:center;gap:6px}.bc-scope-title .card-title{margin:0}.bc-scope-docs{display:inline-grid;place-items:center;width:18px;height:18px;border:1px solid var(--ctl);border-radius:50%;color:var(--ink-muted);font-size:12px;font-weight:700;line-height:1;text-decoration:none}.bc-scope-docs:hover{border-color:var(--brand);color:var(--brand)}.bc-scope-status{margin-top:2px;white-space:nowrap}.bc-scope-compare{display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px}.bc-scope-panel{min-width:0;padding:12px 14px;border:1px solid var(--hair);border-radius:10px;background:#fafbfd}.bc-scope-panel.is-miss{border-color:#f3d2a4;background:#fffdf8}.bc-scope-panel.is-ok{border-color:#ccebd8;background:#f6fbf8}.bc-scope-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}.bc-scope-panel-head small{display:flex;align-items:center;gap:8px;margin:0;font-size:12px;font-weight:650}.bc-scope-panel.is-miss .bc-scope-panel-head small{color:#9a4b00}.bc-scope-panel.is-ok .bc-scope-panel-head small{color:#14834c}.bc-scope-panel-head button{border:0;background:none;color:var(--brand);padding:0;font:inherit;font-size:12.5px;font-weight:650;cursor:pointer}.bc-scope-count{display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:999px;border:1px solid currentColor;background:#fff;font-size:11px;font-weight:650;line-height:1}.bc-scope-chips{display:flex;flex-wrap:wrap;gap:8px}.bc-scope-chip{display:inline-flex;align-items:center;height:26px;padding:0 9px;border:1px solid #d7deea;border-radius:6px;background:#fff;color:#3b4a63;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1;white-space:nowrap}.bc-scope-chip.is-miss{border-color:#f0c48a;background:#fff6ea;color:#9a4b00}.bc-scope-chip.is-ok{border-color:#b7e4c7;background:#eef9f2;color:#14834c}.bc-scope-alert{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:12px;padding:11px 12px;border:1px solid #f3d2a4;border-radius:10px;background:#fff8ee;color:#7a4b09;font-size:12.5px;line-height:1.5}.bc-scope-alert>div{display:flex;align-items:flex-start;gap:8px;min-width:0}.bc-scope-alert svg{flex:none;margin-top:1px}.bc-scope-alert .btn{display:inline-flex;align-items:center;gap:6px;flex:none}.bc-sync-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.bc-sync-status{margin-top:2px;white-space:nowrap}.bc-store-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 0;border-top:1px solid var(--hair)}.bc-store-row:first-child{border-top:0;padding-top:0}.bc-store-row strong{display:block;font-size:13.5px;color:var(--ink)}.bc-store-row span,.bc-store-row small{display:block;font-size:12px;color:var(--ink-muted);margin-top:3px;line-height:1.45}.bc-store-row-end{display:flex;align-items:center;gap:10px;white-space:nowrap}.bc-store-row-end>b{font-size:13px;color:var(--ink)}.bc-writeback{display:flex;align-items:flex-start;gap:11px;padding:14px 16px}.bc-writeback-ico{width:28px;height:28px;display:grid;place-items:center;flex:none;border-radius:50%;background:#e8f8ef;color:#14834c}.bc-writeback strong{display:block;font-size:13.5px;color:var(--ink);margin-bottom:4px}.bc-writeback p{margin:0;color:var(--ink-muted);font-size:12.5px;line-height:1.55}.bc-writeback-links{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:12.5px;font-weight:500}.bc-connection-option{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:13px 0;border-top:1px solid var(--hair)}.bc-connection-option:first-child{padding-top:0;border-top:0}.bc-connection-option strong{display:block;font-size:13px;color:var(--ink)}.bc-connection-option span{display:block;font-size:12px;color:var(--ink-muted);line-height:1.5;margin-top:3px}@media(max-width:760px){.bc-store-facts,.bc-credentials,.bc-scope-compare{grid-template-columns:1fr;gap:10px}.bc-scope-heading,.bc-sync-heading,.bc-scope-alert{align-items:flex-start;flex-direction:column}.bc-scope-alert .btn{width:100%;justify-content:center}.bc-store-row,.bc-connection-option{align-items:flex-start;flex-direction:column}.bc-store-row-end{flex-direction:row;align-items:center}}' +
+        '.bc-store-kicker{font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--ink-muted);text-transform:uppercase;margin-bottom:10px}.bc-store-name{font-size:17px;font-weight:700;color:var(--ink);margin-bottom:4px}.bc-store-domain{font-size:13px;color:var(--ink-muted)}.bc-store-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px;padding-top:16px;border-top:1px solid var(--hair)}.bc-store-fact small{display:block;color:var(--ink-muted);font-size:11px;margin-bottom:4px}.bc-store-fact strong{display:block;color:var(--ink-body);font-size:13px;font-weight:600;line-height:1.4}.bc-credentials{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px}.bc-credential small{display:block;margin-bottom:6px;color:var(--ink-muted);font-size:11px;font-weight:600}.bc-credential-control{display:flex;align-items:center;min-width:0;height:38px;border:1px solid var(--ctl);border-radius:8px;background:#fff}.bc-credential-control code{min-width:0;flex:1;overflow:hidden;padding-left:11px;color:var(--ink-body);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;letter-spacing:.035em;text-overflow:ellipsis;white-space:nowrap}.bc-credential-toggle{display:grid;place-items:center;width:36px;height:36px;flex:none;border:0;border-radius:7px;background:transparent;color:var(--ink-muted);cursor:pointer}.bc-credential-toggle:hover{background:#f1f5fa;color:var(--brand)}.bc-credential-toggle:focus-visible{outline:2px solid var(--brand);outline-offset:1px}.bc-scope-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.bc-scope-title{display:flex;align-items:center;gap:6px}.bc-scope-title .card-title{margin:0}.bc-scope-docs{display:inline-grid;place-items:center;width:18px;height:18px;border:1px solid var(--ctl);border-radius:50%;color:var(--ink-muted);font-size:12px;font-weight:700;line-height:1;text-decoration:none}.bc-scope-docs:hover{border-color:var(--brand);color:var(--brand)}.bc-scope-status{margin-top:2px;white-space:nowrap}.bc-scope-compare{display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px}.bc-scope-panel{min-width:0;padding:12px 14px;border:1px solid var(--hair);border-radius:10px;background:#fafbfd}.bc-scope-panel.is-miss{border-color:#f3d2a4;background:#fffdf8}.bc-scope-panel.is-ok{border-color:#ccebd8;background:#f6fbf8}.bc-scope-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}.bc-scope-panel-head small{display:flex;align-items:center;gap:8px;margin:0;font-size:12px;font-weight:650}.bc-scope-panel.is-miss .bc-scope-panel-head small{color:#9a4b00}.bc-scope-panel.is-ok .bc-scope-panel-head small{color:#14834c}.bc-scope-panel-head button{border:0;background:none;color:var(--brand);padding:0;font:inherit;font-size:12.5px;font-weight:650;cursor:pointer}.bc-scope-count{display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:999px;border:1px solid currentColor;background:#fff;font-size:11px;font-weight:650;line-height:1}.bc-scope-chips{display:flex;flex-wrap:wrap;gap:8px}.bc-scope-chip{display:inline-flex;align-items:center;height:26px;padding:0 9px;border:1px solid #d7deea;border-radius:6px;background:#fff;color:#3b4a63;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1;white-space:nowrap}.bc-scope-chip.is-miss{border-color:#f0c48a;background:#fff6ea;color:#9a4b00}.bc-scope-chip.is-ok{border-color:#b7e4c7;background:#eef9f2;color:#14834c}.bc-scope-alert{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:12px;padding:11px 12px;border:1px solid #f3d2a4;border-radius:10px;background:#fff8ee;color:#7a4b09;font-size:12.5px;line-height:1.5}.bc-scope-alert>div{display:flex;align-items:flex-start;gap:8px;min-width:0}.bc-scope-alert svg{flex:none;margin-top:1px}.bc-scope-alert .btn{display:inline-flex;align-items:center;gap:6px;flex:none}.bc-sync-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.bc-sync-status{margin-top:2px;white-space:nowrap}.bc-store-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 0;border-top:1px solid var(--hair)}.bc-store-row:first-child{border-top:0;padding-top:0}.bc-store-row strong{display:block;font-size:13.5px;color:var(--ink)}.bc-store-row span,.bc-store-row small{display:block;font-size:12px;color:var(--ink-muted);margin-top:3px;line-height:1.45}.bc-store-row-end{display:flex;align-items:center;gap:10px;white-space:nowrap}.bc-store-row-end>b{font-size:13px;color:var(--ink)}.bc-writeback{display:flex;align-items:flex-start;gap:11px;padding:14px 16px}.bc-writeback-ico{width:28px;height:28px;display:grid;place-items:center;flex:none;border-radius:50%;background:#e8f8ef;color:#14834c}.bc-writeback strong{display:block;font-size:13.5px;color:var(--ink);margin-bottom:4px}.bc-writeback p{margin:0;color:var(--ink-muted);font-size:12.5px;line-height:1.55}.bc-writeback-links{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:10px}.bc-writeback-links .lnk{display:inline-flex;align-items:center;height:20px;margin:0;padding:0;border:0;background:none;color:var(--brand);font:inherit;font-size:12.5px;font-weight:500;line-height:1;cursor:pointer}.bc-connection-option{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:13px 0;border-top:1px solid var(--hair)}.bc-connection-option:first-child{padding-top:0;border-top:0}.bc-connection-option strong{display:block;font-size:13px;color:var(--ink)}.bc-connection-option span{display:block;font-size:12px;color:var(--ink-muted);line-height:1.5;margin-top:3px}@media(max-width:760px){.bc-store-facts,.bc-credentials,.bc-scope-compare{grid-template-columns:1fr;gap:10px}.bc-scope-heading,.bc-sync-heading,.bc-scope-alert{align-items:flex-start;flex-direction:column}.bc-scope-alert .btn{width:100%;justify-content:center}.bc-store-row,.bc-connection-option{align-items:flex-start;flex-direction:column}.bc-store-row-end{flex-direction:row;align-items:center}}' +
       '</style><style>.bc-sync-panel{overflow:hidden;padding:0!important}.bc-sync-heading{position:relative;align-items:center;padding:16px 18px;background:linear-gradient(120deg,#f2f7ff 0%,#fbfdff 72%);border-bottom:1px solid #d7e4f1;box-shadow:inset 3px 0 0 #4f83d8}.bc-sync-heading .card-title{color:#263b55;font-size:14px;font-weight:750}.bc-sync-heading .muted{color:#657a94!important;line-height:1.45}.bc-sync-content{padding:0 18px 16px;background:#fff}.bc-sync-content .bc-store-row:first-child{padding-top:14px}.bc-sync-actions{display:flex;justify-content:flex-start;padding-top:13px;border-top:1px solid var(--hair)}@media(max-width:760px){.bc-sync-heading{padding:14px 16px}.bc-sync-content{padding:0 16px 14px}}</style>' +
       pageHead('Shopify connection', 'Review the Shopify store and syncs that power your BestCheckout purchase experience.') +
       '<section class="panel card-pad mb-4"><div class="bc-store-kicker">Connected Shopify store</div><div class="flex items-start justify-between" style="gap:12px"><div><div class="bc-store-name">' + esc(store.name) + '</div><div class="bc-store-domain">' + esc(store.url) + '</div></div>' + status + '</div><div class="bc-store-facts"><div class="bc-store-fact"><small>Shop name</small><strong>' + esc(store.name) + '</strong></div><div class="bc-store-fact"><small>Myshopify domain</small><strong>' + esc(store.url) + '</strong></div><div class="bc-store-fact"><small>Connection status</small><strong>' + (permissionsHealthy ? 'Ready for checkout' : 'Needs re-authorization') + '</strong></div></div></section>' +
@@ -830,7 +1036,11 @@
           syncRow('Discounts & discount codes', '23 active', 'Automatic discounts, discount codes, and offer eligibility') +
           syncRow('Shipping zones, rates & delivery profiles', '9 profiles', 'Accurate shipping calculation after the buyer enters an address') +
           syncRow('Store settings', 'USD · en-US', 'Store currency, timezone, and brand defaults') +
+          syncRow('Subscriptions', subscriptionSummary().countLabel, 'Product-level subscriptions imported from Shopify') +
         '</div><div class="bc-sync-actions"><button class="btn btn-default" data-act="sync">Sync now</button></div></div>' +
+      '</section>' +
+      '<section class="panel card-pad mb-4">' + sectionTitle('Subscriptions', 'Refresh Shopify subscriptions, or create a checkout-only subscription that stays off the product page.') +
+        '<div class="mt-4"><div class="b-c bc-writeback"><span class="bc-writeback-ico">' + I.refresh + '</span><div><strong>' + esc(subscriptionSummary().headline) + '</strong><p>Shopify-imported subscriptions stay on the product page. Subscriptions created in BestCheckout appear at checkout only. Multipack prices belong in Bundles.</p><div class="bc-writeback-links"><a class="lnk" href="#/subscriptions">View subscriptions</a><button type="button" class="lnk" data-act="refresh-selling-plans">Refresh subscriptions</button></div></div></div></div>' +
       '</section>' +
       '<section class="panel card-pad mb-4">' + sectionTitle('Order write-back to Shopify', 'BestCheckout creates the order, then Shopify remains the fulfillment workspace.') +
         '<div class="mt-4"><div class="b-c bc-writeback"><span class="bc-writeback-ico">' + I.check + '</span><div><strong>Paid BestCheckout orders are automatically created in Shopify</strong><p>After payment, your existing Shopify fulfillment workflow continues as usual. There is no setting to save on this page.</p><div class="bc-writeback-links"><a class="lnk" href="#/orders">View orders</a></div></div></div></div>' +
@@ -871,6 +1081,891 @@
       window.open(shopifyAdminUrl(store), '_blank', 'noopener');
       toast('Opening Shopify to re-authorize this store');
     };
+    const refreshPlans = root.querySelector('[data-act="refresh-selling-plans"]');
+    if (refreshPlans) refreshPlans.onclick = () => refreshSellingPlans(() => renderShopifyStore());
+  }
+
+  const SUB_CATALOG = {
+    'Daily Multivitamin (60 ct)': 38,
+    'Neurix Focus & Energy Gum': 34.99,
+    'Signature Blend Coffee 500g': 30,
+    'Vitamin C Serum Refill 30ml': 52,
+    'Limited Winter Candle': 28,
+    'Focus Gum — Multipack': 49.98,
+  };
+  const SUB_IMGS = [
+    'https://silixwear.com/cdn/shop/files/Dark-GRAY.jpg?v=1776154216&width=160',
+    'https://silixwear.com/cdn/shop/files/01_cf6e37ef-a0ab-4c82-ac61-c30d06d3111e.jpg?width=160',
+    'https://silixwear.com/cdn/shop/files/01_50091071-d25f-4060-9fce-acd28e12ce10.jpg?width=160',
+    'https://silixwear.com/cdn/shop/files/7_3bd5ccd0-0637-4559-b7be-1cd8196b15d4.jpg?width=160',
+  ];
+  const SUB_KW_FIELDS = [
+    { value: 'name', label: 'Subscription name', placeholder: 'Search subscription name' },
+    { value: 'product_title', label: 'Product title', placeholder: 'Search product title' },
+    { value: 'product_id', label: 'Shopify product ID', placeholder: 'Search Shopify product ID' },
+    { value: 'sku', label: 'SKU', placeholder: 'Search SKU' },
+    { value: 'id', label: 'Subscription ID', placeholder: 'Search subscription ID' },
+  ];
+  let SUB_LST = { kw: '', kwApplied: '', kwType: 'name', origin: '', visibility: '', status: '', page: 1, size: 20 };
+  let SUB_EDIT = null;
+  let SUB_EDIT_KEY = null;
+  let SUB_EDIT_ORIGIN = null;
+  let SUB_EDIT_BACKUP = null;
+  let SUB_ERRORS = {};
+  const SUB_STYLES =
+    '.bn-sw{position:relative;display:inline-block;width:34px;height:18px;border-radius:9999px;background:var(--ctl);cursor:pointer;transition:background .15s;flex:none}' +
+    '.bn-sw::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}' +
+    '.bn-sw.on{background:var(--brand)}.bn-sw.on::after{transform:translateX(16px)}' +
+    '.bn-sw.is-disabled{opacity:.55;cursor:default}' +
+    '.bn-act{display:inline-grid;place-items:center;width:30px;height:30px;border:0;border-radius:7px;background:transparent;color:var(--ink-muted);cursor:pointer}' +
+    '.bn-act:hover{background:var(--panel);color:var(--ink)}' +
+    '.sub-editor{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:24px;align-items:start;max-width:1220px;margin:0 auto}' +
+    '.sub-preview-card{position:sticky;top:16px}' +
+    '.sub-ck{background:#f5f5f5;border:1px solid var(--hair);border-radius:12px;padding:16px 14px}' +
+    '.sub-ck-row{display:flex;align-items:flex-start;gap:10px}' +
+    '.sub-ck-img{width:40px;height:40px;border-radius:8px;overflow:hidden;background:#e9ecf2;flex:none}' +
+    '.sub-ck-img img{width:100%;height:100%;object-fit:cover;display:block}' +
+    '.sub-ck-title{font-size:13.5px;font-weight:600;color:var(--ink);line-height:1.35}' +
+    '.sub-ck-pr{margin-left:auto;flex:none;white-space:nowrap;font-size:13.5px;font-weight:650}' +
+    '.sub-ck-pr s{font-size:12px;color:var(--ink-muted);font-weight:500;margin-right:6px}' +
+    '.sub-ck-deal{display:flex;align-items:center;justify-content:flex-end;gap:5px;margin-top:4px;font-size:12px;color:var(--ink-muted)}' +
+    '.sub-err{color:var(--err);font-size:12px;margin-top:5px}' +
+    '.sub-tbl{width:100%;table-layout:fixed}' +
+    '.sub-tbl th,.sub-tbl td{padding:12px 16px}' +
+    '.sub-tbl th:last-child,.sub-tbl td:last-child{width:72px;padding-right:16px;text-align:center}' +
+    '.sub-tbl td{white-space:nowrap}' +
+    '.sub-tbl .sub-clip{overflow:hidden;text-overflow:ellipsis}' +
+    '.sub-tbl .sub-vis{white-space:normal;line-height:1.35}' +
+    '.sub-ct-tbl{width:100%;min-width:1020px;table-layout:fixed}' +
+    '.sub-ct-tbl th,.sub-ct-tbl td{padding:12px 14px}' +
+    '.sub-ct-tbl th:last-child,.sub-ct-tbl td:last-child{padding-right:16px;text-align:center}' +
+    '.sub-ct-tbl td{white-space:nowrap}' +
+    '.sub-ct-tbl .sub-clip{overflow:hidden;text-overflow:ellipsis}' +
+    '@media(max-width:980px){.sub-editor{grid-template-columns:1fr}.sub-preview-card{position:static}}';
+
+  function isLocalPlan(p) { return !!(p && p.origin === 'bestcheckout'); }
+  function planKey(p) { return (p && (p.key || p.id)) || ''; }
+  function planByKey(key) {
+    const k = decodeURIComponent(String(key || ''));
+    return (subscriptionState().sellingPlans || []).find((p) => String(p.key) === k || String(p.id) === k) || null;
+  }
+  function visibilityLabel(p) {
+    return (p && p.visibility === 'checkout') || isLocalPlan(p) ? 'Checkout only' : 'Product page + checkout';
+  }
+  function sourceLabel(p) {
+    return isLocalPlan(p) ? 'BestCheckout' : ((p && p.sourceApp) || 'Shopify');
+  }
+  function catalogPriceOf(p) {
+    if (p && p.catalogPrice != null && p.catalogPrice !== '') return Number(p.catalogPrice);
+    if (p && p.product && SUB_CATALOG[p.product] != null) return SUB_CATALOG[p.product];
+    return null;
+  }
+  function discountAmount(p) {
+    const price = catalogPriceOf(p);
+    if (price == null) return 0;
+    const d = p && p.discount;
+    if (!d) return 0;
+    if (d.type === 'fixed') return Number(d.value) || 0;
+    return Math.round(price * (Number(d.value) || 0)) / 100;
+  }
+  function subProductImage(name) {
+    const s = String(name || '');
+    if (!s) return '';
+    let h = 0, i = 0;
+    for (; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+    return SUB_IMGS[h % SUB_IMGS.length];
+  }
+  function subProductThumb(name, px) {
+    const size = px || 36;
+    const src = subProductImage(name);
+    return '<span class="sub-ck-img" style="width:' + size + 'px;height:' + size + 'px">' +
+      (src ? '<img src="' + esc(src) + '" alt="" onerror="this.remove()" />' : '') +
+      '</span>';
+  }
+  function nextLocalKey() {
+    const nums = (subscriptionState().sellingPlans || [])
+      .filter((p) => isLocalPlan(p))
+      .map((p) => Number(String(p.key || p.id).replace(/\D/g, '')))
+      .filter((n) => !isNaN(n));
+    return 'BCS-' + String((nums.length ? Math.max.apply(null, nums) : 0) + 1).padStart(2, '0');
+  }
+  function subscriptionRouteParts() {
+    const parts = String(curRest || '').split('/').filter(Boolean);
+    if (parts[0] === 'subscriptions') parts.shift();
+    return parts;
+  }
+  function matchShopifyProductId(value, query) {
+    const raw = String(value || '').toLowerCase();
+    const q = String(query || '').trim().toLowerCase();
+    if (!q || !raw) return false;
+    if (raw.indexOf(q) >= 0) return true;
+    const digits = q.replace(/\D/g, '');
+    const idDigits = raw.replace(/\D/g, '');
+    return !!(digits && idDigits && idDigits.indexOf(digits) >= 0);
+  }
+  function subFieldErr(msg) { return msg ? '<div class="sub-err">' + esc(msg) + '</div>' : ''; }
+  function clearSubMarkedError(key, el, box) {
+    if (key) delete SUB_ERRORS[key];
+    [el, box].forEach((node) => {
+      if (!node) return;
+      node.classList.remove('has-error');
+      if (node.previousElementSibling && node.previousElementSibling.classList.contains('ui-select')) {
+        node.previousElementSibling.classList.remove('has-error');
+      }
+      node.querySelectorAll('.sub-err').forEach((n) => n.remove());
+      if (node.parentNode) node.parentNode.querySelectorAll(':scope > .sub-err').forEach((n) => n.remove());
+    });
+  }
+  function syncFilterPlaceholder(input, fields, type) {
+    const field = (fields || []).find((o) => o.value === type) || (fields || [])[0];
+    if (!input || !field) return;
+    input.placeholder = field.placeholder || 'Search';
+    if (window.I18N && window.I18N.apply) window.I18N.apply(input);
+  }
+  function subscriptionPreviewHtml(note) {
+    const price = catalogPriceOf(SUB_EDIT);
+    const save = price == null ? 0 : discountAmount(SUB_EDIT);
+    const recurring = price == null ? null : Math.max(0, price - save);
+    const deal = checkoutCadenceLabel(SUB_EDIT.interval);
+    const img = subProductImage(SUB_EDIT.product);
+    const priceHtml = recurring == null
+      ? '<div class="sub-ck-pr muted">—</div>'
+      : '<div class="sub-ck-pr">' + (save ? '<s>$' + price.toFixed(2) + '</s>' : '') + '<strong>$' + recurring.toFixed(2) + '</strong></div>';
+    return '<div class="sub-ck i18n-skip">' +
+      '<div class="sub-ck-row">' +
+        '<span class="sub-ck-img">' + (img ? '<img src="' + esc(img) + '" alt="" />' : '') + '</span>' +
+        '<div style="min-width:0;flex:1"><div class="sub-ck-title">' + esc(SUB_EDIT.product || 'No product selected') + '</div></div>' +
+        priceHtml +
+      '</div>' +
+      '<div class="sub-ck-deal">' + I.refresh + '<span>' + esc(deal) + (save ? ' (−$' + save.toFixed(2) + ')' : '') + '</span></div>' +
+    '</div>' +
+    '<p class="muted" style="font-size:12.5px;margin-top:10px;line-height:1.55">' + esc(note || '') + '</p>';
+  }
+
+  function renderSubscriptions() {
+    const parts = subscriptionRouteParts();
+    if (parts[0] === 'contracts') {
+      if (parts[1]) return renderContractDetail(parts[1]);
+      return renderContractList();
+    }
+    if (parts[0] === 'new' || parts[0] === 'create') return renderSubscriptionEditor(null);
+    if (parts[0] === 'edit' && parts[1]) {
+      const plan = planByKey(parts[1]);
+      if (!plan) { toast('This subscription was not found'); location.hash = '#/subscriptions'; return; }
+      return renderSubscriptionEditor(plan);
+    }
+    renderSubscriptionList();
+  }
+
+  let SUB_CT = { tab: 'all', kw: '', kwApplied: '', kwType: 'customer', page: 1, size: 20 };
+  const SUB_CT_FIELDS = [
+    { value: 'customer', label: 'Customer', placeholder: 'Search customer' },
+    { value: 'email', label: 'Email', placeholder: 'Search email' },
+    { value: 'plan', label: 'Subscription', placeholder: 'Search subscription' },
+    { value: 'id', label: 'Contract ID', placeholder: 'Search contract ID' },
+  ];
+  const SUB_CT_TABS = [
+    { k: 'all', label: 'All' },
+    { k: 'active', label: 'Active' },
+    { k: 'unpaid', label: 'Past due' },
+    { k: 'cancelled', label: 'Cancelled' },
+  ];
+  function contractList() { return subscriptionState().contracts || []; }
+  function contractById(id) {
+    const k = decodeURIComponent(String(id || ''));
+    return contractList().find((c) => String(c.id) === k || String(c.subscriptionId) === k) || null;
+  }
+  function contractStatusMeta(status) {
+    if (status === 'active') return { label: 'Active', cls: 'pill-green' };
+    if (status === 'unpaid') return { label: 'Past due', cls: 'pill-red' };
+    return { label: 'Cancelled', cls: 'pill-gray' };
+  }
+  function contractPill(status) {
+    const m = contractStatusMeta(status);
+    return '<span class="pill ' + m.cls + '">' + m.label + '</span>';
+  }
+  function contractMoney(n) {
+    return '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function contractDate(s) {
+    if (!s) return '—';
+    const d = new Date(String(s).slice(0, 10) + 'T00:00:00');
+    if (isNaN(d.getTime())) return esc(s);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+  function contractGateway(id) {
+    return ({ stripe: 'Stripe', airwallex: 'Airwallex', paypal: 'PayPal' })[id] || id || '—';
+  }
+  function contractRow(k, v) {
+    return '<div class="flex items-center justify-between" style="padding:7px 0;border-bottom:1px solid var(--hair);font-size:13.5px"><span class="muted">' + k + '</span><span style="color:var(--ink);font-weight:500;text-align:right">' + v + '</span></div>';
+  }
+  function contractCard(title, inner) {
+    return '<div class="panel card-pad mb-4"><div class="mb-3"><div class="card-title">' + title + '</div></div>' + inner + '</div>';
+  }
+  function addContractCycle(dateStr, every, unit, n) {
+    if (!dateStr) return '';
+    const d = new Date(String(dateStr).slice(0, 10) + 'T00:00:00');
+    const step = (every || 1) * n;
+    if (unit === 'week') d.setDate(d.getDate() + 7 * step);
+    else if (unit === 'year') d.setFullYear(d.getFullYear() + step);
+    else d.setMonth(d.getMonth() + step);
+    const p2 = (x) => (String(x).length < 2 ? '0' + x : String(x));
+    return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate());
+  }
+  function orderHref(id) { return id ? '#/orders/' + encodeURIComponent(id) : ''; }
+  function planHref(key) { return key ? '#/subscriptions/edit/' + encodeURIComponent(key) : ''; }
+
+  function renderContractList() {
+    const field = SUB_CT_FIELDS.find((f) => f.value === SUB_CT.kwType) || SUB_CT_FIELDS[0];
+    const kwOpts = SUB_CT_FIELDS.map((f) => '<option value="' + f.value + '"' + (f.value === SUB_CT.kwType ? ' selected' : '') + '>' + f.label + '</option>').join('');
+    let rows = contractList().slice();
+    if (SUB_CT.tab !== 'all') rows = rows.filter((c) => c.status === SUB_CT.tab);
+    if (SUB_CT.kwApplied) {
+      const q = SUB_CT.kwApplied.toLowerCase();
+      rows = rows.filter((c) => {
+        if (SUB_CT.kwType === 'email') return String(c.email || '').toLowerCase().indexOf(q) >= 0;
+        if (SUB_CT.kwType === 'plan') return String(c.plan || '').toLowerCase().indexOf(q) >= 0 || String(c.product || '').toLowerCase().indexOf(q) >= 0;
+        if (SUB_CT.kwType === 'id') return String(c.id || '').toLowerCase().indexOf(q) >= 0 || String(c.subscriptionId || '').indexOf(q) >= 0;
+        return String(c.customer || '').toLowerCase().indexOf(q) >= 0;
+      });
+    }
+    const total = rows.length;
+    const pages = Math.max(1, Math.ceil(total / SUB_CT.size));
+    if (SUB_CT.page > pages) SUB_CT.page = pages;
+    const pageRows = rows.slice((SUB_CT.page - 1) * SUB_CT.size, SUB_CT.page * SUB_CT.size);
+    const counts = { all: contractList().length, active: 0, unpaid: 0, cancelled: 0 };
+    contractList().forEach((c) => { if (counts[c.status] != null) counts[c.status] += 1; });
+    const tabs = SUB_CT_TABS.map((t) =>
+      '<div class="tab' + (t.k === SUB_CT.tab ? ' active' : '') + '" data-ct-tab="' + t.k + '">' + t.label +
+      '<span class="count-badge">' + (counts[t.k] || 0) + '</span></div>').join('');
+    const tags = SUB_CT.kwApplied
+      ? '<div class="flex gap-2 mt-3" style="flex-wrap:wrap"><span class="field-pill" data-clear-ct>' + esc(field.label) + ': ' + esc(SUB_CT.kwApplied) + ' <span class="x">&times;</span></span></div>'
+      : '';
+    const tableRows = pageRows.map((c) =>
+      '<tr data-cid="' + esc(c.id) + '" style="cursor:pointer">' +
+        '<td><div class="sub-clip" style="font-weight:600;color:var(--ink)">' + esc(c.customer) + '</div><div class="muted sub-clip" style="font-size:12px">' + esc(c.email) + '</div></td>' +
+        '<td><div class="sub-clip">' + esc(c.plan) + '</div><div class="muted sub-clip" style="font-size:12px">' + esc(c.product) + '</div></td>' +
+        '<td>' + esc(intervalLabel(c.interval)) + '</td>' +
+        '<td>' + (c.next ? contractDate(c.next) : '<span class="muted">—</span>') + '</td>' +
+        '<td class="num">' + contractMoney(c.amount) + '</td>' +
+        '<td>' + contractPill(c.status) + '</td>' +
+        '<td style="text-align:center" data-stop><button class="bn-act" data-view-ct="' + esc(c.id) + '" title="View" aria-label="View">' + I.eye + '</button></td>' +
+      '</tr>').join('');
+    let pagerNums = '';
+    const pagerItem = (label, page, opts) => {
+      opts = opts || {};
+      return '<span class="pg-item' + (opts.active ? ' active' : '') + (opts.disabled ? ' disabled' : '') + '"' +
+        (opts.disabled ? '' : ' data-ct-page="' + page + '"') + '>' + label + '</span>';
+    };
+    for (let p = 1; p <= pages; p++) pagerNums += pagerItem(String(p), p, { active: p === SUB_CT.page });
+    const pager = '<div class="pg">' + pagerItem('‹', SUB_CT.page - 1, { disabled: SUB_CT.page <= 1 }) + pagerNums +
+      pagerItem('›', SUB_CT.page + 1, { disabled: SUB_CT.page >= pages }) +
+      '<select class="pg-size" id="ct-pgsize">' + ['20', '50', '100'].map((s) => '<option value="' + s + '"' + (Number(s) === SUB_CT.size ? ' selected' : '') + '>' + s + ' / page</option>').join('') + '</select></div>';
+    paint(
+      '<style>' + SUB_STYLES + '</style>' +
+      '<div class="flex items-center justify-between mb-4" style="gap:12px"><div><h1 class="page-title">Contracts</h1>' +
+        '<div class="muted" style="font-size:13px;margin-top:3px;line-height:1.5">Created after a successful BestCheckout payment. Shopify app contracts stay in that app.</div></div></div>' +
+      '<div class="panel">' +
+        '<div class="tabs" style="padding:0 8px">' + tabs + '</div>' +
+        '<div class="card-pad" style="padding-bottom:8px"><div class="filter-bar">' +
+          '<div class="flex items-center" style="min-width:400px">' +
+            '<select class="filter-select" id="ct-kwtype" data-ui-fit data-ui-match-width style="border-top-right-radius:0;border-bottom-right-radius:0">' + kwOpts + '</select>' +
+            '<div style="position:relative;flex:1">' +
+              '<input class="filter-input" id="ct-kw" placeholder="' + esc(field.placeholder) + '" value="' + esc(SUB_CT.kw) + '" style="width:100%;padding-left:12px;padding-right:32px;border-top-left-radius:0;border-bottom-left-radius:0;margin-left:-1px" />' +
+              '<span class="filter-ico">' + svg('<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>', 14) + '</span>' +
+            '</div></div>' +
+        '</div>' + tags + '</div>' +
+        '<div style="overflow-x:auto"><table class="tbl sub-ct-tbl"><colgroup>' +
+          '<col style="width:20%"><col style="width:25%"><col style="width:15%"><col style="width:14%"><col style="width:10%"><col style="width:10%"><col style="width:72px">' +
+        '</colgroup><thead><tr>' +
+          '<th>Customer</th><th>Subscription</th><th>Frequency</th><th>Next charge</th><th class="num">Amount</th><th>Status</th><th style="text-align:center">Action</th>' +
+        '</tr></thead><tbody id="ct-tbody">' +
+          (tableRows || '<tr><td colspan="7" style="text-align:center;padding:40px" class="muted">No contracts in this view.</td></tr>') +
+        '</tbody></table></div>' +
+        '<div class="flex items-center justify-between card-pad"><span class="muted" style="font-size:13px">Total ' + total + ' records</span>' + pager + '</div>' +
+      '</div>',
+      'full'
+    );
+    const kwType = root.querySelector('#ct-kwtype');
+    const kw = root.querySelector('#ct-kw');
+    if (kwType) kwType.onchange = () => {
+      SUB_CT.kwType = kwType.value;
+      syncFilterPlaceholder(kw, SUB_CT_FIELDS, SUB_CT.kwType);
+      if (SUB_CT.kwApplied) { SUB_CT.page = 1; renderContractList(); }
+    };
+    if (kw) {
+      kw.oninput = () => { SUB_CT.kw = kw.value; };
+      const commit = () => { SUB_CT.kw = kw.value; SUB_CT.kwApplied = SUB_CT.kw.trim(); SUB_CT.page = 1; renderContractList(); };
+      kw.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); commit(); } };
+      kw.onblur = commit;
+    }
+    root.querySelectorAll('[data-clear-ct]').forEach((el) => el.onclick = () => { SUB_CT.kw = ''; SUB_CT.kwApplied = ''; SUB_CT.page = 1; renderContractList(); });
+    root.querySelectorAll('[data-ct-tab]').forEach((el) => el.onclick = () => { SUB_CT.tab = el.getAttribute('data-ct-tab'); SUB_CT.page = 1; renderContractList(); });
+    root.querySelectorAll('[data-ct-page]').forEach((el) => el.onclick = () => { SUB_CT.page = Number(el.getAttribute('data-ct-page')); renderContractList(); });
+    const pg = root.querySelector('#ct-pgsize');
+    if (pg) pg.onchange = () => { SUB_CT.size = Number(pg.value); SUB_CT.page = 1; renderContractList(); };
+    root.querySelectorAll('#ct-tbody tr[data-cid]').forEach((tr) => tr.onclick = (e) => {
+      if (e.target.closest('[data-stop]')) return;
+      location.hash = '#/subscriptions/contracts/' + encodeURIComponent(tr.getAttribute('data-cid'));
+    });
+    root.querySelectorAll('[data-view-ct]').forEach((btn) => btn.onclick = (e) => {
+      e.stopPropagation();
+      location.hash = '#/subscriptions/contracts/' + encodeURIComponent(btn.getAttribute('data-view-ct'));
+    });
+  }
+
+  function renderContractDetail(id) {
+    const c = contractById(id);
+    if (!c) { toast('This contract was not found'); location.hash = '#/subscriptions/contracts'; return; }
+    const planLink = c.planKey
+      ? '<a href="' + planHref(c.planKey) + '" style="color:var(--brand);font-weight:500;text-decoration:none">' + esc(c.plan) + '</a>'
+      : esc(c.plan);
+    const productCell = '<div class="flex items-center gap-2" style="justify-content:flex-end">' + subProductThumb(c.product, 28) + '<span>' + esc(c.product) + '</span></div>';
+    const summary = contractRow('Subscription', planLink) + contractRow('Product', productCell) + contractRow('Quantity', c.qty || 1) +
+      contractRow('Billing cycle', intervalLabel(c.interval)) + contractRow('Amount per cycle', contractMoney(c.amount)) +
+      contractRow('Started', contractDate(c.startedAt)) + contractRow('Charges completed', c.cyclesDone || 0);
+    const overdue = c.status === 'unpaid';
+    const schedule = c.status === 'cancelled'
+      ? '<div class="muted" style="font-size:13.5px">Ended on ' + contractDate(c.endedAt) + '. No further charges.</div>'
+      : '<div style="font-size:13.5px;color:var(--ink)">' + (overdue
+        ? '<span style="color:var(--err)">Payment overdue since <b>' + contractDate(c.next) + '</b></span>'
+        : 'Next charge on <b>' + contractDate(c.next) + '</b>') + ' · ' + contractMoney(c.amount) + '</div>' +
+        '<div class="muted" style="font-size:12px;margin-top:6px">Charged automatically via ' + esc(contractGateway(c.gateway)) + '.</div>';
+    const history = !(c.history || []).length
+      ? '<div class="muted" style="font-size:13px">No charges yet.</div>'
+      : '<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Order</th><th>Date</th><th class="num">Amount</th><th style="width:110px">Status</th></tr></thead><tbody>' +
+        c.history.map((o) => {
+          const href = orderHref(o.id);
+          const label = esc(o.sn || o.id);
+          return '<tr><td>' + (href ? '<a href="' + href + '" style="color:var(--brand);font-weight:500;text-decoration:none">' + label + '</a>' : label) + '</td><td>' + contractDate(o.date) + '</td><td class="num">' + contractMoney(o.amount) + '</td><td>' +
+            '<span class="pill ' + (o.status === 'paid' ? 'pill-green' : o.status === 'failed' ? 'pill-red' : 'pill-gray') + '">' + (o.status === 'paid' ? 'Paid' : o.status === 'failed' ? 'Failed' : esc(o.status)) + '</span></td></tr>';
+        }).join('') + '</tbody></table></div>';
+    let upcoming = '';
+    if (c.status === 'cancelled') upcoming = '<div class="muted" style="font-size:13px">No upcoming charges — this subscription has ended.</div>';
+    else if (!c.next) upcoming = '<div class="muted" style="font-size:13px">No upcoming charges scheduled.</div>';
+    else {
+      const every = (c.interval && c.interval.every) || 1;
+      const unit = (c.interval && c.interval.unit) || 'month';
+      let rows = '';
+      for (let i = 0; i < 4; i++) {
+        const date = i === 0 ? c.next : addContractCycle(c.next, every, unit, i);
+        const lbl = i === 0 ? (overdue ? 'Overdue' : 'Next charge') : 'Scheduled';
+        const cls = (i === 0 && overdue) ? 'pill-red' : (i === 0 ? 'pill-blue' : 'pill-gray');
+        rows += '<tr><td>' + contractDate(date) + '</td><td>' + esc(c.product) + '</td><td class="num">' + contractMoney(c.amount) + '</td><td><span class="pill ' + cls + '">' + lbl + '</span></td></tr>';
+      }
+      upcoming = '<div style="overflow-x:auto"><table class="tbl"><thead><tr><th style="width:130px">Charge date</th><th>Product</th><th class="num" style="width:90px">Amount</th><th style="width:120px">Status</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+        '<div class="muted" style="font-size:12px;margin-top:8px">Projected from the current schedule.</div>';
+    }
+    const ev = [{ d: c.startedAt, t: 'Subscription started', sub: 'Subscription: ' + c.plan }];
+    (c.history || []).forEach((o) => ev.push({
+      d: o.date,
+      t: (o.status === 'paid' ? 'Charge succeeded' : o.status === 'failed' ? 'Charge failed' : 'Charge ' + o.status) + ' · ' + contractMoney(o.amount),
+      orderId: o.id, orderSn: o.sn,
+    }));
+    if (c.status === 'cancelled') ev.push({ d: c.endedAt, t: 'Subscription cancelled', sub: 'No further charges' });
+    else if (c.next) ev.push({ d: c.next, t: 'Next charge scheduled', sub: contractMoney(c.amount), future: true });
+    ev.sort((a, b) => String(b.d || '').localeCompare(String(a.d || '')));
+    const activity = '<div>' + ev.map((e, i) => {
+      const last = i === ev.length - 1;
+      const orderBit = e.orderId
+        ? '<div class="muted" style="font-size:12px">Order <a href="' + orderHref(e.orderId) + '" style="color:var(--brand);text-decoration:none">' + esc(e.orderSn || e.orderId) + '</a></div>'
+        : (e.sub ? '<div class="muted" style="font-size:12px">' + esc(e.sub) + '</div>' : '');
+      return '<div style="display:flex;gap:12px">' +
+        '<div style="flex:none;display:flex;flex-direction:column;align-items:center"><span style="width:10px;height:10px;border-radius:50%;flex:none;margin-top:3px;background:' + (e.future ? 'var(--ctl)' : 'var(--brand)') + '"></span>' +
+        (last ? '' : '<span style="flex:1;width:2px;background:var(--hair);margin:2px 0"></span>') + '</div>' +
+        '<div style="flex:1;min-width:0;padding-bottom:' + (last ? '0' : '16px') + '"><div style="font-size:13px;color:var(--ink);font-weight:500">' + esc(e.t) + '</div>' + orderBit + '</div>' +
+        '<div class="muted" style="font-size:12px;white-space:nowrap;flex:none">' + (e.d ? contractDate(e.d) : '') + '</div></div>';
+    }).join('') + '</div>';
+    const actBtn = (act, txt, danger) => '<button class="btn btn-default" type="button" data-ca="' + act + '" style="width:100%;justify-content:center;margin-bottom:8px' + (danger ? ';color:var(--err);border-color:#f3c4ba' : '') + '">' + txt + '</button>';
+    let actions = '';
+    if (c.status === 'cancelled') actions = '<div class="muted" style="font-size:13px">Cancelled on ' + contractDate(c.endedAt) + '. No further charges.</div>';
+    else {
+      if (c.status === 'active') actions += actBtn('address', 'Change shipping address');
+      if (c.status === 'unpaid') actions += actBtn('retry', 'Retry payment now') + actBtn('method', 'Update payment method');
+      actions += actBtn('cancel', 'Cancel subscription', true);
+    }
+    const customer = contractRow('Name', esc(c.customer)) + contractRow('Email', esc(c.email)) +
+      '<div style="padding-top:8px;font-size:12.5px;color:var(--ink-body);line-height:1.5"><span class="muted">Ships to</span><br>' + esc(c.address) + '</div>';
+    const payment = contractRow('Method', esc(c.method || '—')) + contractRow('Gateway', esc(contractGateway(c.gateway)));
+    paint(
+      '<style>' + SUB_STYLES + '</style>' +
+      '<div class="detail-wrap">' +
+        '<div class="flex items-center justify-between mb-6"><div class="flex items-center gap-2">' +
+          '<a class="back-btn" href="#/subscriptions/contracts" title="Back">' + I.chevL + '</a>' +
+          '<span class="page-title">' + esc(c.customer) + '</span> ' + contractPill(c.status) +
+        '</div><span class="muted" style="font-size:13px">' + esc(c.id) + '</span></div>' +
+        '<div class="detail-cols"><div class="detail-main">' +
+          contractCard('Subscription', summary) +
+          contractCard('Billing schedule', schedule) +
+          contractCard('Upcoming orders', upcoming) +
+          contractCard('Past orders', history) +
+          contractCard('Activity log', activity) +
+        '</div><div class="detail-rail">' +
+          contractCard('Manage', actions) +
+          contractCard('Customer', customer) +
+          contractCard('Payment', payment) +
+        '</div></div></div>',
+      'full'
+    );
+    root.querySelectorAll('[data-ca]').forEach((btn) => btn.onclick = () => handleContractAction(c, btn.getAttribute('data-ca')));
+  }
+
+  function handleContractAction(c, act) {
+    if (act === 'retry') {
+      c.status = 'active';
+      toast('Payment retried — charge succeeded');
+      renderContractDetail(c.id);
+      return;
+    }
+    if (act === 'cancel') {
+      window.UI.confirm({
+        title: 'Cancel subscription',
+        content: 'Cancel this subscription? It will stop future charges.',
+        okText: 'Cancel subscription',
+        danger: true,
+        onOk: () => {
+          c.status = 'cancelled';
+          c.endedAt = '2026-09-05';
+          c.next = '';
+          toast('Subscription cancelled');
+          renderContractDetail(c.id);
+        },
+      });
+      return;
+    }
+    if (act === 'address') return openContractAddressModal(c);
+    if (act === 'method') toast('Update payment method — opens the gateway hosted page in production');
+  }
+
+  function openContractAddressModal(c) {
+    const parts = String(c.address || '').split(',').map((x) => x.trim()).filter(Boolean);
+    const street = parts[0] || '';
+    const country = parts.length >= 4 ? parts[parts.length - 1] : '';
+    const stateZip = parts.length >= 3 ? parts[parts.length - 2] : '';
+    const szM = stateZip.match(/^(.*?)\s+(\S+)$/);
+    const state = szM ? szM[1] : stateZip;
+    const zip = szM ? szM[2] : '';
+    const city = parts.length >= 4 ? parts[1] : '';
+    const nm = String(c.customer || '').trim().split(/\s+/);
+    const first = nm.length > 1 ? nm.slice(0, -1).join(' ') : (nm[0] || '');
+    const last = nm.length > 1 ? nm[nm.length - 1] : '';
+    const inp = (id, ph, val) => '<input class="input" id="' + id + '" placeholder="' + esc(ph) + '" value="' + esc(val || '') + '" style="margin-bottom:12px" />';
+    const body =
+      '<div style="font-size:13px;font-weight:500;color:var(--ink);margin-bottom:8px">Contact</div>' +
+      inp('sa-email', 'Email', c.email) +
+      '<div style="font-size:13px;font-weight:500;color:var(--ink);margin:4px 0 8px">Delivery</div>' +
+      inp('sa-country', 'Country/Region', country) +
+      '<div class="grid grid-cols-2 gap-3"><div>' + inp('sa-first', 'First name', first) + '</div><div>' + inp('sa-last', 'Last name', last) + '</div></div>' +
+      inp('sa-addr', 'Address', street) +
+      inp('sa-apt', 'Apartment, suite, etc.(optional)', '') +
+      '<div class="grid grid-cols-3 gap-3"><div>' + inp('sa-state', 'State', state) + '</div><div>' + inp('sa-city', 'City', city) + '</div><div>' + inp('sa-zip', 'ZIP code', zip) + '</div></div>' +
+      inp('sa-phone', 'Phone', c.phone) +
+      '<div id="sa-err" style="color:var(--err);font-size:12px;margin-top:4px;display:none">Please fill in all required fields.</div>';
+    const backdrop = document.createElement('div'); backdrop.className = 'modal-backdrop';
+    const m = document.createElement('div'); m.className = 'modal'; m.style.width = '760px'; m.style.maxWidth = 'calc(100vw - 32px)';
+    m.innerHTML =
+      '<div class="modal-head flex items-center justify-between"><span>Edit shipping address</span><span data-x style="cursor:pointer;font-size:18px;line-height:1;color:var(--muted)">&times;</span></div>' +
+      '<div class="modal-body">' + body + '</div>' +
+      '<div class="modal-foot"><button class="btn btn-default" data-cancel>Cancel</button><button class="btn btn-primary" data-ok>Save</button></div>';
+    backdrop.appendChild(m); document.body.appendChild(backdrop);
+    const close = () => backdrop.remove();
+    m.querySelector('[data-x]').onclick = close;
+    m.querySelector('[data-cancel]').onclick = close;
+    backdrop.onclick = (e) => { if (e.target === backdrop) close(); };
+    m.querySelector('[data-ok]').onclick = () => {
+      const req = ['sa-email', 'sa-country', 'sa-first', 'sa-last', 'sa-addr', 'sa-state', 'sa-city', 'sa-zip'];
+      if (req.some((fid) => !m.querySelector('#' + fid).value.trim())) { m.querySelector('#sa-err').style.display = 'block'; return; }
+      const g = (fid) => m.querySelector('#' + fid).value.trim();
+      c.email = g('sa-email');
+      c.phone = g('sa-phone');
+      c.customer = (g('sa-first') + ' ' + g('sa-last')).trim();
+      c.address = [g('sa-addr'), g('sa-apt'), g('sa-city'), (g('sa-state') + ' ' + g('sa-zip')).trim(), g('sa-country')].filter(Boolean).join(', ');
+      close();
+      toast('Address updated');
+      renderContractDetail(c.id);
+    };
+  }
+
+  function renderSubscriptionList() {
+    let rows = (subscriptionState().sellingPlans || []).slice();
+    if (SUB_LST.kwApplied) {
+      const q = SUB_LST.kwApplied.toLowerCase();
+      rows = rows.filter((p) => {
+        if (SUB_LST.kwType === 'product' || SUB_LST.kwType === 'product_title') return (p.product || '').toLowerCase().indexOf(q) >= 0;
+        if (SUB_LST.kwType === 'product_id') return matchShopifyProductId(p.productId, q);
+        if (SUB_LST.kwType === 'sku') return String(p.productSku || '').toLowerCase().indexOf(q) >= 0;
+        if (SUB_LST.kwType === 'id') return String(planKey(p)).toLowerCase().indexOf(q) >= 0;
+        return (p.name || '').toLowerCase().indexOf(q) >= 0;
+      });
+    }
+    if (SUB_LST.origin === 'bestcheckout') rows = rows.filter(isLocalPlan);
+    if (SUB_LST.origin === 'shopify') rows = rows.filter((p) => !isLocalPlan(p));
+    if (SUB_LST.visibility === 'checkout') rows = rows.filter((p) => visibilityLabel(p) === 'Checkout only');
+    if (SUB_LST.visibility === 'shopify') rows = rows.filter((p) => visibilityLabel(p) !== 'Checkout only');
+    if (SUB_LST.status === 'active') rows = rows.filter((p) => (p.status || 'active') === 'active');
+    if (SUB_LST.status === 'draft') rows = rows.filter((p) => p.status === 'draft');
+    const searchIco = svg('<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>', 16);
+    const kwField = SUB_KW_FIELDS.find((o) => o.value === SUB_LST.kwType) || SUB_KW_FIELDS[0];
+    const kwOpts = SUB_KW_FIELDS.map((o) => '<option value="' + o.value + '"' + (SUB_LST.kwType === o.value ? ' selected' : '') + '>' + o.label + '</option>').join('');
+    const tags = [];
+    if (SUB_LST.kwApplied) tags.push('<span class="field-pill" data-clear="kw">' + esc(kwField.label) + ': ' + esc(SUB_LST.kwApplied) + ' <span class="x">&times;</span></span>');
+    if (SUB_LST.origin) tags.push('<span class="field-pill" data-clear="origin">Source: ' + esc(SUB_LST.origin === 'bestcheckout' ? 'BestCheckout' : 'Shopify') + ' <span class="x">&times;</span></span>');
+    if (SUB_LST.visibility) tags.push('<span class="field-pill" data-clear="visibility">Shown on: ' + esc(SUB_LST.visibility === 'checkout' ? 'Checkout only' : 'Product page + checkout') + ' <span class="x">&times;</span></span>');
+    if (SUB_LST.status) tags.push('<span class="field-pill" data-clear="status">Status: ' + (SUB_LST.status === 'active' ? 'Active' : 'Deactivated') + ' <span class="x">&times;</span></span>');
+    const total = rows.length;
+    const pages = Math.max(1, Math.ceil(total / SUB_LST.size));
+    if (SUB_LST.page > pages) SUB_LST.page = pages;
+    const pageRows = rows.slice((SUB_LST.page - 1) * SUB_LST.size, SUB_LST.page * SUB_LST.size);
+    const pagerItem = (label, p, opts) => {
+      opts = opts || {};
+      return '<span class="pg-item' + (opts.active ? ' active' : '') + (opts.disabled ? ' disabled' : '') + '"' + (opts.disabled ? '' : ' data-sub-page="' + p + '"') + '>' + label + '</span>';
+    };
+    let pagerNums = '';
+    for (let p = 1; p <= pages; p++) pagerNums += pagerItem(String(p), p, { active: p === SUB_LST.page });
+    const pager = '<div class="pg">' + pagerItem('‹', SUB_LST.page - 1, { disabled: SUB_LST.page <= 1 }) + pagerNums + pagerItem('›', SUB_LST.page + 1, { disabled: SUB_LST.page >= pages }) +
+      '<select class="pg-size" id="sub-pgsize">' + ['20', '50', '100'].map((s) => '<option value="' + s + '"' + (Number(s) === SUB_LST.size ? ' selected' : '') + '>' + s + ' / page</option>').join('') + '</select></div>';
+    const tableRows = pageRows.map((p) => {
+      const local = isLocalPlan(p);
+      const statusCell = local
+        ? '<label class="flex items-center gap-2" style="cursor:pointer" data-stop><span class="bn-sw' + ((p.status || 'active') === 'active' ? ' on' : '') + '" data-toggle-plan="' + esc(planKey(p)) + '" role="switch"></span><span style="font-size:13px">' + ((p.status || 'active') === 'active' ? 'Active' : 'Deactivated') + '</span></label>'
+        : mappingPill(p.mapping);
+      return '<tr data-plan="' + esc(planKey(p)) + '" style="cursor:pointer">' +
+        '<td><div class="sub-clip" style="font-weight:600;color:var(--ink)">' + esc(p.name) + '</div><div class="muted sub-clip" style="font-size:12px">' + esc(planKey(p)) + '</div></td>' +
+        '<td><div class="flex items-center gap-2" style="min-width:0">' + subProductThumb(p.product, 36) +
+          '<div style="min-width:0"><div class="sub-clip">' + esc(p.product) + '</div>' +
+          '<div class="muted sub-clip" style="font-size:12px">' + esc(p.productSku || '') + '</div></div></div></td>' +
+        '<td>' + esc(intervalLabel(p.interval)) + '</td>' +
+        '<td>' + esc(discountLabel(p.discount)) + '</td>' +
+        '<td class="sub-clip">' + esc(sourceLabel(p)) + '</td>' +
+        '<td class="sub-vis">' + (local ? '<span class="pill pill-gray">Checkout only</span>' : '<span class="pill pill-green">Product page + checkout</span>') + '</td>' +
+        '<td>' + statusCell + '</td>' +
+        '<td style="text-align:center;white-space:nowrap" data-stop><button class="bn-act" data-view="' + esc(planKey(p)) + '" title="View" aria-label="View">' + I.eye + '</button></td>' +
+      '</tr>';
+    }).join('');
+    paint(
+      '<style>' + SUB_STYLES + '</style>' +
+      '<div class="flex items-center justify-between mb-4" style="gap:12px"><div><h1 class="page-title">Subscriptions</h1>' +
+        '<div class="muted" style="font-size:13px;margin-top:3px;line-height:1.5">Sync Shopify subscriptions, or create a checkout-only subscription that stays off the product page.</div></div>' +
+        '<div class="flex items-center gap-2"><button class="btn btn-default" data-act="refresh-selling-plans">Refresh</button><a class="btn btn-primary" href="#/subscriptions/new">Add subscription</a></div></div>' +
+      '<div class="panel">' +
+        '<div class="card-pad" style="padding-bottom:8px"><div class="filter-bar">' +
+          '<div class="flex items-center" style="min-width:400px">' +
+            '<select class="filter-select" id="sub-kwtype" data-ui-fit data-ui-match-width style="border-top-right-radius:0;border-bottom-right-radius:0">' + kwOpts + '</select>' +
+            '<div style="position:relative;flex:1">' +
+              '<input class="filter-input" id="sub-kw" placeholder="' + esc(kwField.placeholder) + '" value="' + esc(SUB_LST.kw) + '" style="width:100%;padding-left:12px;padding-right:32px;border-top-left-radius:0;border-bottom-left-radius:0;margin-left:-1px" />' +
+              '<span class="filter-ico">' + searchIco + '</span>' +
+            '</div></div>' +
+          '<select class="filter-select" id="sub-origin" style="width:160px"><option value="">All sources</option><option value="bestcheckout"' + (SUB_LST.origin === 'bestcheckout' ? ' selected' : '') + '>BestCheckout</option><option value="shopify"' + (SUB_LST.origin === 'shopify' ? ' selected' : '') + '>Shopify</option></select>' +
+          '<select class="filter-select" id="sub-vis" style="width:210px"><option value="">All visibility</option><option value="checkout"' + (SUB_LST.visibility === 'checkout' ? ' selected' : '') + '>Checkout only</option><option value="shopify"' + (SUB_LST.visibility === 'shopify' ? ' selected' : '') + '>Product page + checkout</option></select>' +
+          '<select class="filter-select" id="sub-status" style="width:150px"><option value="">All status</option><option value="active"' + (SUB_LST.status === 'active' ? ' selected' : '') + '>Active</option><option value="draft"' + (SUB_LST.status === 'draft' ? ' selected' : '') + '>Deactivated</option></select>' +
+        '</div>' + (tags.length ? '<div class="flex items-center gap-2 mt-3" style="flex-wrap:wrap" id="sub-tags">' + tags.join('') + '</div>' : '') + '</div>' +
+        '<div style="overflow-x:auto"><table class="tbl sub-tbl"><thead><tr>' +
+          '<th style="width:188px">Subscription</th><th>Product</th><th style="width:152px">Interval</th><th style="width:108px">Discount</th><th style="width:216px">Source</th><th style="width:148px">Shown on</th><th style="width:168px">Status</th><th style="width:72px;text-align:center">Action</th>' +
+        '</tr></thead><tbody id="bc-sub-tbody">' +
+          (tableRows || '<tr><td colspan="8" style="text-align:center;padding:40px" class="muted">No subscriptions yet. Refresh Shopify or add a checkout-only subscription.</td></tr>') +
+        '</tbody></table></div>' +
+        '<div class="flex items-center justify-between card-pad"><span class="muted" style="font-size:13px">Total ' + total + ' records</span>' + pager + '</div>' +
+      '</div>',
+      'full'
+    );
+    const applyFilters = () => {
+      SUB_LST.kw = (root.querySelector('#sub-kw') || {}).value || '';
+      SUB_LST.kwApplied = SUB_LST.kw.trim();
+      SUB_LST.kwType = (root.querySelector('#sub-kwtype') || {}).value || SUB_LST.kwType;
+      SUB_LST.origin = (root.querySelector('#sub-origin') || {}).value || '';
+      SUB_LST.visibility = (root.querySelector('#sub-vis') || {}).value || '';
+      SUB_LST.status = (root.querySelector('#sub-status') || {}).value || '';
+      SUB_LST.page = 1;
+      renderSubscriptionList();
+    };
+    const kwType = root.querySelector('#sub-kwtype');
+    const kw = root.querySelector('#sub-kw');
+    if (kwType) kwType.onchange = () => {
+      SUB_LST.kwType = kwType.value;
+      syncFilterPlaceholder(kw, SUB_KW_FIELDS, SUB_LST.kwType);
+      if (SUB_LST.kwApplied) { SUB_LST.page = 1; renderSubscriptionList(); }
+    };
+    if (kw) {
+      kw.oninput = () => { SUB_LST.kw = kw.value; };
+      const commit = () => { SUB_LST.kw = kw.value; SUB_LST.kwApplied = SUB_LST.kw.trim(); SUB_LST.page = 1; renderSubscriptionList(); };
+      kw.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); commit(); } };
+      kw.onblur = commit;
+    }
+    ['sub-origin', 'sub-vis', 'sub-status'].forEach((id) => {
+      const el = root.querySelector('#' + id);
+      if (el) el.onchange = applyFilters;
+    });
+    root.querySelectorAll('#sub-tags [data-clear]').forEach((tg) => tg.onclick = () => {
+      const k = tg.getAttribute('data-clear');
+      if (k === 'kw') { SUB_LST.kw = ''; SUB_LST.kwApplied = ''; }
+      if (k === 'origin') SUB_LST.origin = '';
+      if (k === 'visibility') SUB_LST.visibility = '';
+      if (k === 'status') SUB_LST.status = '';
+      SUB_LST.page = 1;
+      renderSubscriptionList();
+    });
+    const pgSize = root.querySelector('#sub-pgsize');
+    if (pgSize) pgSize.onchange = () => { SUB_LST.size = Number(pgSize.value) || 20; SUB_LST.page = 1; renderSubscriptionList(); };
+    root.querySelectorAll('[data-sub-page]').forEach((el) => el.onclick = () => { SUB_LST.page = Number(el.getAttribute('data-sub-page')); renderSubscriptionList(); });
+    root.querySelectorAll('#bc-sub-tbody tr[data-plan]').forEach((tr) => tr.onclick = (e) => {
+      if (e.target.closest('[data-stop]')) return;
+      location.hash = '#/subscriptions/edit/' + encodeURIComponent(tr.getAttribute('data-plan'));
+    });
+    root.querySelectorAll('[data-view]').forEach((btn) => btn.onclick = (e) => {
+      e.stopPropagation();
+      location.hash = '#/subscriptions/edit/' + encodeURIComponent(btn.getAttribute('data-view'));
+    });
+    root.querySelectorAll('[data-toggle-plan]').forEach((el) => el.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const plan = planByKey(el.getAttribute('data-toggle-plan'));
+      if (!plan || !isLocalPlan(plan)) return;
+      plan.status = (plan.status || 'active') === 'active' ? 'draft' : 'active';
+      toast(plan.status === 'active' ? 'Activated' : 'Deactivated');
+      renderSubscriptionList();
+    });
+    const refresh = root.querySelector('[data-act="refresh-selling-plans"]');
+    if (refresh) refresh.onclick = () => refreshSellingPlans(() => renderSubscriptionList());
+  }
+
+  function blankSubscription() {
+    return {
+      origin: 'bestcheckout',
+      visibility: 'checkout',
+      status: 'active',
+      name: '',
+      product: '',
+      productSku: '',
+      productId: '',
+      catalogPrice: '',
+      interval: { every: 1, unit: 'month' },
+      discount: { type: 'percent', value: '' },
+      sourceApp: 'BestCheckout',
+      mapping: 'local',
+    };
+  }
+
+  function collectSubscriptionForm() {
+    if (!SUB_EDIT || !isLocalPlan(SUB_EDIT)) return;
+    SUB_EDIT.name = ((root.querySelector('#sub-name') || {}).value || '');
+    SUB_EDIT.interval.every = Number((root.querySelector('#sub-every') || {}).value || 0);
+    SUB_EDIT.interval.unit = (root.querySelector('#sub-unit') || {}).value || 'month';
+    SUB_EDIT.discount.type = (root.querySelector('#sub-dtype') || {}).value || 'percent';
+    SUB_EDIT.discount.value = (root.querySelector('#sub-dval') || {}).value;
+    SUB_EDIT.status = root.querySelector('#sub-status-sw') && root.querySelector('#sub-status-sw').classList.contains('on') ? 'active' : 'draft';
+  }
+  function subscriptionSnapshot() {
+    return JSON.stringify({
+      name: String((SUB_EDIT && SUB_EDIT.name) || ''),
+      product: String((SUB_EDIT && SUB_EDIT.product) || ''),
+      productSku: String((SUB_EDIT && SUB_EDIT.productSku) || ''),
+      productId: String((SUB_EDIT && SUB_EDIT.productId) || ''),
+      catalogPrice: SUB_EDIT && SUB_EDIT.catalogPrice,
+      status: (SUB_EDIT && SUB_EDIT.status) === 'draft' ? 'draft' : 'active',
+      every: Number(SUB_EDIT && SUB_EDIT.interval && SUB_EDIT.interval.every) || 0,
+      unit: (SUB_EDIT && SUB_EDIT.interval && SUB_EDIT.interval.unit) || 'month',
+      dtype: (SUB_EDIT && SUB_EDIT.discount && SUB_EDIT.discount.type) || 'percent',
+      dval: String((SUB_EDIT && SUB_EDIT.discount && SUB_EDIT.discount.value) ?? ''),
+    });
+  }
+  function isSubscriptionDirty() {
+    return !!(SUB_EDIT && SUB_EDIT_ORIGIN != null && subscriptionSnapshot() !== SUB_EDIT_ORIGIN);
+  }
+  function syncSubscriptionUnsaved() {
+    if (window.UI && window.UI.setUnsavedBar) window.UI.setUnsavedBar(root, isSubscriptionDirty());
+  }
+  function resetSubscriptionEditor() {
+    SUB_EDIT = null;
+    SUB_EDIT_KEY = null;
+    SUB_EDIT_ORIGIN = null;
+    SUB_EDIT_BACKUP = null;
+    SUB_ERRORS = {};
+  }
+
+  function validateSubscription() {
+    SUB_ERRORS = {};
+    const name = String(SUB_EDIT.name || '').trim();
+    if (!name) SUB_ERRORS.name = 'Please enter a subscription name.';
+    else if (name.length > 255) SUB_ERRORS.name = 'Please enter a subscription name.';
+    if (!String(SUB_EDIT.product || '').trim()) SUB_ERRORS.product = 'Select a Shopify product.';
+    const every = Number(SUB_EDIT.interval && SUB_EDIT.interval.every);
+    if (!every || every < 1 || every !== Math.floor(every)) SUB_ERRORS.every = 'Interval must be at least 1.';
+    const unit = SUB_EDIT.interval && SUB_EDIT.interval.unit;
+    if (['week', 'month', 'year'].indexOf(unit) < 0) SUB_ERRORS.unit = 'Select week, month, or year.';
+    const dtype = SUB_EDIT.discount && SUB_EDIT.discount.type;
+    if (dtype !== 'percent' && dtype !== 'fixed') SUB_ERRORS.dtype = 'Select a discount type.';
+    const dval = Number(SUB_EDIT.discount && SUB_EDIT.discount.value);
+    if (!(dval > 0)) SUB_ERRORS.dval = 'Enter a discount greater than 0.';
+    else if (dtype === 'percent' && dval > 100) SUB_ERRORS.dval = 'Percentage discount cannot exceed 100.';
+    return !Object.keys(SUB_ERRORS).length;
+  }
+
+  function renderSubscriptionEditor(plan) {
+    const isNew = !plan;
+    const readonly = !!(plan && !isLocalPlan(plan));
+    if (!SUB_EDIT || SUB_EDIT_KEY !== (plan ? planKey(plan) : 'new')) {
+      SUB_EDIT = plan ? JSON.parse(JSON.stringify(plan)) : blankSubscription();
+      SUB_EDIT_KEY = plan ? planKey(plan) : 'new';
+      SUB_ERRORS = {};
+      SUB_EDIT_BACKUP = JSON.parse(JSON.stringify(SUB_EDIT));
+      SUB_EDIT_ORIGIN = subscriptionSnapshot();
+    }
+    const title = isNew ? 'Create subscription' : (readonly ? 'View subscription' : 'Edit subscription');
+    const sub = readonly
+      ? 'Shopify imported subscriptions are read-only here. Change them in Shopify or the subscription app, then refresh.'
+      : 'Create a checkout-only subscription that shoppers see after they start checkout.';
+    const previewNote = readonly
+      ? 'This imported subscription already appears on the Shopify product page.'
+      : 'This offer stays off the Shopify product page.';
+    const preview = '<div data-sub-preview>' + subscriptionPreviewHtml(previewNote) + '</div>';
+    const disabled = readonly ? ' disabled' : '';
+    const errCls = (on) => on ? ' has-error' : '';
+    const label = (t, req) => '<div class="ctrl-label" style="text-transform:none;margin-bottom:6px">' + t + (req ? ' <span style="color:var(--err)">*</span>' : '') + '</div>';
+    paint(
+      '<style>' + SUB_STYLES + '</style>' +
+      (!readonly && window.UI && window.UI.unsavedBar ? window.UI.unsavedBar({ show: false }) : '') +
+      '<div class="sub-editor">' +
+        '<div>' +
+          '<div class="flex items-center gap-2 mb-5"><a class="back-btn" href="#/subscriptions" title="Back">' + I.chevL + '</a>' +
+            '<div><div class="page-title">' + title + '</div>' +
+            '<div class="muted" style="font-size:13px;margin-top:2px">' + esc(sub) + '</div></div></div>' +
+          '<div class="panel card-pad mb-4"><div class="mb-3"><div class="card-title">Subscription details</div></div>' +
+            '<div style="margin-bottom:14px">' + label('Subscription name', !readonly) +
+              '<input class="input' + errCls(SUB_ERRORS.name) + '" id="sub-name" value="' + esc(SUB_EDIT.name || '') + '" placeholder="e.g. Subscribe & save" maxlength="255"' + disabled + ' />' +
+              '<div class="muted" style="font-size:12px;margin-top:4px">Used in the BestCheckout list only. Checkout shows Delivery every {interval}, not this name.</div>' + subFieldErr(SUB_ERRORS.name) + '</div>' +
+            '<div style="margin-bottom:14px">' + label('Shopify product', !readonly) +
+              '<div class="pick-box' + errCls(SUB_ERRORS.product) + '" style="display:flex;align-items:center;gap:12px;padding:12px;background:' + (readonly ? '#f3f4f6' : '#fff') + '">' +
+                '<span class="sub-ck-img" style="width:44px;height:44px">' + (SUB_EDIT.product ? '<img src="' + esc(subProductImage(SUB_EDIT.product)) + '" alt="" />' : '') + '</span>' +
+                '<div style="flex:1;min-width:0"><div style="font-size:13.5px;color:var(--ink);font-weight:500">' + (esc(SUB_EDIT.product) || '<span class="muted">No product selected</span>') + '</div>' +
+                '<div class="muted" style="font-size:12px">' + [SUB_EDIT.productSku, SUB_EDIT.productId].filter(Boolean).map(esc).join(' · ') + ([SUB_EDIT.productSku, SUB_EDIT.productId].filter(Boolean).length ? ' · ' : '') + 'Checkout applies this subscription when the cart contains this product.</div></div>' +
+                (readonly ? '' : '<button class="btn btn-default" type="button" data-act="pick-product">' + (SUB_EDIT.product ? 'Change' : 'Add product') + '</button>') +
+              '</div>' + subFieldErr(SUB_ERRORS.product) + '</div>' +
+            '<div style="margin-bottom:14px">' + label('Status') +
+              '<label class="flex items-center gap-2" style="cursor:' + (readonly ? 'default' : 'pointer') + ';font-size:13.5px">' +
+                '<span class="bn-sw' + ((SUB_EDIT.status || 'active') === 'active' ? ' on' : '') + (readonly ? ' is-disabled' : '') + '" id="sub-status-sw" role="switch"></span>' +
+                '<span>' + ((SUB_EDIT.status || 'active') === 'active' ? 'Active' : 'Deactivated') + '</span></label>' +
+              '<div class="muted" style="font-size:12px;margin-top:4px">' + (readonly ? 'Imported Shopify subscriptions stay read-only.' : 'This switch is saved with the form.') + '</div></div>' +
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">' +
+              '<div>' + label('Every', !readonly) + '<input class="input' + errCls(SUB_ERRORS.every) + '" id="sub-every" type="number" min="1" step="1" value="' + esc((SUB_EDIT.interval && SUB_EDIT.interval.every) || '') + '"' + disabled + ' />' + subFieldErr(SUB_ERRORS.every) + '</div>' +
+              '<div>' + label('Interval', !readonly) + '<select class="input' + errCls(SUB_ERRORS.unit) + '" id="sub-unit"' + disabled + '>' +
+                ['week', 'month', 'year'].map((u) => '<option value="' + u + '"' + ((SUB_EDIT.interval && SUB_EDIT.interval.unit) === u ? ' selected' : '') + '>' + u + '</option>').join('') +
+              '</select>' + subFieldErr(SUB_ERRORS.unit) + '</div></div>' +
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
+              '<div>' + label('Discount type', !readonly) + '<select class="input' + errCls(SUB_ERRORS.dtype) + '" id="sub-dtype"' + disabled + '>' +
+                '<option value="percent"' + ((SUB_EDIT.discount && SUB_EDIT.discount.type) === 'percent' ? ' selected' : '') + '>% off</option>' +
+                '<option value="fixed"' + ((SUB_EDIT.discount && SUB_EDIT.discount.type) === 'fixed' ? ' selected' : '') + '>$ off</option></select></div>' +
+              '<div>' + label('Discount', !readonly) + '<input class="input' + errCls(SUB_ERRORS.dval) + '" id="sub-dval" type="number" min="0.01" step="0.01" value="' + esc((SUB_EDIT.discount && SUB_EDIT.discount.value) || '') + '"' + disabled + ' />' + subFieldErr(SUB_ERRORS.dval) + '</div></div>' +
+            (readonly
+              ? '<p class="muted" style="margin:14px 0 0;font-size:12.5px;line-height:1.55">' + esc(plan.mappingNote || '') + '</p>'
+              : '<p class="muted" style="margin:14px 0 0;font-size:12.5px;line-height:1.55">BestCheckout does not write this subscription to Shopify. Buyers will not see it on the product page.</p>') +
+          '</div>' +
+          '<div class="flex items-center justify-between gap-2 mb-8">' +
+            (readonly || isNew ? '<span></span>' : '<button class="btn btn-default" type="button" data-act="delete" style="color:var(--err);border-color:#f3c4ba">Delete</button>') +
+            '<div class="flex items-center gap-2"><a class="btn btn-default" href="#/subscriptions">' + (isNew ? 'Cancel' : 'Back') + '</a>' +
+              (readonly ? '' : '<button class="btn btn-primary" type="button" data-act="save">Save subscription</button>') + '</div></div>' +
+        '</div>' +
+        '<div class="sub-preview-card"><div class="panel card-pad mb-4"><div class="mb-3"><div class="card-title">Checkout preview</div></div>' + preview + '</div></div>' +
+      '</div>',
+      'full'
+    );
+    const refreshPreview = () => {
+      collectSubscriptionForm();
+      const box = root.querySelector('[data-sub-preview]');
+      if (box) box.innerHTML = subscriptionPreviewHtml(previewNote);
+      syncSubscriptionUnsaved();
+    };
+    const subErrKey = { 'sub-name': 'name', 'sub-every': 'every', 'sub-unit': 'unit', 'sub-dtype': 'dtype', 'sub-dval': 'dval' };
+    ['sub-name', 'sub-every', 'sub-unit', 'sub-dtype', 'sub-dval'].forEach((id) => {
+      const el = root.querySelector('#' + id);
+      if (!el || readonly) return;
+      const onChange = () => {
+        refreshPreview();
+        if (String(el.value || '').trim()) clearSubMarkedError(subErrKey[id], el);
+      };
+      el.oninput = onChange;
+      el.onchange = onChange;
+    });
+    const sw = root.querySelector('#sub-status-sw');
+    if (sw && !readonly) sw.onclick = () => {
+      collectSubscriptionForm();
+      SUB_EDIT.status = SUB_EDIT.status === 'active' ? 'draft' : 'active';
+      sw.classList.toggle('on', SUB_EDIT.status === 'active');
+      const labelEl = sw.nextElementSibling;
+      if (labelEl) labelEl.textContent = SUB_EDIT.status === 'active' ? 'Active' : 'Deactivated';
+      syncSubscriptionUnsaved();
+    };
+    const pick = root.querySelector('[data-act="pick-product"]');
+    if (pick) pick.onclick = () => {
+      if (!window.UI || !window.UI.productPicker) { toast('Product picker is not available'); return; }
+      window.UI.productPicker({
+        multiple: false,
+        selected: SUB_EDIT.product ? [SUB_EDIT.product] : [],
+        onConfirm: (picked) => {
+          collectSubscriptionForm();
+          SUB_EDIT.product = picked[0] ? picked[0].name : '';
+          SUB_EDIT.productSku = picked[0] && picked[0].sku ? picked[0].sku : '';
+          SUB_EDIT.productId = picked[0] && picked[0].id ? String(picked[0].id) : '';
+          SUB_EDIT.catalogPrice = (picked[0] && picked[0].price) || SUB_CATALOG[SUB_EDIT.product] || '';
+          if (SUB_EDIT.product) delete SUB_ERRORS.product;
+          renderSubscriptionEditor(plan);
+        },
+      });
+    };
+    const saveSubscription = () => {
+      collectSubscriptionForm();
+      if (!validateSubscription()) { renderSubscriptionEditor(plan); toast('Please fix the highlighted fields.'); return; }
+      const saved = {
+        key: SUB_EDIT_KEY === 'new' ? nextLocalKey() : SUB_EDIT.key || SUB_EDIT_KEY,
+        id: SUB_EDIT.id && SUB_EDIT_KEY !== 'new' ? SUB_EDIT.id : (SUB_EDIT_KEY === 'new' ? nextLocalKey() : SUB_EDIT.id),
+        origin: 'bestcheckout',
+        visibility: 'checkout',
+        status: SUB_EDIT.status === 'draft' ? 'draft' : 'active',
+        name: String(SUB_EDIT.name || '').trim(),
+        product: String(SUB_EDIT.product || '').trim(),
+        productSku: SUB_EDIT.productSku || '',
+        productId: SUB_EDIT.productId || '',
+        catalogPrice: catalogPriceOf(SUB_EDIT),
+        interval: { every: Number(SUB_EDIT.interval.every), unit: SUB_EDIT.interval.unit },
+        discount: { type: SUB_EDIT.discount.type, value: Number(SUB_EDIT.discount.value) },
+        sourceApp: 'BestCheckout',
+        mapping: 'local',
+        mappingNote: 'Created in BestCheckout. Shoppers will not see this on the Shopify product page.',
+        createdAt: SUB_EDIT.createdAt || '2026-09-05',
+      };
+      if (SUB_EDIT_KEY === 'new') saved.id = saved.key;
+      const list = subscriptionState().sellingPlans;
+      const idx = list.findIndex((p) => planKey(p) === saved.key);
+      if (idx >= 0) list[idx] = saved;
+      else list.unshift(saved);
+      resetSubscriptionEditor();
+      toast('Saved');
+      location.hash = '#/subscriptions';
+    };
+    const saveBtn = root.querySelector('[data-act="save"]');
+    if (saveBtn) saveBtn.onclick = saveSubscription;
+    const saveBar = root.querySelector('[data-act="save-bar"]');
+    if (saveBar) saveBar.onclick = saveSubscription;
+    const discard = root.querySelector('[data-act="discard"]');
+    if (discard) discard.onclick = () => {
+      if (!SUB_EDIT_BACKUP) return;
+      SUB_EDIT = JSON.parse(JSON.stringify(SUB_EDIT_BACKUP));
+      SUB_ERRORS = {};
+      renderSubscriptionEditor(plan);
+    };
+    const del = root.querySelector('[data-act="delete"]');
+    if (del) del.onclick = () => window.UI.confirm({
+      title: 'Delete subscription',
+      content: 'Delete this checkout-only subscription? Checkout will stop offering it.',
+      okText: 'Delete',
+      danger: true,
+      onOk: () => {
+        subscriptionState().sellingPlans = (subscriptionState().sellingPlans || []).filter((p) => planKey(p) !== SUB_EDIT_KEY);
+        resetSubscriptionEditor();
+        toast('Deleted');
+        location.hash = '#/subscriptions';
+      },
+    });
+    syncSubscriptionUnsaved();
   }
 
   // Add font — mirrors fontModel.tsx: "Font:" label + Ant Select(mode=multiple) of
@@ -1941,13 +3036,15 @@
     { title: 'Overview', children: ['View overview'] },
     { title: 'Purchase flows', children: ['Purchase flow list', 'Create purchase flow', 'Edit purchase flow', 'Publish purchase flow'] },
     { title: 'Checkout pages', children: ['Page list', 'Create page', 'Edit page'] },
+    { title: 'Bundles', children: ['Bundle list', 'Create bundle', 'Edit bundle'] },
+    { title: 'Subscriptions', children: ['Subscription list', 'Create subscription', 'Edit subscription', 'Contract list', 'Contract detail', 'Cancel contract', 'Retry payment'] },
     { title: 'Orders', children: ['Order list', 'Order detail', 'Refund', 'Note'] },
     { title: 'Settings', children: ['Shopify connection', 'Checkout domain', 'Payment services', 'Ad data', 'Email notifications', 'Roles', 'Staff'] },
   ];
   const ALL_LEAVES = PERM_TREE.reduce((a, p) => a.concat(p.children), []);
   let rolesData = [
     { role: 'Administrator', desc: 'Full access to all features and settings', members: 2, perms: ALL_LEAVES.slice() },
-    { role: 'Operations Specialist', desc: 'Manages purchase flows, checkout pages, and orders', members: 1, perms: ['Purchase flow list', 'Create purchase flow', 'Edit purchase flow', 'Publish purchase flow', 'Page list', 'Create page', 'Edit page', 'Order list', 'Order detail'] },
+    { role: 'Operations Specialist', desc: 'Manages purchase flows, checkout pages, and orders', members: 1, perms: ['Purchase flow list', 'Create purchase flow', 'Edit purchase flow', 'Publish purchase flow', 'Page list', 'Create page', 'Edit page', 'Bundle list', 'Create bundle', 'Edit bundle', 'Order list', 'Order detail'] },
     { role: 'Customer Service Representative', desc: 'Handles order questions and refunds', members: 1, perms: ['Order list', 'Order detail', 'Note', 'Refund'] },
     { role: 'Order Specialist', desc: '', members: 1, perms: ['Order list', 'Order detail', 'Note'] },
   ];
@@ -3410,7 +4507,7 @@
       return '<div class="nf-email-product-row' + (it.kind === 'bundle' ? ' is-bundle' : '') + '">' +
         '<div class="nf-email-product-image" aria-hidden="true"></div>' +
         '<div class="nf-email-product-copy">' +
-          '<div class="nf-email-product-head"><div class="nf-email-product-title">' + (it.kind === 'bundle' ? '<span class="nf-email-bundle-badge">Bundle</span>' : '') + esc(it.name) + '&nbsp;&times;&nbsp;' + it.qty + '</div>' + variant + '</div>' +
+          '<div class="nf-email-product-head"><div class="nf-email-product-title">' + (it.kind === 'bundle' ? '<span class="nf-email-bundle-badge i18n-skip">Bundle</span>' : '') + esc(it.name) + '&nbsp;&times;&nbsp;' + it.qty + '</div>' + variant + '</div>' +
           (details ? '<div class="nf-email-product-details">' + details + '</div>' : '') +
         '</div>' +
         '<div class="nf-email-product-price">' + (it.originalPrice ? '<del>' + esc(it.originalPrice) + '</del>' : '') + '<span>' + esc(it.price) + '</span></div>' +
@@ -4652,6 +5749,7 @@
   const ROUTES = {
     notifications: renderNotifications,
     base: renderShopifyStore,
+    subscriptions: renderSubscriptions,
     domains: renderDomains,
     payments: renderPayments,
     'advertising-analytics': renderAdvertisingAnalyticsV2,
@@ -4693,7 +5791,7 @@
     notifSub = (key === 'notifications' && sub != null && sub !== '') ? decodeURIComponent(sub) : null;
     notifEditorMode = key === 'notifications' && notifSub && parts[2] === 'edit' ? 'code' : 'preview';
     ROUTES[key]();
-    wireDirty();
+    if (key !== 'subscriptions') wireDirty();
     if (root && root.parentElement) root.parentElement.scrollTop = 0;
   }
 

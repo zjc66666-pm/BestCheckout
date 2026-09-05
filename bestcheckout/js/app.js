@@ -3472,7 +3472,6 @@
         }),
         categories: [{ value: 'add-ons', label: 'Products' }, { value: 'bundles', label: 'Bundles' }],
         fields: [{ value: 'name', label: 'Product name' }, { value: 'sku', label: 'SKU' }],
-        statusOptions: [['active', 'Active']],
         onConfirm: function (products) {
           var picked = (products || [])[0];
           var product = picked ? (fnOfferProduct(picked.id) || FLOW_OFFER_PRODUCTS.filter(function (item) { return item.name === picked.name; })[0]) : null;

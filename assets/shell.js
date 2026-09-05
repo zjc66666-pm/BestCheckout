@@ -187,8 +187,12 @@
     chain = chain.then(function () {
       if (id === 'customers' && !window.DATA_ORDERS) return loadScript('orders/js/data.js?v=' + V);
     });
-    var moduleV = id === 'settings' ? '20260903-domain-auto3'
-      : id === 'online-store' ? '20260822theme-sync2' : V;
+    var moduleV = id === 'settings' ? '20260905-err-frame1'
+      : id === 'online-store' ? '20260905-ck-bundle-sub1'
+      : id === 'bestcheckout' ? '20260905-no-status1'
+      : id === 'bundles' ? '20260905-err-frame1'
+      : id === 'orders' ? '20260905-ord-ct1'
+      : id === 'abandoned-checkouts' ? '20260905-ac-filt1' : V;
     chain = chain.then(function () {
       if (id === 'online-store' && !window.POST_PURCHASE_ORDER_MOCK)
         return loadScript('assets/post-purchase-order-mock.js?v=' + moduleV);
@@ -621,6 +625,7 @@
       location.hash = '#/settings/' + p.first + (p.rest ? '/' + p.rest : '');
       return;
     }
+    if (p.first === 'settings' && p.rest.split('/')[0] === 'subscriptions') { location.hash = '#/subscriptions'; return; }
     // Checkout appearance is edited in Checkout pages. Keep old bookmarks useful
     // without retaining a second, competing settings surface.
     if (p.first === 'checkout' || (p.first === 'settings' && p.rest.split('/')[0] === 'checkout')) { location.hash = '#/pages'; return; }
@@ -647,6 +652,7 @@
        its mature funnel/template implementations under one runtime folder. */
     var viewRest = p.rest;
     if (p.first === 'settings') viewRest = p.rest || 'base';
+    if (p.first === 'subscriptions') viewRest = p.rest ? 'subscriptions/' + p.rest : 'subscriptions';
     // The flows landing page is a list; a flow id opens the existing canvas as
     // that flow's detail workspace.
     if (p.first === 'flows') viewRest = p.rest ? 'funnel/' + p.rest : 'flows';
@@ -654,7 +660,7 @@
     var activeId = p.first;
     if (p.first === 'settings') { var settingsSub = p.rest.split('/')[0] || 'base'; activeId = 'settings-' + settingsSub; }
     if (p.first === 'analytics') { var asub = p.rest.split('/')[0]; activeId = asub ? 'analytics-' + asub : 'analytics'; }
-    if (p.first === 'subscriptions') { var ssub = p.rest.split('/')[0]; activeId = ssub ? 'subscriptions-' + ssub : 'subscriptions'; }
+    if (p.first === 'subscriptions') activeId = ((p.rest || '').split('/')[0] === 'contracts') ? 'subscriptions-contracts' : 'subscriptions';
     curActiveId = activeId;
     renderSidebar(activeId);
     if (current && current !== moduleId && window.VIEWS[current] && window.VIEWS[current].unmount) {

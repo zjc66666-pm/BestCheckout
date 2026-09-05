@@ -18,7 +18,7 @@
     'Customers': '客户', 'Discounts': '折扣', 'Content': '内容', 'Blog': '博客',
     'Page': '页面', 'Menu': '导航菜单', 'Analytics': '数据分析', 'Reports': '报表',
     'Live View': '实时概览', 'Online store': '网上商店',
-    'Subscriptions': '订阅', 'Plans': '套餐', 'Bundles': '捆绑销售', 'Settings': '设置',
+    'Subscriptions': '订阅', 'Plans': '套餐', 'Bundles': '套装', 'Settings': '设置',
 
     // ---- settings nav (canonical) ----
     'Basic settings': '基础设置', 'Payments': '收款', 'Currency': '币种', 'Checkout': '结账',

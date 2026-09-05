@@ -234,7 +234,7 @@ window.I18N.extend({
   // ============================================================
   //  BUNDLES  (prototypes/bundles/js/app.js + data.js)
   // ============================================================
-  "Bundles": "捆绑销售",
+  "Bundles": "套装",
   "Add bundle": "添加套装",
   // list filter fields
   "Bundle name": "套装名称",

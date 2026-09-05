@@ -133,11 +133,11 @@ input[list]::-webkit-calendar-picker-indicator { display: none !important; }
 
 /* Manage-filters grouped dropdown header */
 .opt-group { padding: 8px 10px 4px; font-size: 11px; color: var(--ink-muted); font-weight: 600; }
-.sel-trigger { width: 100%; display: flex; align-items: center; justify-content: space-between; cursor: pointer; height: 34px; padding: 0 12px; border: 1px solid var(--ctl); border-radius: var(--radius); background: #fff; font-size: 13px; color: var(--ink); }
+.sel-trigger { width: 100%; display: flex; align-items: center; justify-content: space-between; cursor: pointer; height: 34px; padding: 0 12px; border: 1px solid var(--ctl); border-radius: var(--radius); background: #fff; font-size: 13px; line-height: 1; color: var(--ink); box-sizing: border-box; }
 .sel-trigger:hover { border-color: var(--brand); }
 
 /* ---------- Pills / tags ---------- */
-.pill { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 9999px; font-size: 12.5px; font-weight: 500; color: #111827; }
+.pill { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 9999px; font-size: 12.5px; font-weight: 500; line-height: 1; color: #111827; }
 .pill .dot { width: 8px; height: 8px; border-radius: 50%; }
 .pill-blue { background: #dbeafe; } .pill-blue .dot { background: #2563eb; }
 .pill-orange { background: #ffedd5; } .pill-orange .dot { background: #f97316; }
@@ -163,6 +163,8 @@ input[list]::-webkit-calendar-picker-indicator { display: none !important; }
 .tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 .tbl thead th { background: #fff; text-align: left; font-weight: 600; color: var(--ink); padding: 12px 16px; border-bottom: 1px solid var(--hair); white-space: nowrap; }
 .tbl tbody td { padding: 12px 16px; border-bottom: 1px solid var(--hair); color: var(--ink-body); vertical-align: middle; }
+.tbl tbody td input[type="checkbox"],
+.tbl tbody td input[type="radio"] { margin: 0; vertical-align: middle; }
 .tbl tbody tr { cursor: pointer; }
 .tbl tbody tr:hover { background: var(--panel); }
 .tbl .num { text-align: right; font-variant-numeric: tabular-nums; }
@@ -187,15 +189,18 @@ input[list]::-webkit-calendar-picker-indicator { display: none !important; }
 .src-Derived { background: var(--ok-bg); color: #00684a; } .src-Derived .dot { background: var(--ok); }
 
 /* ---------- Filters (reports list) ---------- */
-.filter-input { height: 34px; padding: 0 12px 0 32px; border: 1px solid var(--ctl); border-radius: var(--radius); font-size: 13px; color: var(--ink); width: 280px; background: #fff; }
+.filter-input { height: 34px; padding: 0 32px 0 12px; border: 1px solid var(--ctl); border-radius: var(--radius); font-size: 13px; line-height: 32px; color: var(--ink); width: 280px; background: #fff; box-sizing: border-box; }
 .filter-input:focus { outline: none; border-color: var(--brand); }
+.filter-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.filter-bar .btn { height: 34px; padding-top: 1px; }
+.filter-ico { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--ink-muted); display: inline-flex; align-items: center; pointer-events: none; }
 /* search clear button (shown only when the input has text, via :placeholder-shown) */
 .kw-clear { position: absolute; right: 32px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; border-radius: 50%; background: var(--ctl); color: #fff; display: grid; place-items: center; font-size: 12px; line-height: 1; cursor: pointer; }
 .kw-clear:hover { background: var(--ink-muted); }
 #kw-input:placeholder-shown ~ .kw-clear { display: none; }
 /* segmented filter controls overlap via margin-left:-1px; lift the hovered/focused one so all 4 borders show */
 .ui-select:hover, .ui-range:hover, .filter-input:hover, .filter-input:focus, .filter-select:hover { position: relative; z-index: 2; }
-.filter-select { height: 34px; padding: 0 10px; border: 1px solid var(--ctl); border-radius: var(--radius); font-size: 13px; color: var(--ink); background: #fff; }
+.filter-select { height: 34px; padding: 0 10px; border: 1px solid var(--ctl); border-radius: var(--radius); font-size: 13px; line-height: 32px; color: var(--ink); background: #fff; box-sizing: border-box; }
 /* hairline under every list filter bar + symmetric top/bottom padding (overrides inline padding-bottom:8px) */
 .card-pad:has(.filter-select), .card-pad:has(.filter-input) { border-bottom: 1px solid var(--hair); padding-top: 16px !important; padding-bottom: 16px !important; }
 
@@ -206,9 +211,15 @@ input[list]::-webkit-calendar-picker-indicator { display: none !important; }
 .ctrl-sec { padding: 14px 16px; border-bottom: 1px solid var(--hair); }
 .ctrl-sec:last-child { border-bottom: none; }
 .ctrl-label { font-size: 12px; font-weight: 600; color: var(--ink); text-transform: uppercase; letter-spacing: .03em; margin-bottom: 8px; }
-.field-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px 4px 10px; border-radius: 6px; background: var(--panel); border: 1px solid var(--hair); font-size: 12.5px; color: var(--ink); margin: 0 6px 6px 0; }
-.field-pill .x { cursor: pointer; color: var(--ink-muted); font-size: 14px; line-height: 1; }
+.field-pill { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 6px 0 8px; border-radius: 6px; background: var(--panel); border: 1px solid var(--hair); font-size: 12px; line-height: 1; color: var(--ink); margin: 0 6px 6px 0; box-sizing: border-box; vertical-align: middle; }
+.field-pill > * { display: inline-flex; align-items: center; line-height: 1; transform: translateY(-0.5px); }
+.field-pill .x { position: relative; width: 12px; height: 12px; margin: 0; padding: 0; cursor: pointer; color: var(--ink-muted); font-size: 0; line-height: 0; transform: none; }
+.field-pill .x::before, .field-pill .x::after { content: ""; position: absolute; left: 50%; top: 50%; width: 9px; height: 1.2px; background: currentColor; }
+.field-pill .x::before { transform: translate(-50%, -50%) rotate(45deg); }
+.field-pill .x::after { transform: translate(-50%, -50%) rotate(-45deg); }
 .field-pill .x:hover { color: var(--err); }
+#pp-tags, #filter-tags, #bn-tags, #sub-tags { align-items: center; }
+#pp-tags .field-pill, #filter-tags .field-pill, #bn-tags .field-pill, #sub-tags .field-pill { margin: 0; }
 .add-field { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 6px; border: 1px dashed var(--ctl); background: #fff; font-size: 12.5px; color: var(--brand); cursor: pointer; }
 .add-field:hover { background: var(--brand-50, #e6f0ff); }
 .menu-pop { position: absolute; z-index: 30; background: #fff; border: 1px solid var(--hair); border-radius: 8px; box-shadow: var(--float-shadow); padding: 6px; max-height: 260px; overflow: auto; min-width: 200px; }
@@ -243,9 +254,13 @@ input[list]::-webkit-calendar-picker-indicator { display: none !important; }
 .modal-foot { padding: 4px 18px 18px; display: flex; justify-content: flex-end; gap: 8px; }
 .input { width: 100%; height: 36px; padding: 0 12px; border: 1px solid var(--ctl); border-radius: var(--radius); font-size: 14px; background: #fff; }
 .input:focus { outline: none; border-color: var(--brand); }
-/* Inline validation — mirrors .sh-fld-input.has-error / .sh-fld-error so .input fields
-   show a red border + red helper text instead of a toast. Stays red even on focus. */
-.input.has-error, .input.has-error:focus { border-color: var(--err); box-shadow: 0 0 0 2px rgb(211 54 18 / 10%); }
+.input:disabled, .input[readonly] { background: #f3f4f6; color: var(--ink-muted); cursor: default; opacity: 1; }
+.pick-box { border: 1px solid var(--hair); border-radius: var(--radius); background: #fff; box-sizing: border-box; }
+/* Same 1px outer border as .input.has-error. Do not use inline border on .pick-box —
+   the shorthand would pin border-color and leave only the outer glow, looking thicker. */
+.input.has-error, .input.has-error:focus,
+.ui-select.has-error, .ui-select.has-error:hover, .ui-select.has-error:focus,
+.pick-box.has-error { border-color: var(--err); box-shadow: none; }
 
 /* metric tooltip */
 .tipbox { position: fixed; z-index: 90; max-width: 264px; background: #fff; border: 1px solid var(--hair); border-radius: 8px; box-shadow: var(--float-shadow); padding: 10px 12px; pointer-events: none; }
@@ -727,10 +742,13 @@ select::-ms-expand { display: none; }
 .settings-content { flex: 1; min-width: 0; overflow-y: auto; padding: 24px 30px 48px; }
 
 /* ---- Shared widgets: antd-style custom Select + dual-month RangePicker (widgets.js) ---- */
-.ui-select { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; user-select: none; box-sizing: border-box; }
+.ui-select { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; user-select: none; box-sizing: border-box; line-height: 1; }
 .ui-select:hover { border-color: var(--brand); }
-.ui-select .ui-select-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ui-select .ui-chev { flex: 0 0 14px; color: var(--ink-muted); }
+.ui-select.is-disabled { background: #f3f4f6; color: var(--ink-muted); cursor: default; pointer-events: none; }
+.ui-select.is-disabled:hover { border-color: var(--ctl); }
+.ui-select.is-disabled .ui-chev { opacity: .4; }
+.ui-select .ui-select-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1; display: flex; align-items: center; transform: translateY(1px); }
+.ui-select .ui-chev { flex: 0 0 14px; color: var(--ink-muted); display: block; }
 .ui-select-pop .opt { padding: 7px 10px; border-radius: 6px; font-size: 13px; color: var(--ink-body); cursor: pointer; white-space: nowrap; }
 .ui-select-pop .opt:hover { background: var(--panel); color: var(--ink); }
 .ui-select-pop .opt.sel { background: #ebf0ff; color: #356dff; font-weight: 600; }
@@ -739,7 +757,7 @@ select::-ms-expand { display: none; }
 
 .ui-range { display: flex; align-items: center; cursor: pointer; user-select: none; box-sizing: border-box; }
 .ui-range:hover { border-color: var(--brand); }
-.ui-range .ui-range-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ui-range .ui-range-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1; transform: translateY(1px); }
 .ui-range .ui-range-text.muted { color: var(--ink-muted); }
 .ui-range .ui-range-ico { flex: 0 0 auto; color: var(--ink-muted); display: inline-flex; margin-left: 8px; }
 

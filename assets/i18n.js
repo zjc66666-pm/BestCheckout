@@ -34,7 +34,7 @@
     'Customers': '客户', 'Discounts': '折扣', 'Content': '内容', 'Blog': '博客',
     'Page': '页面', 'Menu': '导航菜单', 'Analytics': '数据分析', 'Reports': '报表',
     'Live View': '实时概览', 'Online store': '网上商店',
-    'Subscriptions': '订阅', 'Plans': '套餐', 'Bundles': '捆绑销售', 'Settings': '设置',
+    'Subscriptions': '订阅', 'Plans': '套餐', 'Bundles': '套装', 'Settings': '设置',
 
     // ---- settings menu ----
     'Basic settings': '基础设置', 'Payments': '收款', 'Currency': '币种', 'Checkout': '结账',
@@ -85,7 +85,7 @@
     'Analytics module — reports engine + behavior data': '数据分析模块 —— 报表引擎 + 行为数据',
 
     // ---- changelog items (nav.js) ----
-    'New app (sits under Bundles): connect a Shopify store and sell through a faster external checkout with one-click post-purchase upsells and multi-MID payment routing': '新增应用（位于「捆绑销售」下方）：接入 Shopify 店铺，通过更快的外部结账页销售，支持一键购后追加与多 MID 收款路由',
+    'New app (sits under Bundles): connect a Shopify store and sell through a faster external checkout with one-click post-purchase upsells and multi-MID payment routing': '新增应用（位于「套装」下方）：接入 Shopify 店铺，通过更快的外部结账页销售，支持一键购后追加与多 MID 收款路由',
     'Shopify auto-sync — products, collections, discounts, shipping and customers are read from Shopify for checkout; paid orders write back to trigger the merchant’s existing fulfillment apps': 'Shopify 自动同步——商品、商品系列、折扣、运费与客户从 Shopify 读取供结账使用；已付款订单回写以触发商家现有的发货应用',
     'Connection hub gathers the whole Shopify bridge — authorization (OAuth), Shopify data auto-sync, checkout injection (App Embed) and the checkout domain — and retires at migration': '连接中心汇集整条 Shopify 通道——授权（OAuth）、Shopify 数据自动同步、结账注入（App Embed）与结账域名——迁移完成后即退役',
     'One-domain-switch migration to a native BestShopio store; subscriptions reuse the Subscriptions app rather than a second engine': '一次切换域名即可迁移为原生 BestShopio 店铺；订阅复用「订阅」应用，无需第二套引擎',

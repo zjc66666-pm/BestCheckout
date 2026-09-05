@@ -4169,10 +4169,15 @@
   /* Item 3 — subscription cadence tag (muted, tag icon + "Delivery every … (−$x)") */
   .ck-line-sub{display:flex;align-items:center;gap:5px;margin-top:4px;font-size:var(--ck-small-fs);color:var(--ck-sum-muted)}
   .ck-line-sub .ck-tag-i{flex:none}
-  /* Item 3 — bundle parent (black "Bundle" badge in place of the thumb) + children */
-  .ck-line--bundle{align-items:flex-start;margin-bottom:14px}
-  .ck-line-bundle-badge{flex:none;width:64px;min-height:34px;display:inline-flex;align-items:center;justify-content:center;background:#111;color:#fff;font-size:12px;font-weight:700;border-radius:8px;padding:6px 10px;box-sizing:border-box}
-  .ck-bundle-child{display:flex;gap:12px;align-items:center;margin:0 0 14px 24px}
+  /* Bundle parent: compact badge + title + prices on one row; deal right-aligned below */
+  .ck-line--bundle{display:block;align-items:unset;margin-bottom:14px}
+  .ck-line-head{display:flex;align-items:center;gap:8px}
+  .ck-line-bundle-badge{flex:none;height:18px;display:inline-flex;align-items:center;justify-content:center;background:#111;color:#fff;font-size:10px;font-weight:700;border-radius:4px;padding:0 6px;line-height:1;box-sizing:border-box}
+  .ck-line--bundle .ck-line-t{flex:1;min-width:0}
+  .ck-line--bundle .ck-line-pr{flex-direction:row;align-items:baseline;gap:6px}
+  .ck-line--bundle .ck-line-deal,
+  .ck-line--bundle .ck-line-sub{justify-content:flex-end}
+  .ck-bundle-child{display:flex;gap:12px;align-items:center;margin:0 0 14px}
   .ck-bundle-child:last-child{margin-bottom:2px}
   .ck-line-img.sm{width:44px;height:44px;border-radius:8px}
   .ck-line-img.sm .ck-line-qty{top:-8px;right:-8px;min-width:18px;height:18px;font-size:10px}

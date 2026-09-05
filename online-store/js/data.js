@@ -601,6 +601,14 @@
           { title: 'Bundle item A - Focus Gum', variant: '12 Pack', qty: 1, image: IMG.p1 },
           { title: 'Bundle item B - Refill Pack', variant: 'Mint, 24 Pack', qty: 1, image: IMG.p2 },
         ] },
+      // Bundle + selling plan: parent still uses the Bundle badge; BUNDLE discount and
+      // cadence stack as two right-aligned tags (compareAt − bundleSave − subSave = price).
+      { id: 'l7', title: '06 Bundle product - with subscription', variant: '', qty: 1, price: 55.98, compareAt: 69.97, deal: 'BUNDLE discount', image: IMG.p3,
+        bundle: true, subscription: { label: 'Delivery every 2 months', save: 6.0 },
+        bundleItems: [
+          { title: 'Bundle item A - Focus Gum', variant: '12 Pack', qty: 1, image: IMG.p1 },
+          { title: 'Bundle item B - Refill Pack', variant: 'Citrus, 24 Pack', qty: 1, image: IMG.p5 },
+        ] },
     ],
     shippingMethods: [
       { id: 'standard', name: 'Standard Shipping', eta: '', desc: '4–7 business days', price: 8.99 },

@@ -134,11 +134,11 @@
       '<div class="panel">' +
         '<div class="tabs" style="padding:0 8px" id="ac-tabs">' + tabsHtml + '</div>' +
         '<div class="card-pad" style="padding-bottom:8px">' +
-          '<div class="flex" style="min-width:428px;max-width:560px">' +
+          '<div class="flex items-center" style="min-width:428px;max-width:560px">' +
             '<select class="filter-select" id="ac-kw-type" style="width:160px;border-top-right-radius:0;border-bottom-right-radius:0">' + kwOpts + '</select>' +
             '<div style="position:relative;flex:1">' +
               '<input class="filter-input" id="ac-kw" placeholder="Search" value="' + esc(LST.kw) + '" style="width:100%;padding-right:36px;border-top-left-radius:0;border-bottom-left-radius:0;margin-left:-1px" />' +
-              '<span style="position:absolute;right:10px;top:9px;color:var(--ink-muted)">' + I.search + '</span>' +
+              '<span class="filter-ico">' + I.search + '</span>' +
             '</div>' +
           '</div>' +
         '</div>' +
