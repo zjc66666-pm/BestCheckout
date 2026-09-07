@@ -193,6 +193,8 @@ window.I18N.extend({
   "Open install page": "打开安装页",
   "BestCheckout is creating a Custom App for this store. This usually takes about 1 day. You do not need to paste credentials.": "BestCheckout 正在为这家店创建 Custom App，通常约 1 天。你不需要粘贴任何凭证。",
   "The store owner should open the email and select Install, then return here. Installing does not finish the connection by itself.": "请用该店店主打开邮件并点 Install，然后回到这里。仅在 Shopify 点 Install 还不能完成连接。",
+  "Install from BestCheckout or from the email we sent. Selecting Install does not finish the connection by itself.": "可在 BestCheckout 安装，也可使用我们发送的邮件。仅在 Shopify 点 Install 还不能完成连接。",
+  "Open install": "去安装",
   "Check the myshopify.com address and who opened the install link, then submit the store again.": "请核对 myshopify.com 地址以及打开安装链接的账号，然后重新提交店铺。",
   "BestCheckout connects this store through an install link, not Client ID and Secret.": "BestCheckout 通过安装链接连接店铺，不使用 Client ID 和 Secret。",
   "Enter the permanent Shopify address. BestCheckout prepares a Custom App and emails an install link, usually within about 1 day. You do not paste Client ID or Secret.": "填写永久 Shopify 地址。BestCheckout 会准备 Custom App 并发送安装邮件，通常约 1 天。你不需要粘贴 Client ID 或 Secret。",

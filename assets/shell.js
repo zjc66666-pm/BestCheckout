@@ -523,7 +523,7 @@
       : shopifyConnectionState === 'pending'
         ? { done: false, current: true, title: 'Preparing your install link', desc: 'BestCheckout is creating a Custom App for this store. This usually takes about 1 day.', href: PUBLIC_SHOPIFY_CONNECTION_URL.replace('#/connect-shopify', '#/connect-shopify?status=pending'), action: 'View status' }
         : shopifyConnectionState === 'install'
-          ? { done: false, current: true, title: 'Install BestCheckout from your email', desc: 'The store owner must open the install link. Selecting Install does not finish this step.', href: PUBLIC_SHOPIFY_CONNECTION_URL.replace('#/connect-shopify', '#/connect-shopify?status=install'), action: 'Open install' }
+          ? { done: false, current: true, title: 'Install BestCheckout', desc: 'Install from BestCheckout or from the email. Selecting Install does not finish this step.', href: PUBLIC_SHOPIFY_CONNECTION_URL.replace('#/connect-shopify', '#/connect-shopify?status=install'), action: 'Open install' }
           : shopifyConnectionState === 'failed'
             ? { done: false, current: true, title: 'Shopify connection failed', desc: 'Check the myshopify.com address and who opened the install link, then try again.', href: PUBLIC_SHOPIFY_CONNECTION_URL.replace('#/connect-shopify', '#/connect-shopify?status=failed'), action: 'Try again' }
             : { done: false, current: true, title: 'Connect your Shopify store', desc: 'Submit your myshopify.com address. BestCheckout emails an install link — you do not paste credentials.', href: PUBLIC_SHOPIFY_CONNECTION_URL, action: 'Connect' };

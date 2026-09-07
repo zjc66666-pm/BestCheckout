@@ -36,7 +36,7 @@ import { renderActivity } from './pages/activity.js?rev=20260720-standalone-port
 import { renderSettings } from './pages/settings.js?rev=20260720-standalone-portal-v150';
 import { renderEditor, mountEditor } from './pages/editor.js?rev=20260719-preview-session-v92';
 import { renderAbandonedCheckouts, renderOrders } from './pages/orders.js?rev=20260825-abandoned1';
-import { renderConnectShopify, renderForgotPasswordCode, renderInstallEmailPage, renderPasswordResetEmailPage, renderSignIn, renderSignUp, renderSignupVerificationEmailPage } from './pages/auth.js?rev=20260907-install-link1';
+import { renderConnectShopify, renderForgotPasswordCode, renderInstallEmailPage, renderPasswordResetEmailPage, renderSignIn, renderSignUp, renderSignupVerificationEmailPage } from './pages/auth.js?rev=20260907-install-link6';
 import { renderHelpCenter } from './pages/help.js?rev=20260907-install-link1';
 import { renderLookbookSite, renderMarketingSite } from './pages/website.js?rev=20260827-highlights3';
 import {
@@ -1324,6 +1324,15 @@ function initialAudienceForPreset(preset, locale) {
 function handleAction(action, element) {
   if (action === 'complete-shopify-install') {
     completeShopifyInstall(element.getAttribute('data-shop'));
+    return;
+  }
+  if (action === 'copy-install-link') {
+    const link = element.getAttribute('data-copy-text') || '';
+    if (navigator.clipboard && navigator.clipboard.writeText && link) {
+      navigator.clipboard.writeText(link).then(function () { showToast('Install link copied'); }).catch(function () { showToast('Could not copy install link'); });
+    } else {
+      showToast(link ? 'Could not copy install link' : 'Install link is not ready');
+    }
     return;
   }
   if (action === 'preview-signup-email') {

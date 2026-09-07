@@ -758,7 +758,7 @@
       const copy = connectionState === 'failed'
         ? { title: 'Connection failed', body: 'Check the myshopify.com address and who opened the install link, then submit the store again.', pill: 'Failed', tone: 'pill-orange', action: 'Try again', href: '../?entry=connect-new-shopify-store#/connect-shopify?status=failed' }
         : connectionState === 'install'
-          ? { title: 'Waiting for install', body: 'The store owner should open the email and select Install, then return here. Installing does not finish the connection by itself.', pill: 'Waiting to install', tone: 'pill-orange', action: 'Open install page', href: '../?entry=connect-new-shopify-store#/connect-shopify?status=install&shop=' + encodeURIComponent(String(store.url || '').replace(/\.myshopify\.com$/i, '')) }
+          ? { title: 'Waiting for install', body: 'Install from BestCheckout or from the email we sent. Selecting Install does not finish the connection by itself.', pill: 'Waiting to install', tone: 'pill-orange', action: 'Open install', href: '../?entry=connect-new-shopify-store#/connect-shopify?status=install&shop=' + encodeURIComponent(String(store.url || '').replace(/\.myshopify\.com$/i, '')) }
           : { title: 'Preparing your install link', body: 'BestCheckout is creating a Custom App for this store. This usually takes about 1 day. You do not need to paste credentials.', pill: 'Connecting', tone: 'pill-orange', action: 'View connection status', href: '../?entry=connect-new-shopify-store#/connect-shopify?status=pending&shop=' + encodeURIComponent(String(store.url || '').replace(/\.myshopify\.com$/i, '')) };
       paint(
         pageHead('Shopify connection', 'BestCheckout connects this store through an install link, not Client ID and Secret.') +
