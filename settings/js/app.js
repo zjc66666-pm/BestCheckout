@@ -9,14 +9,6 @@
 (function () {
   const D = window.DATA_SETTINGS;
   let root; // set by the SPA shell router via VIEWS.settings.render(el, rest)
-  // Prototype-only values representing the credentials submitted during store
-  // connection. They are always masked until the merchant explicitly reveals
-  // one field, matching the intended production behaviour.
-  const shopifyAppCredentials = {
-    clientId: '7b4f3d2e1a9c8f6b5d4e3f2a1b0c9d8e',
-    secret: 'shpss_demo_lavender_labs_connection',
-  };
-  let shopifyCredentialVisible = { clientId: false, secret: false };
   let shopifyConnectionSetupOpen = new URLSearchParams(window.location.search).get('connect') === 'shopify';
 
   function setShopifyConnectionSetupRoute(open) {
@@ -938,57 +930,47 @@
       '</style>' +
       '<div class="bc-connect-page">' +
         pageHead('Shopify connection', 'Connect a Shopify store from your BestCheckout workspace.') +
-        '<section class="panel bc-connect-card"><h2>Connect your Shopify store</h2><p>Use the custom app created in Shopify Dev Dashboard. BestCheckout will sync the checkout data it needs and write paid orders back to Shopify.</p>' +
+        '<section class="panel bc-connect-card"><h2>Connect your Shopify store</h2><p>Enter the permanent Shopify address. BestCheckout prepares a Custom App and emails an install link, usually within about 1 day. You do not paste Client ID or Secret.</p>' +
           '<form data-shopify-connect-form novalidate>' +
             '<div class="bc-connect-field" data-connect-field="store"><label for="bc-connect-store">Shopify store address</label><div class="bc-connect-domain"><input id="bc-connect-store" autocomplete="off" placeholder="your-store"><span>.myshopify.com</span></div><small>Enter your permanent myshopify.com store address, not your storefront domain.</small><small class="bc-connect-error">Enter your Shopify store name.</small></div>' +
-            '<div class="bc-connect-field" data-connect-field="client"><label for="bc-connect-client">Client ID</label><input id="bc-connect-client" autocomplete="off" placeholder="Paste your Client ID"><small>Find this in your app\'s Settings page in Shopify Dev Dashboard.</small><small class="bc-connect-error">Enter your Shopify Client ID.</small></div>' +
-            '<div class="bc-connect-field" data-connect-field="secret"><label for="bc-connect-secret">Secret</label><div class="bc-connect-secret"><input id="bc-connect-secret" type="password" autocomplete="new-password" placeholder="Paste your Secret"><button type="button" data-connect-secret-toggle>Show</button></div><small>Stored securely and shown only when you choose to reveal it in Shopify connection settings.</small><small class="bc-connect-error">Enter your Shopify Secret.</small></div>' +
-            '<label class="bc-connect-confirm" data-connect-confirm><input type="checkbox" checked><span>I created this app in Shopify Dev Dashboard and authorize BestCheckout to use it for this store.<small class="bc-connect-error">Confirm authorization before connecting.</small></span></label>' +
-            '<div class="bc-connect-actions"><button type="button" class="btn btn-default" data-connect-cancel>Cancel</button><button type="submit" class="btn btn-primary">Connect store</button></div>' +
+            '<div class="bc-connect-actions"><button type="button" class="btn btn-default" data-connect-cancel>Cancel</button><button type="submit" class="btn btn-primary">Submit store</button></div>' +
           '</form>' +
         '</section>' +
       '</div>';
     paint(body, false);
     const form = root.querySelector('[data-shopify-connect-form]');
-    const secret = root.querySelector('#bc-connect-secret');
-    const secretToggle = root.querySelector('[data-connect-secret-toggle]');
-    if (secretToggle && secret) secretToggle.onclick = () => {
-      const visible = secret.type === 'text';
-      secret.type = visible ? 'password' : 'text';
-      secretToggle.textContent = visible ? 'Show' : 'Hide';
-    };
     const cancel = root.querySelector('[data-connect-cancel]');
     if (cancel) cancel.onclick = () => { setShopifyConnectionSetupRoute(false); renderShopifyStore(); };
     if (form) form.onsubmit = (event) => {
       event.preventDefault();
       const store = root.querySelector('#bc-connect-store');
-      const client = root.querySelector('#bc-connect-client');
-      const confirmation = root.querySelector('[data-connect-confirm]');
-      const accepted = confirmation && confirmation.querySelector('input').checked;
-      const setInvalid = (key, invalid) => {
-        const field = root.querySelector('[data-connect-field="' + key + '"]');
-        if (field) field.classList.toggle('is-invalid', invalid);
-        return invalid;
-      };
-      const invalidStore = setInvalid('store', !store.value.trim());
-      const invalidClient = setInvalid('client', !client.value.trim());
-      const invalidSecret = setInvalid('secret', !secret.value.trim());
-      const invalid = invalidStore || invalidClient || invalidSecret;
-      if (confirmation) confirmation.classList.toggle('is-invalid', !accepted);
-      if (invalid || !accepted) return;
-      const destination = new URL(window.location.href);
-      destination.searchParams.set('shopify', 'connected');
-      destination.searchParams.delete('connect');
-      destination.hash = '#/home';
-      window.location.assign(destination.pathname + destination.search + destination.hash);
+      const handle = String(store.value || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\.myshopify\.com$/i, '').replace(/[^a-z0-9-]/g, '');
+      const field = root.querySelector('[data-connect-field="store"]');
+      if (field) field.classList.toggle('is-invalid', !handle);
+      if (!handle) return;
+      window.location.assign('../?entry=connect-new-shopify-store#/connect-shopify?status=pending&shop=' + encodeURIComponent(handle));
     };
   }
 
   function renderShopifyStore() {
-    const isConnected = window.BESTCHECKOUT_SHOPIFY_CONNECTION !== 'unlinked';
-    if (!isConnected) {
+    const connectionState = window.BESTCHECKOUT_SHOPIFY_CONNECTION || 'connected';
+    if (connectionState === 'unlinked') {
       if (!shopifyConnectionSetupOpen) setShopifyConnectionSetupRoute(true);
       renderShopifyConnectionSetup();
+      return;
+    }
+    if (connectionState === 'pending' || connectionState === 'install' || connectionState === 'failed') {
+      const store = currentShopifyStore();
+      const copy = connectionState === 'failed'
+        ? { title: 'Connection failed', body: 'Check the myshopify.com address and who opened the install link, then submit the store again.', pill: 'Failed', tone: 'pill-orange', action: 'Try again', href: '../?entry=connect-new-shopify-store#/connect-shopify?status=failed' }
+        : connectionState === 'install'
+          ? { title: 'Waiting for install', body: 'Install from BestCheckout or from the email we sent. Selecting Install does not finish the connection by itself.', pill: 'Waiting to install', tone: 'pill-orange', action: 'Open install', href: '../?entry=connect-new-shopify-store#/connect-shopify?status=install&shop=' + encodeURIComponent(String(store.url || '').replace(/\.myshopify\.com$/i, '')) }
+          : { title: 'Preparing your install link', body: 'BestCheckout is creating a Custom App for this store. This usually takes about 1 day. You do not need to paste credentials.', pill: 'Connecting', tone: 'pill-orange', action: 'View connection status', href: '../?entry=connect-new-shopify-store#/connect-shopify?status=pending&shop=' + encodeURIComponent(String(store.url || '').replace(/\.myshopify\.com$/i, '')) };
+      paint(
+        pageHead('Shopify connection', 'BestCheckout connects this store through an install link, not Client ID and Secret.') +
+        '<section class="panel card-pad mb-4"><div class="flex items-start justify-between" style="gap:12px"><div><div class="bc-store-name">' + esc(copy.title) + '</div><div class="bc-store-domain">' + esc(store.url) + '</div><p class="muted" style="margin:10px 0 0;font-size:13px;line-height:1.55">' + esc(copy.body) + '</p></div><span class="pill ' + copy.tone + '"><span class="dot"></span>' + esc(copy.pill) + '</span></div><div class="mt-4"><a class="btn btn-primary" href="' + copy.href + '">' + esc(copy.action) + '</a></div></section>',
+        false
+      );
       return;
     }
     const store = currentShopifyStore();
@@ -1009,25 +991,15 @@
     const grantedChips = grantedIds.map((scope) => scopeChip(scope, 'ok')).join('');
     const grantedPanel = '<div class="bc-scope-panel is-ok"><div class="bc-scope-panel-head"><small>Granted scopes<span class="bc-scope-count">' + grantedIds.length + '</span></small><button type="button" data-act="copy-granted-scopes">Copy</button></div><div class="bc-scope-chips">' + grantedChips + '</div></div>';
     const missingPanel = '<div class="bc-scope-panel is-miss"><div class="bc-scope-panel-head"><small>Missing scopes<span class="bc-scope-count">' + missingScopes.length + '</span></small><button type="button" data-act="copy-missing-scopes">Copy</button></div><div class="bc-scope-chips">' + missingChips + '</div></div>';
-    const credentialRow = (key, label) => {
-      const isVisible = !!shopifyCredentialVisible[key];
-      const value = shopifyAppCredentials[key];
-      const action = (isVisible ? 'Hide ' : 'Show ') + label;
-      const eye = isVisible
-        ? svg('<path d="m3 3 18 18"/><path d="M10.6 10.7a2 2 0 0 0 2.7 2.7"/><path d="M9.9 4.3A10.6 10.6 0 0 1 12 4c5.5 0 9.5 5.3 9.5 8s-1.2 3.1-3 4.7M6.2 6.2C3.9 8.1 2.5 10.5 2.5 12c0 2.7 4 8 9.5 8 1.5 0 2.9-.4 4.1-1"/>', 17)
-        : svg('<path d="M2.5 12S6.5 4 12 4s9.5 5.3 9.5 8-4 8-9.5 8S2.5 14.7 2.5 12Z"/><circle cx="12" cy="12" r="3"/>', 17);
-      return '<div class="bc-credential"><small>' + esc(label) + '</small><div class="bc-credential-control"><code>' + esc(isVisible ? value : '••••••••••••••••••••') + '</code><button type="button" class="bc-credential-toggle" data-credential-toggle="' + key + '" aria-label="' + esc(action) + '" aria-pressed="' + (isVisible ? 'true' : 'false') + '" title="' + esc(action) + '">' + eye + '</button></div></div>';
-    };
     const body =
       '<style>' +
         '.bc-store-kicker{font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--ink-muted);text-transform:uppercase;margin-bottom:10px}.bc-store-name{font-size:17px;font-weight:700;color:var(--ink);margin-bottom:4px}.bc-store-domain{font-size:13px;color:var(--ink-muted)}.bc-store-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px;padding-top:16px;border-top:1px solid var(--hair)}.bc-store-fact small{display:block;color:var(--ink-muted);font-size:11px;margin-bottom:4px}.bc-store-fact strong{display:block;color:var(--ink-body);font-size:13px;font-weight:600;line-height:1.4}.bc-credentials{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px}.bc-credential small{display:block;margin-bottom:6px;color:var(--ink-muted);font-size:11px;font-weight:600}.bc-credential-control{display:flex;align-items:center;min-width:0;height:38px;border:1px solid var(--ctl);border-radius:8px;background:#fff}.bc-credential-control code{min-width:0;flex:1;overflow:hidden;padding-left:11px;color:var(--ink-body);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;letter-spacing:.035em;text-overflow:ellipsis;white-space:nowrap}.bc-credential-toggle{display:grid;place-items:center;width:36px;height:36px;flex:none;border:0;border-radius:7px;background:transparent;color:var(--ink-muted);cursor:pointer}.bc-credential-toggle:hover{background:#f1f5fa;color:var(--brand)}.bc-credential-toggle:focus-visible{outline:2px solid var(--brand);outline-offset:1px}.bc-scope-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.bc-scope-title{display:flex;align-items:center;gap:6px}.bc-scope-title .card-title{margin:0}.bc-scope-docs{display:inline-grid;place-items:center;width:18px;height:18px;border:1px solid var(--ctl);border-radius:50%;color:var(--ink-muted);font-size:12px;font-weight:700;line-height:1;text-decoration:none}.bc-scope-docs:hover{border-color:var(--brand);color:var(--brand)}.bc-scope-status{margin-top:2px;white-space:nowrap}.bc-scope-compare{display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px}.bc-scope-panel{min-width:0;padding:12px 14px;border:1px solid var(--hair);border-radius:10px;background:#fafbfd}.bc-scope-panel.is-miss{border-color:#f3d2a4;background:#fffdf8}.bc-scope-panel.is-ok{border-color:#ccebd8;background:#f6fbf8}.bc-scope-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}.bc-scope-panel-head small{display:flex;align-items:center;gap:8px;margin:0;font-size:12px;font-weight:650}.bc-scope-panel.is-miss .bc-scope-panel-head small{color:#9a4b00}.bc-scope-panel.is-ok .bc-scope-panel-head small{color:#14834c}.bc-scope-panel-head button{border:0;background:none;color:var(--brand);padding:0;font:inherit;font-size:12.5px;font-weight:650;cursor:pointer}.bc-scope-count{display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:999px;border:1px solid currentColor;background:#fff;font-size:11px;font-weight:650;line-height:1}.bc-scope-chips{display:flex;flex-wrap:wrap;gap:8px}.bc-scope-chip{display:inline-flex;align-items:center;height:26px;padding:0 9px;border:1px solid #d7deea;border-radius:6px;background:#fff;color:#3b4a63;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1;white-space:nowrap}.bc-scope-chip.is-miss{border-color:#f0c48a;background:#fff6ea;color:#9a4b00}.bc-scope-chip.is-ok{border-color:#b7e4c7;background:#eef9f2;color:#14834c}.bc-scope-alert{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:12px;padding:11px 12px;border:1px solid #f3d2a4;border-radius:10px;background:#fff8ee;color:#7a4b09;font-size:12.5px;line-height:1.5}.bc-scope-alert>div{display:flex;align-items:flex-start;gap:8px;min-width:0}.bc-scope-alert svg{flex:none;margin-top:1px}.bc-scope-alert .btn{display:inline-flex;align-items:center;gap:6px;flex:none}.bc-sync-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.bc-sync-status{margin-top:2px;white-space:nowrap}.bc-store-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 0;border-top:1px solid var(--hair)}.bc-store-row:first-child{border-top:0;padding-top:0}.bc-store-row strong{display:block;font-size:13.5px;color:var(--ink)}.bc-store-row span,.bc-store-row small{display:block;font-size:12px;color:var(--ink-muted);margin-top:3px;line-height:1.45}.bc-store-row-end{display:flex;align-items:center;gap:10px;white-space:nowrap}.bc-store-row-end>b{font-size:13px;color:var(--ink)}.bc-writeback{display:flex;align-items:flex-start;gap:11px;padding:14px 16px}.bc-writeback-ico{width:28px;height:28px;display:grid;place-items:center;flex:none;border-radius:50%;background:#e8f8ef;color:#14834c}.bc-writeback strong{display:block;font-size:13.5px;color:var(--ink);margin-bottom:4px}.bc-writeback p{margin:0;color:var(--ink-muted);font-size:12.5px;line-height:1.55}.bc-writeback-links{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:10px}.bc-writeback-links .lnk{display:inline-flex;align-items:center;height:20px;margin:0;padding:0;border:0;background:none;color:var(--brand);font:inherit;font-size:12.5px;font-weight:500;line-height:1;cursor:pointer}.bc-connection-option{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:13px 0;border-top:1px solid var(--hair)}.bc-connection-option:first-child{padding-top:0;border-top:0}.bc-connection-option strong{display:block;font-size:13px;color:var(--ink)}.bc-connection-option span{display:block;font-size:12px;color:var(--ink-muted);line-height:1.5;margin-top:3px}@media(max-width:760px){.bc-store-facts,.bc-credentials,.bc-scope-compare{grid-template-columns:1fr;gap:10px}.bc-scope-heading,.bc-sync-heading,.bc-scope-alert{align-items:flex-start;flex-direction:column}.bc-scope-alert .btn{width:100%;justify-content:center}.bc-store-row,.bc-connection-option{align-items:flex-start;flex-direction:column}.bc-store-row-end{flex-direction:row;align-items:center}}' +
       '</style><style>.bc-sync-panel{overflow:hidden;padding:0!important}.bc-sync-heading{position:relative;align-items:center;padding:16px 18px;background:linear-gradient(120deg,#f2f7ff 0%,#fbfdff 72%);border-bottom:1px solid #d7e4f1;box-shadow:inset 3px 0 0 #4f83d8}.bc-sync-heading .card-title{color:#263b55;font-size:14px;font-weight:750}.bc-sync-heading .muted{color:#657a94!important;line-height:1.45}.bc-sync-content{padding:0 18px 16px;background:#fff}.bc-sync-content .bc-store-row:first-child{padding-top:14px}.bc-sync-actions{display:flex;justify-content:flex-start;padding-top:13px;border-top:1px solid var(--hair)}@media(max-width:760px){.bc-sync-heading{padding:14px 16px}.bc-sync-content{padding:0 16px 14px}}</style>' +
       pageHead('Shopify connection', 'Review the Shopify store and syncs that power your BestCheckout purchase experience.') +
       '<section class="panel card-pad mb-4"><div class="bc-store-kicker">Connected Shopify store</div><div class="flex items-start justify-between" style="gap:12px"><div><div class="bc-store-name">' + esc(store.name) + '</div><div class="bc-store-domain">' + esc(store.url) + '</div></div>' + status + '</div><div class="bc-store-facts"><div class="bc-store-fact"><small>Shop name</small><strong>' + esc(store.name) + '</strong></div><div class="bc-store-fact"><small>Myshopify domain</small><strong>' + esc(store.url) + '</strong></div><div class="bc-store-fact"><small>Connection status</small><strong>' + (permissionsHealthy ? 'Ready for checkout' : 'Needs re-authorization') + '</strong></div></div></section>' +
-      '<section class="panel card-pad mb-4">' + sectionTitle('Shopify app credentials', 'Saved when you connected this store. Values stay hidden until you choose to reveal them.') + '<div class="bc-credentials">' + credentialRow('clientId', 'Client ID') + credentialRow('secret', 'Secret') + '</div></section>' +
       '<section class="panel card-pad mb-4"><div class="bc-scope-heading"><div><div class="bc-scope-title"><div class="card-title">App permissions</div><a class="bc-scope-docs" href="' + SHOPIFY_SCOPES_DOCS + '" target="_blank" rel="noopener" aria-label="Shopify API access scopes" title="Shopify API access scopes">?</a></div><div class="muted" style="font-size:12.5px;margin-top:2px">' + esc(grantedCount + ' of ' + SHOPIFY_REQUIRED_SCOPES.length + ' required permissions granted') + '</div></div>' + permissionStatus + '</div><div class="bc-scope-compare">' + grantedPanel + (permissionsHealthy ? '' : missingPanel) + '</div>' + (permissionsHealthy
         ? '<p class="muted" style="margin:12px 0 0;font-size:12.5px;line-height:1.55">All required permissions are granted. Downstream checkout, sync, and order write-back can run.</p>'
-        : '<div class="bc-scope-alert"><div>' + I.alert + '<span>Some required permissions were not selected when this app was created. Downstream checkout, sync, or order write-back can fail until you re-authorize.</span></div><button type="button" class="btn btn-primary" data-act="reauth-shopify"><span>Re-authorize on Shopify</span>' + I.external + '</button></div>') + '</section>' +
+        : '<div class="bc-scope-alert"><div>' + I.alert + '<span>Some required permissions are missing. Request a new install link so the store owner can confirm the updated access.</span></div><button type="button" class="btn btn-primary" data-act="reauth-shopify"><span>Request new install link</span></button></div>') + '</section>' +
       '<section class="panel mb-4 bc-sync-panel"><div class="bc-sync-heading"><div>' + sectionTitle('Shopify → BestCheckout data sync', 'BestCheckout reads Shopify as the source of truth for checkout. Data flows one way into BestCheckout.') + '</div><span class="pill pill-green bc-sync-status"><span class="dot"></span><span data-sync-summary>All data synced · 5 min ago</span></span></div>' +
         '<div class="bc-sync-content"><div class="bc-sync-rows">' +
           syncRow('Products, variants & inventory', '1,310 products', 'Product selection, SKU, price, and inventory checks') +
@@ -1060,12 +1032,6 @@
         toast('Shopify data sync completed');
       }, 650);
     };
-    root.querySelectorAll('[data-credential-toggle]').forEach((button) => button.onclick = () => {
-      const key = button.getAttribute('data-credential-toggle');
-      if (!Object.prototype.hasOwnProperty.call(shopifyCredentialVisible, key)) return;
-      shopifyCredentialVisible[key] = !shopifyCredentialVisible[key];
-      renderShopifyStore();
-    });
     const copyMissing = root.querySelector('[data-act="copy-missing-scopes"]');
     if (copyMissing) copyMissing.onclick = () => {
       try { navigator.clipboard.writeText(missingList); } catch (e) {}
@@ -1078,8 +1044,8 @@
     };
     const reauth = root.querySelector('[data-act="reauth-shopify"]');
     if (reauth) reauth.onclick = () => {
-      window.open(shopifyAdminUrl(store), '_blank', 'noopener');
-      toast('Opening Shopify to re-authorize this store');
+      const handle = String(store.url || '').replace(/\.myshopify\.com$/i, '');
+      window.location.assign('../?entry=connect-new-shopify-store#/connect-shopify?status=pending&shop=' + encodeURIComponent(handle));
     };
     const refreshPlans = root.querySelector('[data-act="refresh-selling-plans"]');
     if (refreshPlans) refreshPlans.onclick = () => refreshSellingPlans(() => renderShopifyStore());
