@@ -36,8 +36,8 @@ import { renderActivity } from './pages/activity.js?rev=20260720-standalone-port
 import { renderSettings } from './pages/settings.js?rev=20260720-standalone-portal-v150';
 import { renderEditor, mountEditor } from './pages/editor.js?rev=20260719-preview-session-v92';
 import { renderAbandonedCheckouts, renderOrders } from './pages/orders.js?rev=20260825-abandoned1';
-import { renderConnectShopify, renderForgotPasswordCode, renderPasswordResetEmailPage, renderSignIn, renderSignUp, renderSignupVerificationEmailPage } from './pages/auth.js?rev=20260822-logo-landing1';
-import { renderHelpCenter } from './pages/help.js?rev=20260822-prototype-accounts1';
+import { renderConnectShopify, renderForgotPasswordCode, renderInstallEmailPage, renderPasswordResetEmailPage, renderSignIn, renderSignUp, renderSignupVerificationEmailPage } from './pages/auth.js?rev=20260907-install-link1';
+import { renderHelpCenter } from './pages/help.js?rev=20260907-install-link1';
 import { renderLookbookSite, renderMarketingSite } from './pages/website.js?rev=20260827-highlights3';
 import {
   applyPrototypeSession,
@@ -615,7 +615,7 @@ function renderShopifyChrome(pageMarkup, route) {
 }
 
 function isPublicRoute(route) {
-  return ['landing', 'lookbook', 'sign-in', 'sign-up', 'email-preview', 'password-reset-email-preview', 'forgot-password', 'connect-shopify', 'help'].includes(route.segments[0]);
+  return ['landing', 'lookbook', 'sign-in', 'sign-up', 'email-preview', 'password-reset-email-preview', 'install-email-preview', 'forgot-password', 'connect-shopify', 'help'].includes(route.segments[0]);
 }
 
 function renderPublicRoute(route) {
@@ -623,8 +623,9 @@ function renderPublicRoute(route) {
   if (route.segments[0] === 'sign-up') return renderSignUp();
   if (route.segments[0] === 'email-preview') return renderSignupVerificationEmailPage(route.query.get('email'));
   if (route.segments[0] === 'password-reset-email-preview') return renderPasswordResetEmailPage(route.query.get('email'));
+  if (route.segments[0] === 'install-email-preview') return renderInstallEmailPage(route.query.get('shop'));
   if (route.segments[0] === 'forgot-password') return renderForgotPasswordCode(route.segments[1]);
-  if (route.segments[0] === 'connect-shopify') return renderConnectShopify();
+  if (route.segments[0] === 'connect-shopify') return renderConnectShopify(route);
   if (route.segments[0] === 'help') return renderHelpCenter(route, marketingSession());
   if (route.segments[0] === 'lookbook') return renderLookbookSite(marketingSession(), route.query);
   return renderMarketingSite(marketingSession());
@@ -1321,6 +1322,10 @@ function initialAudienceForPreset(preset, locale) {
 }
 
 function handleAction(action, element) {
+  if (action === 'complete-shopify-install') {
+    completeShopifyInstall(element.getAttribute('data-shop'));
+    return;
+  }
   if (action === 'preview-signup-email') {
     const form = element.closest('#portal-signup-form');
     const emailInput = form && form.querySelector('[name="email"]');
@@ -2354,41 +2359,27 @@ function handleClick(event) {
 }
 
 function startShopifyConnection(form) {
-  const card = form.closest('.connect-card');
-  if (!card || card.dataset.connecting === 'true') return;
+  const data = new FormData(form);
+  const shop = String(data.get('shopDomain') || '')
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/\/.*$/, '')
+    .replace(/\.myshopify\.com$/i, '')
+    .replace(/[^a-z0-9-]/g, '');
+  if (!shop) return;
+  state.ui.isAuthenticated = true;
+  state.ui.hasConnectedStore = false;
+  persistPrototypeSession(state);
+  setRoute('connect-shopify?status=pending&shop=' + encodeURIComponent(shop));
+}
 
-  card.dataset.connecting = 'true';
-  card.classList.add('is-connecting');
-  const progressPanel = document.createElement('section');
-  progressPanel.className = 'connect-progress';
-  progressPanel.setAttribute('role', 'status');
-  progressPanel.setAttribute('aria-live', 'polite');
-  progressPanel.setAttribute('aria-label', 'Connecting your Shopify store');
-  progressPanel.innerHTML = '<div class="connect-progress-heading"><span class="connect-progress-orbit" aria-hidden="true"></span><div><strong>Connecting your Shopify store</strong><p>We\'re securely verifying your app and syncing the essentials for your checkout workspace.</p></div></div><ol><li class="is-active" data-connect-step><span class="connect-step-mark" aria-hidden="true"></span><span>Checking your app credentials</span></li><li data-connect-step><span class="connect-step-mark" aria-hidden="true"></span><span>Syncing your store data</span></li><li data-connect-step><span class="connect-step-mark" aria-hidden="true"></span><span>Finishing your checkout setup</span></li></ol><small>This usually takes less than a minute.</small>';
-  form.replaceWith(progressPanel);
-
-  const steps = Array.from(progressPanel.querySelectorAll('[data-connect-step]'));
-  const setStep = function (activeIndex) {
-    steps.forEach(function (step, index) {
-      step.classList.toggle('is-complete', index < activeIndex);
-      step.classList.toggle('is-active', index === activeIndex);
-    });
-  };
-
-  window.setTimeout(function () { setStep(1); }, 850);
-  window.setTimeout(function () { setStep(2); }, 1750);
-  window.setTimeout(function () {
-    setStep(3);
-    progressPanel.classList.add('is-complete');
-    const heading = progressPanel.querySelector('.connect-progress-heading');
-    if (heading) heading.innerHTML = '<span class="connect-progress-complete" aria-hidden="true">✓</span><div><strong>Your Shopify store is connected</strong><p>Taking you to your BestCheckout dashboard.</p></div>';
-  }, 2700);
-  window.setTimeout(function () {
-    state.ui.isAuthenticated = true;
-    state.ui.hasConnectedStore = true;
-    persistPrototypeSession(state);
-    openNewBestCheckoutDashboard();
-  }, 3250);
+function completeShopifyInstall(shop) {
+  const handle = String(shop || 'your-store').replace(/[^a-z0-9-]/g, '') || 'your-store';
+  state.ui.isAuthenticated = true;
+  state.ui.hasConnectedStore = true;
+  persistPrototypeSession(state);
+  window.location.assign('app/?rev=20260907-install-link1&shopify=connected#/home');
 }
 
 function openNewBestCheckoutDashboard() {
@@ -2559,9 +2550,7 @@ function bindFormSubmissions(event) {
   }
   if (form.id === 'connect-shopify-form') {
     event.preventDefault();
-    const fieldsValid = validatePortalForm(form);
-    const authorizationValid = validateConnectAuthorization(form, fieldsValid);
-    if (!fieldsValid || !authorizationValid) return;
+    if (!validatePortalForm(form)) return;
     startShopifyConnection(form);
     return;
   }
@@ -3759,7 +3748,7 @@ window.addEventListener('beforeunload', function (event) {
 });
 
 const initialRoute = parseRoute();
-if (!window.location.hash || !['landing', 'lookbook', 'sign-in', 'sign-up', 'email-preview', 'password-reset-email-preview', 'forgot-password', 'connect-shopify', 'help'].includes(initialRoute.segments[0])) {
+if (!window.location.hash || !['landing', 'lookbook', 'sign-in', 'sign-up', 'email-preview', 'password-reset-email-preview', 'install-email-preview', 'forgot-password', 'connect-shopify', 'help'].includes(initialRoute.segments[0])) {
   setRoute('landing');
 } else {
   renderShell();

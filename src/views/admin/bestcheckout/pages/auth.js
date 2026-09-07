@@ -85,13 +85,80 @@ export function renderPasswordResetEmailPage(email) {
   return '<div class="verification-email-page"><main class="verification-email-wrap"><p class="verification-email-context">Prototype-only · reference for the password reset email. This page is not part of the production password recovery flow.</p><section class="verification-email-inbox" aria-label="Email metadata"><p><span>From</span><b>BestCheckout</b> <small>&lt;no-reply@bestcheckout.com&gt;</small></p><p><span>To</span><b>' + recipient + '</b></p><p><span>Subject</span><b>Reset your BestCheckout password</b></p></section><section class="verification-email-stage"><article class="verification-email-card"><div class="verification-email-bar"></div><header><a class="verification-email-brand" href="#/landing" aria-label="BestCheckout home"><img src="assets/brand-mark.svg?v=20260723transparentmark1" alt="" aria-hidden="true"/><strong>BestCheckout</strong></a></header><main><h1>Reset your password</h1><p class="verification-email-lead">We received a request to reset the password for your BestCheckout account. Enter this code on the password recovery page:</p><section class="verification-email-code" aria-label="Password reset code 731846"><strong>731846</strong><span>This code expires in 10 minutes.</span></section><p class="verification-email-note">Keep this code private. If you didn’t request a password reset, you can safely ignore this email and your password will stay unchanged.</p></main><footer><p>This is an automated message from BestCheckout — please don’t reply.</p><small>© 2026 BestCheckout</small></footer></article></section><a class="verification-email-back" href="#/forgot-password">← Back to password recovery</a></main></div>';
 }
 
-export function renderConnectShopify() {
-  const credentialsHelp = '<aside class="connect-credentials-help"><div><strong>Need your Client ID and Secret?</strong><span>Open your Shopify app\'s Settings in Shopify Dev Dashboard to find both credentials.</span></div><a href="help/#guide=connect-shopify" target="_blank" rel="noopener">View the guide ' + icon('external', 14) + '</a></aside>';
-  const domainField = '<div class="portal-domain-input"><input required type="text" name="shopDomain" placeholder="your-store" pattern="[a-z0-9]+(-[a-z0-9]+)*" autocomplete="off" data-validation-required="Enter your Shopify store name." data-validation-invalid="Use the store name from your permanent myshopify.com address." /><span>.myshopify.com</span></div>';
-  return '<div class="connect-flow"><header class="connect-header">' + brand() + '<button type="button" class="portal-inline-button" data-action="portal-signout">Sign out</button></header><main><div class="connect-card"><span class="connect-icon">' + icon('store', 23) + '</span><span class="portal-auth-eyebrow">Shopify connection</span><h1>Connect your Shopify store</h1><p>Use the app you create in Shopify Dev Dashboard. BestCheckout uses it only to keep checkout data current and write paid orders back to Shopify.</p><form class="portal-form" id="connect-shopify-form" novalidate>'
-    + portalField('Shopify store address', domainField, 'Enter the permanent <strong>myshopify.com</strong> address, not your storefront domain.')
-    + credentialsHelp
-    + portalField('Client ID', '<input required type="text" name="clientId" placeholder="Paste your Client ID" autocomplete="off" data-validation-required="Enter your Shopify Client ID." />', 'Find this in the app\'s <strong>Settings</strong> page in Shopify Dev Dashboard.')
-    + portalField('Secret', '<input required type="password" name="clientSecret" placeholder="Paste your Secret" autocomplete="new-password" data-validation-required="Enter your Shopify Secret." />', 'Stored securely and never shown again after you connect. Do not paste an Admin API access token here.')
-    + '<div class="connect-confirmation" data-connect-confirmation><label class="portal-check portal-terms"><input type="checkbox" name="authorizationConfirmed" checked aria-describedby="connect-authorization-error" /> <span>I created this app in Shopify Dev Dashboard and authorize BestCheckout to use it for this store.</span></label><p id="connect-authorization-error" class="connect-confirmation-error" data-connect-confirmation-error role="alert" hidden>Confirm that you created this Shopify app and authorize BestCheckout before continuing.</p></div><div class="connect-form-actions"><button type="submit" class="portal-submit">Connect store ' + icon('arrow', 16) + '</button></div></form></div></main></div>';
+function shopHandle(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/\/.*$/, '')
+    .replace(/\.myshopify\.com$/i, '')
+    .replace(/[^a-z0-9-]/g, '');
+}
+
+function shopDomain(value) {
+  const handle = shopHandle(value);
+  return handle ? handle + '.myshopify.com' : '';
+}
+
+function connectFrame(card) {
+  return '<div class="connect-flow"><header class="connect-header">' + brand() + '<button type="button" class="portal-inline-button" data-action="portal-signout">Sign out</button></header><main>' + card + '</main></div>';
+}
+
+function connectDemoLinks(shop, current) {
+  const q = shop ? '&shop=' + encodeURIComponent(shop) : '';
+  const item = function (status, label) {
+    const on = current === status ? ' is-current' : '';
+    return '<a class="connect-demo-link' + on + '" href="#/connect-shopify?status=' + status + q + '">' + label + '</a>';
+  };
+  return '<aside class="connect-demo" aria-label="Prototype states"><p>Prototype states</p><div>' +
+    '<a class="connect-demo-link" href="#/connect-shopify' + (shop ? '?shop=' + encodeURIComponent(shop) : '') + '">1. Enter store</a>' +
+    item('pending', '2. Connecting') +
+    item('install', '3. Waiting to install') +
+    item('consent', '4. Shopify Install') +
+    item('failed', 'Failed') +
+    '<a class="connect-demo-link" href="#/install-email-preview' + (shop ? '?shop=' + encodeURIComponent(shop) : '') + '">Install email</a>' +
+    '</div></aside>';
+}
+
+function connectPendingCard(shop) {
+  const domain = escapeHtml(shopDomain(shop) || 'your-store.myshopify.com');
+  return '<div class="connect-card"><span class="connect-icon">' + icon('store', 23) + '</span><span class="portal-auth-eyebrow">Shopify connection</span><h1>We\'re preparing your install link</h1><p>BestCheckout is creating a Custom App for <b>' + domain + '</b>. You do not need to open Shopify Dev Dashboard or paste any credentials.</p><ol class="connect-status-steps"><li class="is-complete"><span>1</span><div><strong>Store submitted</strong><small>' + domain + '</small></div></li><li class="is-active"><span>2</span><div><strong>Preparing the install link</strong><small>Usually about 1 day. We\'ll email the store owner when it\'s ready.</small></div></li><li><span>3</span><div><strong>Install BestCheckout</strong><small>The store owner opens the link and selects Install.</small></div></li></ol><p class="connect-status-note">Selecting Install in Shopify does not finish this step. BestCheckout becomes connected only after the callback succeeds.</p><div class="connect-form-actions"><a class="portal-submit" href="#/install-email-preview?shop=' + encodeURIComponent(shop) + '">Preview install email ' + icon('email', 16) + '</a><button type="button" class="portal-inline-button" data-route="connect-shopify?status=install&amp;shop=' + encodeURIComponent(shop) + '">Continue as emailed</button></div>' + connectDemoLinks(shop, 'pending') + '</div>';
+}
+
+function connectInstallCard(shop) {
+  const domain = escapeHtml(shopDomain(shop) || 'your-store.myshopify.com');
+  return '<div class="connect-card"><span class="connect-icon">' + icon('email', 23) + '</span><span class="portal-auth-eyebrow">Waiting to install</span><h1>Install BestCheckout from your email</h1><p>We sent an install link for <b>' + domain + '</b>. Open it with the <b>store owner</b> account for this shop, or a staff account that can manage and install apps.</p><ul class="connect-status-list"><li>Do not use a different Shopify store or a custom domain.</li><li>The Shopify install page may show our Partner company name as the developer.</li><li>After you select Install, return here and wait until this page shows Connected.</li></ul><div class="connect-form-actions"><button type="button" class="portal-submit" data-route="connect-shopify?status=consent&amp;shop=' + encodeURIComponent(shop) + '">Open Shopify install page ' + icon('arrow', 16) + '</button><a class="portal-inline-button" href="#/install-email-preview?shop=' + encodeURIComponent(shop) + '">Preview email</a></div>' + connectDemoLinks(shop, 'install') + '</div>';
+}
+
+function connectConsentCard(shop) {
+  const domain = escapeHtml(shopDomain(shop) || 'your-store.myshopify.com');
+  return '<div class="connect-card connect-consent-card"><span class="portal-auth-eyebrow">Shopify · prototype</span><h1>Install BestCheckout</h1><p class="connect-consent-store">Installing on <b>' + domain + '</b></p><dl class="connect-consent-meta"><div><dt>Developer</dt><dd>BestCheckout Partner</dd></div><div><dt>Access</dt><dd>Products, customers, orders, discounts, shipping, and checkout data needed to run hosted checkout.</dd></div></dl><p class="connect-status-note">This Custom App is created by BestCheckout for this store only. Installing grants access; BestCheckout is connected only after you return and the store shows as Connected.</p><div class="connect-form-actions"><a class="portal-submit" href="app/?rev=20260907-install-link1&amp;shopify=connected#/home">Install</a><button type="button" class="portal-inline-button" data-route="connect-shopify?status=install&amp;shop=' + encodeURIComponent(shop) + '">Cancel</button></div>' + connectDemoLinks(shop, 'consent') + '</div>';
+}
+
+function connectFailedCard(shop) {
+  return '<div class="connect-card"><span class="connect-icon">' + icon('alert', 23) + '</span><span class="portal-auth-eyebrow">Connection failed</span><h1>We couldn\'t connect this store</h1><p>Check the store address and who opened the install link, then try again.</p><ul class="connect-status-list"><li>Use <b>your-store.myshopify.com</b>, not a www custom domain.</li><li>The person who installs must be the store owner or have permission to manage apps.</li><li>Selecting Install is not enough if BestCheckout does not receive the callback.</li></ul><div class="connect-form-actions"><button type="button" class="portal-submit" data-route="connect-shopify' + (shop ? '?shop=' + encodeURIComponent(shop) : '') + '">Try again</button></div>' + connectDemoLinks(shop, 'failed') + '</div>';
+}
+
+export function renderConnectShopify(route) {
+  const query = route && route.query ? route.query : new URLSearchParams();
+  const shop = shopHandle(query.get('shop'));
+  const status = String(query.get('status') || '');
+  if (status === 'pending') return connectFrame(connectPendingCard(shop || 'your-store'));
+  if (status === 'install') return connectFrame(connectInstallCard(shop || 'your-store'));
+  if (status === 'consent') return connectFrame(connectConsentCard(shop || 'your-store'));
+  if (status === 'failed') return connectFrame(connectFailedCard(shop));
+  const help = '<aside class="connect-credentials-help"><div><strong>You only enter the store address</strong><span>BestCheckout prepares the Custom App and emails the install link. You do not create an app or paste credentials.</span></div><a href="help/#guide=connect-shopify" target="_blank" rel="noopener">View the guide ' + icon('external', 14) + '</a></aside>';
+  const domainField = '<div class="portal-domain-input"><input required type="text" name="shopDomain" placeholder="your-store" pattern="[a-z0-9]+(-[a-z0-9]+)*" autocomplete="off" value="' + escapeHtml(shop) + '" data-validation-required="Enter your Shopify store name." data-validation-invalid="Use the store name from your permanent myshopify.com address." /><span>.myshopify.com</span></div>';
+  return connectFrame('<div class="connect-card"><span class="connect-icon">' + icon('store', 23) + '</span><span class="portal-auth-eyebrow">Shopify connection</span><h1>Connect your Shopify store</h1><p>Enter the permanent Shopify address. We\'ll prepare an install link and email it to you, usually within about 1 day.</p><form class="portal-form" id="connect-shopify-form" novalidate>'
+    + portalField('Shopify store address', domainField, 'Enter <strong>your-store.myshopify.com</strong> only. Do not use a custom domain or add https://.')
+    + help
+    + '<div class="connect-form-actions"><button type="submit" class="portal-submit">Submit store ' + icon('arrow', 16) + '</button></div></form>'
+    + connectDemoLinks(shop, '')
+    + '</div>');
+}
+
+export function renderInstallEmailPage(shop) {
+  const handle = shopHandle(shop) || 'your-store';
+  const domain = escapeHtml(shopDomain(handle));
+  return '<div class="verification-email-page"><main class="verification-email-wrap"><p class="verification-email-context">Prototype-only · install email sent after BestCheckout prepares the Custom App.</p><section class="verification-email-inbox" aria-label="Email metadata"><p><span>From</span><b>BestCheckout</b> <small>&lt;no-reply@bestcheckout.com&gt;</small></p><p><span>Subject</span><b>Install BestCheckout on ' + domain + '</b></p></section><section class="verification-email-stage"><article class="verification-email-card"><div class="verification-email-bar"></div><header><a class="verification-email-brand" href="#/landing" aria-label="BestCheckout home"><img src="assets/brand-mark.svg?v=20260723transparentmark1" alt="" aria-hidden="true"/><strong>BestCheckout</strong></a></header><main><h1>Install BestCheckout on your Shopify store</h1><p class="verification-email-lead">Your install link for <b>' + domain + '</b> is ready. Open it with the <b>store owner</b> account for this shop.</p><p class="verification-email-note">The Shopify page may show our Partner company as the developer. After you select Install, return to BestCheckout and wait until the store shows as Connected. Installing does not switch checkout traffic by itself.</p><p class="verification-email-note">Do not open this link while signed into a different Shopify store.</p><div class="connect-form-actions" style="margin-top:22px;padding-top:0;border:0;justify-content:flex-start"><a class="portal-submit" href="#/connect-shopify?status=consent&amp;shop=' + encodeURIComponent(handle) + '">Install BestCheckout</a></div></main><footer><p>This is an automated message from BestCheckout — please don’t reply.</p><small>© 2026 BestCheckout</small></footer></article></section><a class="verification-email-back" href="#/connect-shopify?status=install&amp;shop=' + encodeURIComponent(handle) + '">← Back to connection</a></main></div>';
 }

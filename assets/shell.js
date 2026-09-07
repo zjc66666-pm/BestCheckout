@@ -61,9 +61,12 @@
     if (activeStore) SITE.store = activeStore.name;
     if (!activeStore) activeStore = STORES.filter(function (store) { return store.name === SITE.store; })[0] || STORES[0] || null;
     if (activeStore) SITE.store = activeStore.name;
-    shopifyConnectionState = query.get('shopify') === 'unlinked' ? 'unlinked' : 'connected';
-    // Store connection is completed in the public onboarding flow. Do not
-    // expose the retired, admin-embedded connection form for unlinked stores.
+    var shopifyQuery = query.get('shopify');
+    shopifyConnectionState = (shopifyQuery === 'unlinked' || shopifyQuery === 'pending' || shopifyQuery === 'install' || shopifyQuery === 'failed')
+      ? shopifyQuery
+      : 'connected';
+    // Unlinked stores start in the public connect flow. Pending / install / failed
+    // stay in the workspace so merchants can see connection progress.
     if (shopifyConnectionState === 'unlinked') {
       location.replace(PUBLIC_SHOPIFY_CONNECTION_URL);
       return;
@@ -514,12 +517,17 @@
     var permissionsHealthy = typeof window.shopifyPermissionsHealthy === 'function'
       ? window.shopifyPermissionsHealthy(SITE.store)
       : true;
-    var launchReady = (scenario === 'ready' || scenario === 'live') && permissionsHealthy;
-    var tasks = [
-      connected
-        ? { done: true, title: 'Shopify store connected', desc: 'Products, discounts and delivery options are ready for checkout.' }
-        : { done: false, current: true, title: 'Connect your Shopify store', desc: 'Connect your custom app to sync products, orders, and checkout data.', href: './?entry=connect-new-shopify-store#/connect-shopify', action: 'Connect' }
-    ];
+    var launchReady = (scenario === 'ready' || scenario === 'live') && permissionsHealthy && connected;
+    var connectTask = connected
+      ? { done: true, title: 'Shopify store connected', desc: 'Products, discounts and delivery options are ready for checkout.' }
+      : shopifyConnectionState === 'pending'
+        ? { done: false, current: true, title: 'Preparing your install link', desc: 'BestCheckout is creating a Custom App for this store. This usually takes about 1 day.', href: PUBLIC_SHOPIFY_CONNECTION_URL.replace('#/connect-shopify', '#/connect-shopify?status=pending'), action: 'View status' }
+        : shopifyConnectionState === 'install'
+          ? { done: false, current: true, title: 'Install BestCheckout from your email', desc: 'The store owner must open the install link. Selecting Install does not finish this step.', href: PUBLIC_SHOPIFY_CONNECTION_URL.replace('#/connect-shopify', '#/connect-shopify?status=install'), action: 'Open install' }
+          : shopifyConnectionState === 'failed'
+            ? { done: false, current: true, title: 'Shopify connection failed', desc: 'Check the myshopify.com address and who opened the install link, then try again.', href: PUBLIC_SHOPIFY_CONNECTION_URL.replace('#/connect-shopify', '#/connect-shopify?status=failed'), action: 'Try again' }
+            : { done: false, current: true, title: 'Connect your Shopify store', desc: 'Submit your myshopify.com address. BestCheckout emails an install link — you do not paste credentials.', href: PUBLIC_SHOPIFY_CONNECTION_URL, action: 'Connect' };
+    var tasks = [connectTask];
     if (connected && !permissionsHealthy) {
       tasks.push({
         done: false,
