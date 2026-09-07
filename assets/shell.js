@@ -156,6 +156,7 @@
     renderSettingsHead(false);
     window.SettingsChrome = { setDirty: function (dirty, h) { if (h) handlers = h; renderSettingsHead(dirty); } };
     settingsModal.querySelector('.settings-nav').innerHTML = SETTINGS.map(function (it) { return settingsNavItem(it, sub); }).join('');
+    if (window.I18N) window.I18N.apply(settingsModal);
     var contentEl = settingsModal.querySelector('#settings-content');
     contentEl.innerHTML = '<div class="placeholder">Loading…</div>';
     loadModule('settings').then(function () {
@@ -187,9 +188,9 @@
     chain = chain.then(function () {
       if (id === 'customers' && !window.DATA_ORDERS) return loadScript('orders/js/data.js?v=' + V);
     });
-    var moduleV = id === 'settings' ? '20260905-err-frame1'
-      : id === 'online-store' ? '20260905-ck-bundle-sub1'
-      : id === 'bestcheckout' ? '20260905-no-status1'
+    var moduleV = id === 'settings' ? '20260907-pp-sub3'
+      : id === 'online-store' ? '20260907-pp-sub2'
+      : id === 'bestcheckout' ? '20260907-pp-sub2'
       : id === 'bundles' ? '20260905-err-frame1'
       : id === 'orders' ? '20260905-ord-ct1'
       : id === 'abandoned-checkouts' ? '20260905-ac-filt1' : V;

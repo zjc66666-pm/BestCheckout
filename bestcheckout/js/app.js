@@ -449,7 +449,7 @@
   var FLOW_OFFER_PRODUCTS = [
     { id: 'starter-kit', name: 'Travel wellness kit', price: '29.00', compareAt: '39.00' },
     { id: 'sleep-support', name: 'Sleep support capsules', price: '24.00', compareAt: '32.00' },
-    { id: 'daily-essentials', name: 'Daily essentials bundle', price: '36.00', compareAt: '48.00' },
+    { id: 'daily-essentials', name: 'Daily essentials bundle', price: '36.00', compareAt: '48.00', subscription: { status: 'active', interval: { every: 1, unit: 'month' }, discount: { type: 'percent', value: 5 } } },
     { id: 'hydration', name: 'Electrolyte hydration pack', price: '18.00', compareAt: '24.00' }
   ];
   // Entry rules use product and SKU entities rather than free-form tags. Product
@@ -2084,7 +2084,9 @@
   }
   function fnOfferSummary(node) {
     var offer = fnOfferValue(node), product = fnOfferProduct(offer.productId);
-    return product ? product.name + ' · ' + fnOfferMoney(offer.price) : t('No product selected');
+    return product
+      ? product.name + ' · ' + fnOfferMoney(offer.price) + (product.subscription ? ' · ' + t('Subscription') : '')
+      : t('No product selected');
   }
   function fnRuleSummary(edge) {
     var label = fnRuleLabel(edge || {});
@@ -2353,7 +2355,7 @@
       if (!node) return '';
       var offer = fnOfferValue(node), product = fnOfferProduct(offer.productId), label = type === 'upsell' ? t('Upsell') : t('Downsell');
       if (!product) return '<article class="fp-card fp-card-offer fp-card-' + type + '" style="left:' + left + 'px;top:' + top + 'px"><span class="fp-card-icon">' + (type === 'upsell' ? '+' : '↓') + '</span><div class="fp-card-copy"><small>' + label + '</small><strong>' + t('Not configured') + '</strong><span>' + t('Choose a product and discount') + '</span></div></article>';
-      return '<article class="fp-card fp-card-offer fp-card-' + type + '" style="left:' + left + 'px;top:' + top + 'px"><span class="fp-card-icon">' + (type === 'upsell' ? '+' : '↓') + '</span><div class="fp-card-copy"><small>' + label + '</small><strong>' + esc(product.name) + '</strong><span class="fp-price">' + esc(fnOfferMoney(offer.price)) + (offer.compareAt ? ' <s>' + esc(fnOfferMoney(offer.compareAt)) + '</s>' : '') + '</span><em>' + esc(discountText(node)) + '</em></div></article>';
+      return '<article class="fp-card fp-card-offer fp-card-' + type + '" style="left:' + left + 'px;top:' + top + 'px"><span class="fp-card-icon">' + (type === 'upsell' ? '+' : '↓') + '</span><div class="fp-card-copy"><small>' + label + '</small><strong>' + esc(product.name) + '</strong><span class="fp-price">' + esc(fnOfferMoney(offer.price)) + (offer.compareAt ? ' <s>' + esc(fnOfferMoney(offer.compareAt)) + '</s>' : '') + '</span><em>' + esc(discountText(node)) + '</em>' + (product.subscription ? '<em>' + esc(t('Subscription')) + '</em>' : '') + '</div></article>';
     }
     function path(d, tone) { return '<path d="' + d + '" class="fp-line fp-line-' + tone + '" marker-end="url(#fp-arrow-' + tone + ')" />'; }
     function label(x, y, text, tone) {

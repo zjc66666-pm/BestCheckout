@@ -130,6 +130,16 @@
           <button class="tree-link" type="button" data-guide="overview">Overview and performance</button>
         </div>
       </section>
+      <section class="tree-group" data-tree-group>
+        <button class="tree-toggle" type="button" data-tree-toggle aria-expanded="false"><svg class="tree-caret" viewBox="0 0 12 12" aria-hidden="true"><path d="m2 4 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>AI and MCP</button>
+        <div class="tree-children" hidden>
+          <button class="tree-link" type="button" data-guide="mcp-configuration">MCP configuration</button>
+          <button class="tree-link" type="button" data-guide="connect-claude">Connect Claude</button>
+          <button class="tree-link" type="button" data-guide="connect-chatgpt">Connect ChatGPT</button>
+          <button class="tree-link" type="button" data-guide="connect-cursor">Connect Cursor</button>
+          <button class="tree-link" type="button" data-guide="mcp-tokens">Manage MCP tokens</button>
+        </div>
+      </section>
     </aside>
 
     <main class="help-main">
@@ -172,7 +182,45 @@
         'email-notifications': {group:'Settings and team',title:'Email notifications',action:'Open email notifications',href:'../#/settings/notifications',summary:'Review the emails BestCheckout sends so customers receive a clear record of their completed purchase.',sections:[['Review the sender details','Use sender information customers recognize and can reply to.',['Keep the sender aligned with the connected store brand.']],['Keep messages transactional','Use order and payment notifications to set clear expectations.',['Edit checkout pages separately when you need to change the customer journey.']]],related:['thank-you','orders']},
         'roles': {group:'Settings and team',title:'Roles and permissions',action:'Open roles',href:'../#/settings/roles',summary:'Create roles that give each teammate only the permissions they need in BestCheckout.',sections:[['Create roles around responsibilities','Use clear role names such as Order Specialist or Campaign Manager.',['Assign only the modules each role needs.','Review role membership before deleting a role.']],['Maintain access over time','Update permissions as responsibilities change.',['A role that is in use cannot be deleted until team assignments are changed.']]],related:['staff']},
         'staff': {group:'Settings and team',title:'Staff management',action:'Open staff',href:'../#/settings/staff',summary:'Add team members in BestCheckout and manage whether each account is active.',sections:[['Add staff in the admin','Create a staff account with email, name and role. The account is available immediately and does not use an invite or access code.',['Use Inactive when a teammate should keep the record but no longer sign in.']],['Keep access current','Edit the role or status when responsibilities change, and delete accounts that are no longer needed.',['A staff account is either Active or Inactive.']]],related:['roles']},
-        'overview': {group:'Reports',title:'Overview and performance',action:'Open overview',href:'../#/home',summary:'Use Overview to review launch readiness, completed checkout sales, purchase-flow performance and the next operational priority.',sections:[['Review the launch checklist','Complete connection, payment, domain and purchase-flow setup before relying on live traffic.',['Use the checklist to find the next action, not just to view status.']],['Compare purchase-flow results','Review completed orders, conversion, average order value and sales for live flows.',['Use the results to decide whether to keep a flow running or create a focused follow-up test.']]],related:['first-flow']}
+        'overview': {group:'Reports',title:'Overview and performance',action:'Open overview',href:'../#/home',summary:'Use Overview to review launch readiness, completed checkout sales, purchase-flow performance and the next operational priority.',sections:[['Review the launch checklist','Complete connection, payment, domain and purchase-flow setup before relying on live traffic.',['Use the checklist to find the next action, not just to view status.']],['Compare purchase-flow results','Review completed orders, conversion, average order value and sales for live flows.',['Use the results to decide whether to keep a flow running or create a focused follow-up test.']]],related:['first-flow']},
+        'mcp-configuration': {group:'AI and MCP',title:'MCP configuration',action:'Open AI and MCP',href:'../app/#/settings/ai-mcp',
+          summary:'BestCheckout exposes four separate MCP server addresses so your AI assistant can read and operate this workspace. Add only the ones you need.',
+          callout:['Your data reaches your AI provider','Once you authorize a host, the shop data covered by the scopes you granted is sent to that AI provider to answer your questions. Order tools never return customer email, address or phone.'],
+          sections:[
+            ['Pick the addresses you need','Guide serves the official help articles and needs no sign-in. Insights is read-only. Operate can change drafts and publish. Page Design is not available yet.',['Add each address separately; one address never covers another.','Start with Guide and Insights, and add Operate only when you want the assistant to make changes.']],
+            ['Understand who can connect','Only the Owner and Admin can authorize a host or issue a token.',['A connection can never do more than the person who authorized it.','A teammate who loses access to a shop also loses it through every connection they authorized.']],
+            ['Choose authorization or a token','Claude and ChatGPT sign in through BestCheckout. Cursor, Lovable and Grok CLI use a token instead.',['Prefer signing in: access is per person and can be revoked without affecting anyone else.','Use a token only for hosts that cannot sign in.']],
+            ['Revoke access','Revoke a connection or a token from the AI and MCP page. It takes effect immediately.',['Every connect, revoke and token change is recorded in the activity log.']]
+          ],related:['connect-claude','connect-chatgpt','mcp-tokens']},
+        'connect-claude': {group:'AI and MCP',title:'Connect Claude',action:'Open AI and MCP',href:'../app/#/settings/ai-mcp',
+          summary:'Add BestCheckout to Claude as a custom connector, then approve the access it asks for.',
+          sections:[
+            ['Add the connector','Copy a server address from the AI and MCP page, then add it as a custom connector in Claude settings.',['Add each address you need as its own connector.','Guide works straight away, with no sign-in step.']],
+            ['Approve the access','Claude opens a BestCheckout sign-in page listing what it wants to read or change. Approve it to finish.',['The approval covers every shop you can already access.','Narrow it afterwards with Shop access on the connection, without authorizing again.']],
+            ['Work across shops','Ask the assistant to list your shops first, then name the one you mean.',['Metrics match the Overview page exactly, for the same shop and period.']],
+            ['Know what needs confirmation','Editing a draft is applied directly. Publishing or pausing a flow always asks you to confirm first.',['Confirmation appears in Claude, but BestCheckout enforces permissions on its own.']]
+          ],related:['mcp-configuration','connect-chatgpt']},
+        'connect-chatgpt': {group:'AI and MCP',title:'Connect ChatGPT',action:'Open AI and MCP',href:'../app/#/settings/ai-mcp',
+          summary:'ChatGPT connects to BestCheckout by signing in. It cannot use a token.',
+          callout:['Tokens do not work in ChatGPT','ChatGPT cannot present a token to BestCheckout. If you need a token-based host, use Cursor, Lovable or Grok CLI instead.'],
+          sections:[
+            ['Add the server address','Copy the Guide or Insights address from the AI and MCP page and add it in ChatGPT.',['Guide needs no sign-in and is a good first test.']],
+            ['Sign in to approve','ChatGPT opens a BestCheckout sign-in page. Approve the requested access to finish the connection.',['The connection appears under Authorized connections, where you can revoke it.']]
+          ],related:['mcp-configuration','connect-claude']},
+        'connect-cursor': {group:'AI and MCP',title:'Connect Cursor',action:'Open AI and MCP',href:'../app/#/settings/ai-mcp',
+          summary:'Cursor can either sign in to BestCheckout or read a token from your local configuration file.',
+          sections:[
+            ['Prefer signing in','Signing in ties the access to you personally and can be revoked without affecting teammates.',['Add the server address in Cursor and approve the access when the sign-in page opens.']],
+            ['Or use a token','Issue a token on the AI and MCP page, then send it as the Authorization header in your Cursor configuration.',['A token covers one server address and one shop only.','The token lives in your own configuration file, so treat it like a password.']]
+          ],related:['mcp-tokens','mcp-configuration']},
+        'mcp-tokens': {group:'AI and MCP',title:'Manage MCP tokens',action:'Open AI and MCP',href:'../app/#/settings/ai-mcp',
+          summary:'Tokens let hosts that cannot sign in reach BestCheckout. Each token is deliberately narrow.',
+          callout:['The token is shown only once','Copy it into the host configuration straight away. If you lose it, revoke that token and issue a new one.'],
+          sections:[
+            ['One address, one shop','When you issue a token you choose the server address and the shop it covers.',['A token for Insights cannot be used on Operate.','A token for one shop fails on every other shop.']],
+            ['Name the purpose','Give each token a purpose you will still recognize months later, such as the host and machine using it.',['The list shows when each token was last used, so unused tokens are easy to retire.']],
+            ['Rotate and revoke','Revoking a token stops the host immediately. Issue a replacement and update the host configuration.',['Token issues and revokes are recorded in the activity log.']]
+          ],related:['mcp-configuration','connect-cursor']}
       };
 
       guides['connect-shopify'] = {

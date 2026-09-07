@@ -1456,7 +1456,11 @@
       upcoming = '<div style="overflow-x:auto"><table class="tbl"><thead><tr><th style="width:130px">Charge date</th><th>Product</th><th class="num" style="width:90px">Amount</th><th style="width:120px">Status</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
         '<div class="muted" style="font-size:12px;margin-top:8px">Projected from the current schedule.</div>';
     }
-    const ev = [{ d: c.startedAt, t: 'Subscription started', sub: 'Subscription: ' + c.plan }];
+    const ev = [{
+      d: c.startedAt,
+      t: 'Subscription started',
+      sub: (c.source === 'post_purchase' ? 'Opened after a post-purchase add-on. ' : '') + 'Subscription: ' + c.plan,
+    }];
     (c.history || []).forEach((o) => ev.push({
       d: o.date,
       t: (o.status === 'paid' ? 'Charge succeeded' : o.status === 'failed' ? 'Charge failed' : 'Charge ' + o.status) + ' · ' + contractMoney(o.amount),
@@ -5746,6 +5750,294 @@
     });
   }
 
+  // ===================== AI AND MCP =====================
+  // Merchants connect an AI host (Claude, ChatGPT, Cursor) to BestCheckout over
+  // the Model Context Protocol. Capabilities are split across separate server
+  // URLs so the public help server and tenant data never share an audience.
+  const MCP_SERVERS = [
+    {
+      id: 'guide', name: 'Guide', url: 'https://mcp.bestcheckout.com/guide',
+      auth: 'none', desc: 'Official help articles so the AI answers setup questions without inventing steps.',
+    },
+    {
+      id: 'insights', name: 'Insights', url: 'https://mcp.bestcheckout.com/insights',
+      auth: 'oauth', desc: 'Read-only shop context, connection health, purchase flows, checkout metrics and orders.',
+    },
+    {
+      id: 'operate', name: 'Operate', url: 'https://mcp.bestcheckout.com/operate',
+      auth: 'oauth', desc: 'Edit drafts and offers, then publish or pause after you confirm the change.',
+    },
+    {
+      id: 'page-design', name: 'Page Design', url: 'https://mcp.bestcheckout.com/page-design',
+      auth: 'token', desc: 'Generate checkout and Thank you page drafts, then import them for review.', soon: true,
+    },
+  ];
+  let mcpConnections = [
+    {
+      id: 'c1', host: 'Claude.ai', by: 'hello@lavenderlabs.co', role: 'Owner', added: 'Aug 28, 2026',
+      scopes: ['shops:read', 'funnels:read', 'pages:read', 'analytics:read', 'funnels:write'],
+      shops: 'all', lastUsed: '2 hours ago',
+    },
+    {
+      id: 'c2', host: 'ChatGPT', by: 'hello@lavenderlabs.co', role: 'Owner', added: 'Aug 30, 2026',
+      scopes: ['shops:read', 'funnels:read', 'analytics:read'],
+      shops: ['Lavender Labs'], lastUsed: 'Yesterday',
+    },
+  ];
+  let mcpTokens = [
+    { id: 't1', server: 'Insights', shop: 'Lavender Labs', purpose: 'Cursor local development', created: 'Aug 29, 2026', lastUsed: '5 hours ago' },
+    { id: 't2', server: 'Operate', shop: 'Lavender Labs', purpose: 'Grok CLI release script', created: 'Sep 1, 2026', lastUsed: 'Never used' },
+  ];
+  const mcpShops = () => (window.STORES || []);
+  const mcpRole = () => ((window.SITE && window.SITE.role) || '');
+  const mcpShopScope = (shops) => (shops === 'all'
+    ? 'All ' + mcpShops().length + ' shops'
+    : shops.join(', '));
+
+  const MCP_STYLES = `
+  .mcp-stack { display: flex; flex-direction: column; gap: 16px; }
+  .mcp-card { border: 1px solid var(--hair); border-radius: 12px; background: #fff; padding: 20px; }
+  .mcp-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+  .mcp-card-head strong { display: block; font-size: 14px; font-weight: 650; color: var(--ink); line-height: 1.35; }
+  .mcp-card-head small { display: block; margin-top: 3px; font-size: 12.5px; line-height: 1.5; color: var(--ink-muted); }
+  .mcp-srv-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .mcp-srv { position: relative; display: flex; flex-direction: column; border: 1px solid var(--hair); border-radius: 10px; padding: 14px; background: #fff; }
+  .mcp-srv-soon { overflow: hidden; }
+  .mcp-srv-soon-mask { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,.68); border-radius: 10px; z-index: 2; }
+  .mcp-srv-soon-mask span { display: inline-flex; align-items: center; padding: 7px 12px; border-radius: 999px; background: #111827; color: #fff; font-size: 12px; font-weight: 700; letter-spacing: .03em; }
+  .mcp-srv-top { display: flex; align-items: center; gap: 9px; }
+  .mcp-srv-ico { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; background: #eaf2ff; color: var(--brand); flex: none; }
+  .mcp-srv-name { font-size: 13.5px; font-weight: 650; color: var(--ink); }
+  .mcp-srv p { margin: 10px 0 12px; font-size: 12.5px; line-height: 1.55; color: var(--ink-muted); }
+  .mcp-srv-url { display: flex; align-items: center; gap: 8px; margin-top: auto; padding: 8px 10px; border: 1px solid var(--hair); border-radius: 7px; background: var(--panel); }
+  .mcp-srv-url code { flex: 1; min-width: 0; font-size: 12px; color: var(--ink-body); overflow-wrap: anywhere; }
+  .mcp-tag { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 999px; font-size: 10.5px; font-weight: 650; white-space: nowrap; }
+  .mcp-tag-open { background: #edf8f2; color: #16875b; }
+  .mcp-tag-auth { background: #eaf2ff; color: var(--brand); }
+  .mcp-scope-list { display: flex; flex-wrap: wrap; gap: 5px; }
+  .mcp-scope { display: inline-flex; align-items: center; padding: 3px 7px; border: 1px solid #dce5f5; border-radius: 5px; background: #fff; font-size: 11px; font-weight: 600; color: var(--ink-body); white-space: nowrap; }
+  .mcp-empty { border: 1px dashed var(--hair); border-radius: 10px; background: var(--panel); padding: 22px; text-align: center; font-size: 13px; color: var(--ink-muted); }
+  .mcp-note { display: flex; align-items: flex-start; gap: 10px; padding: 13px 14px; border: 1px solid #ffd8a8; border-radius: 8px; background: #fff8ef; }
+  .mcp-note > span { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #ffe8cc; color: #b25e02; flex: none; }
+  .mcp-note strong { display: block; font-size: 13px; line-height: 1.4; color: var(--ink); }
+  .mcp-note p { margin: 3px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--ink-body); }
+  .mcp-reveal { display: flex; align-items: center; gap: 8px; padding: 11px 12px; border: 1px solid var(--hair); border-radius: 8px; background: var(--panel); }
+  .mcp-reveal code { flex: 1; min-width: 0; font-size: 12.5px; color: var(--ink); overflow-wrap: anywhere; }
+  @media (max-width: 860px) { .mcp-srv-grid { grid-template-columns: 1fr; } }
+  `;
+
+  function renderAiMcp() {
+    const canManage = mcpRole() === 'Owner' || mcpRole() === 'Admin';
+    const servers = MCP_SERVERS.map((s) =>
+      '<article class="mcp-srv' + (s.soon ? ' mcp-srv-soon' : '') + '">' +
+        (s.soon ? '<div class="mcp-srv-soon-mask" aria-hidden="true"><span>Coming soon</span></div>' : '') +
+        '<div class="mcp-srv-top"><span class="mcp-srv-ico">' + I.globe + '</span>' +
+          '<span class="mcp-srv-name">' + esc(s.name) + '</span>' +
+          '<span class="mcp-tag ' + (s.auth === 'none' ? 'mcp-tag-open' : 'mcp-tag-auth') + '" style="margin-left:auto">' +
+            (s.auth === 'none' ? 'No sign-in' : s.auth === 'token' ? 'Token only' : 'Sign-in required') + '</span></div>' +
+        '<p>' + esc(s.desc) + '</p>' +
+        '<div class="mcp-srv-url"><code>' + esc(s.url) + '</code>' +
+          '<button class="btn btn-gray" data-copy-server="' + esc(s.url) + '"' + (s.soon ? ' disabled' : '') + '>Copy</button></div>' +
+      '</article>').join('');
+
+    const connRows = mcpConnections.map((c) =>
+      '<tr><td><div style="font-weight:600;color:var(--ink)">' + esc(c.host) + '</div>' +
+          '<div class="muted" style="font-size:12px;margin-top:2px">' + esc(c.by) + ' · ' + esc(c.role) + '</div></td>' +
+        '<td><div class="mcp-scope-list">' + c.scopes.map((s) => '<span class="mcp-scope">' + esc(s) + '</span>').join('') + '</div></td>' +
+        '<td>' + esc(mcpShopScope(c.shops)) + '</td>' +
+        '<td>' + esc(c.lastUsed) + '</td>' +
+        '<td><div class="flex items-center gap-2">' +
+          '<button class="btn btn-gray" data-conn-shops="' + c.id + '">Shop access</button>' +
+          '<button class="set-icon-btn danger" title="Revoke" data-conn-revoke="' + c.id + '">' + I.trash + '</button>' +
+        '</div></td></tr>').join('');
+
+    const tokenRows = mcpTokens.map((t) =>
+      '<tr><td><div style="font-weight:600;color:var(--ink)">' + esc(t.purpose) + '</div>' +
+          '<div class="muted" style="font-size:12px;margin-top:2px">Created ' + esc(t.created) + '</div></td>' +
+        '<td>' + esc(t.server) + '</td><td>' + esc(t.shop) + '</td><td>' + esc(t.lastUsed) + '</td>' +
+        '<td><button class="set-icon-btn danger" title="Revoke" data-token-revoke="' + t.id + '">' + I.trash + '</button></td></tr>').join('');
+
+    paint('<style>' + MCP_STYLES + '</style><div class="mcp-stack">' +
+      pageHead('AI and MCP', 'Let your AI assistant read and operate this workspace over the Model Context Protocol.') +
+
+      (canManage ? '' :
+        '<div class="mcp-note"><span>' + I.info + '</span><div><strong>Only the Owner and Admin can manage connections</strong>' +
+        '<p>You can see the server addresses, but you cannot authorize a host or issue a token with your current role.</p></div></div>') +
+
+      '<div class="mcp-card">' +
+        '<div class="mcp-card-head"><div><strong>Server addresses</strong>' +
+          '<small>Add each address separately in your AI host. Guide needs no sign-in; the others ask you to authorize first.</small></div></div>' +
+        '<div class="mcp-srv-grid">' + servers + '</div>' +
+      '</div>' +
+
+      '<div class="mcp-card">' +
+        '<div class="mcp-card-head"><div><strong>Authorized connections</strong>' +
+          '<small>A connection can never do more than the person who authorized it. Revoking takes effect immediately.</small></div>' +
+          (canManage ? '<button class="btn btn-primary" data-mcp-authorize>Authorize a host</button>' : '') + '</div>' +
+        (mcpConnections.length
+          ? '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Host and authorized by</th><th>Scopes</th>' +
+            '<th style="width:150px">Shop access</th><th style="width:120px">Last used</th><th style="width:170px">Action</th>' +
+            '</tr></thead><tbody>' + connRows + '</tbody></table></div>'
+          : '<div class="mcp-empty">No host is connected yet.</div>') +
+      '</div>' +
+
+      '<div class="mcp-card">' +
+        '<div class="mcp-card-head"><div><strong>MCP tokens</strong>' +
+          '<small>For hosts that cannot sign in, such as Cursor, Lovable and Grok CLI. One token covers one server address and one shop.</small></div>' +
+          (canManage ? '<button class="btn btn-primary" data-mcp-issue>Issue token</button>' : '') + '</div>' +
+        (mcpTokens.length
+          ? '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Purpose</th><th style="width:130px">Server</th>' +
+            '<th style="width:160px">Shop scope</th><th style="width:120px">Last used</th><th style="width:80px">Action</th>' +
+            '</tr></thead><tbody>' + tokenRows + '</tbody></table></div>'
+          : '<div class="mcp-empty">No token has been issued yet.</div>') +
+      '</div>' +
+
+      '<div class="mcp-note"><span>' + I.info + '</span><div><strong>What your AI provider can see</strong>' +
+        '<p>Once you authorize a host, the shop data covered by the granted scopes is sent to that AI provider to answer your questions. ' +
+        'Order tools never return customer email, address or phone. Publishing always asks you to confirm first.</p></div></div>' +
+
+      '<div class="mcp-card"><div class="mcp-card-head"><div><strong>Setup guides</strong>' +
+        '<small>Step-by-step instructions for each host, and how to revoke access.</small></div>' +
+        '<a class="btn btn-gray" href="help/#guide=mcp-configuration" target="_blank" rel="noopener">Open guides</a></div>' +
+        '<div class="muted" style="font-size:12.5px;line-height:1.6">Every connection, revoke, token issue and token revoke is recorded in the activity log.</div>' +
+      '</div>' +
+    '</div>', false);
+
+    root.querySelectorAll('[data-copy-server]').forEach((b) => b.onclick = () => {
+      try { navigator.clipboard.writeText(b.getAttribute('data-copy-server')); } catch (e) {}
+      toast('Server address copied');
+    });
+    const authorize = root.querySelector('[data-mcp-authorize]');
+    if (authorize) authorize.onclick = openMcpAuthorizeModal;
+    const issue = root.querySelector('[data-mcp-issue]');
+    if (issue) issue.onclick = openMcpTokenModal;
+    root.querySelectorAll('[data-conn-shops]').forEach((b) => b.onclick = () => openMcpShopAccessModal(b.getAttribute('data-conn-shops')));
+    root.querySelectorAll('[data-conn-revoke]').forEach((b) => b.onclick = () => revokeMcpConnection(b.getAttribute('data-conn-revoke')));
+    root.querySelectorAll('[data-token-revoke]').forEach((b) => b.onclick = () => revokeMcpToken(b.getAttribute('data-token-revoke')));
+  }
+
+  // Authorization happens in the host, not here: this only explains the handoff.
+  function openMcpAuthorizeModal() {
+    modal({
+      title: 'Authorize a host', width: 560, okText: 'Done',
+      body:
+        '<div class="muted" style="font-size:13px;line-height:1.65">Authorization starts in your AI host, not in this page.</div>' +
+        '<ol style="margin:14px 0 0;padding-left:20px;font-size:13px;line-height:1.75;color:var(--ink-body)">' +
+          '<li>Copy the server address you want to connect.</li>' +
+          '<li>Add it as a connector in Claude, ChatGPT or Cursor.</li>' +
+          '<li>The host opens a BestCheckout sign-in page, where you approve the requested access.</li>' +
+          '<li>Come back here to narrow which shops that connection may read.</li>' +
+        '</ol>' +
+        '<div class="mcp-note" style="margin-top:16px"><span>' + I.info + '</span><div>' +
+          '<strong>You approve your whole account, then narrow it here</strong>' +
+          '<p>The approval screen covers every shop you can already access. Use Shop access on the connection to restrict it afterwards, with no need to authorize again.</p>' +
+        '</div></div>',
+      hideCancel: true,
+      onOk: (_m, close) => close(),
+    });
+  }
+
+  function openMcpShopAccessModal(id) {
+    const conn = mcpConnections.find((c) => c.id === id);
+    if (!conn) return;
+    const all = conn.shops === 'all';
+    const rows = mcpShops().map((s, i) =>
+      '<label class="set-radio2' + (all || conn.shops.indexOf(s.name) >= 0 ? ' on' : '') + '" style="margin-bottom:8px">' +
+        '<input type="checkbox" data-mcp-shop="' + i + '"' + (all || conn.shops.indexOf(s.name) >= 0 ? ' checked' : '') + '/>' +
+        '<span><span style="display:block;font-weight:600;color:var(--ink)">' + esc(s.name) + '</span>' +
+        '<span class="muted" style="font-size:12px">' + esc(s.url) + '</span></span></label>').join('');
+    modal({
+      title: 'Shop access for ' + conn.host, width: 520, okText: 'Save',
+      body: '<div class="muted" style="font-size:13px;line-height:1.6;margin-bottom:14px">' +
+        'Requests for a shop that is not selected fail immediately. This never grants more than the authorizing member can access.</div>' + rows,
+      onOk: (m, close) => {
+        const picked = mcpShops().filter((s, i) => m.querySelector('[data-mcp-shop="' + i + '"]').checked).map((s) => s.name);
+        if (!picked.length) { toast('Select at least one shop'); return; }
+        conn.shops = picked.length === mcpShops().length ? 'all' : picked;
+        close(); toast('Shop access updated'); renderAiMcp();
+      },
+    });
+  }
+
+  function revokeMcpConnection(id) {
+    const conn = mcpConnections.find((c) => c.id === id);
+    if (!conn) return;
+    confirm({
+      title: 'Revoke this connection?', okText: 'Revoke', danger: true,
+      content: conn.host + ' loses access right away. Anyone using it will have to authorize again.',
+      onOk: () => {
+        mcpConnections = mcpConnections.filter((c) => c.id !== id);
+        toast('Connection revoked'); renderAiMcp();
+      },
+    });
+  }
+
+  function revokeMcpToken(id) {
+    const token = mcpTokens.find((t) => t.id === id);
+    if (!token) return;
+    confirm({
+      title: 'Revoke this token?', okText: 'Revoke', danger: true,
+      content: 'Any host still using "' + token.purpose + '" stops working immediately.',
+      onOk: () => {
+        mcpTokens = mcpTokens.filter((t) => t.id !== id);
+        toast('Token revoked'); renderAiMcp();
+      },
+    });
+  }
+
+  function openMcpTokenModal() {
+    const serverOptions = MCP_SERVERS.filter((s) => s.auth !== 'none')
+      .map((s) => '<option value="' + esc(s.name) + '">' + esc(s.name) + '</option>').join('');
+    const shopOptions = mcpShops().map((s) => '<option value="' + esc(s.name) + '">' + esc(s.name) + '</option>').join('');
+    modal({
+      title: 'Issue MCP token', width: 520, okText: 'Issue token',
+      body:
+        '<div class="sp-field"><label class="sp-label">Server</label>' +
+          '<select id="mcp-t-server" class="sp-input">' + serverOptions + '</select>' +
+          '<div class="muted" style="font-size:12px;margin-top:5px">A token works on one server address only.</div></div>' +
+        '<div class="sp-field"><label class="sp-label">Shop</label>' +
+          '<select id="mcp-t-shop" class="sp-input">' + shopOptions + '</select>' +
+          '<div class="muted" style="font-size:12px;margin-top:5px">A token works on one shop only.</div></div>' +
+        '<div class="sp-field"><label class="sp-label">Purpose</label>' +
+          '<input id="mcp-t-purpose" class="sp-input" maxlength="60" placeholder="Example: Cursor local development"/>' +
+          '<div class="sp-err" data-err="mcp-t-purpose"></div></div>',
+      onOk: (m, close) => {
+        const purpose = m.querySelector('#mcp-t-purpose').value.trim();
+        setErr(m, 'mcp-t-purpose', '');
+        if (!purpose) { setErr(m, 'mcp-t-purpose', 'Please enter a purpose'); return; }
+        const server = m.querySelector('#mcp-t-server').value;
+        const shop = m.querySelector('#mcp-t-shop').value;
+        mcpTokens.push({
+          id: 't' + (Date.now() % 100000), server, shop, purpose,
+          created: 'Sep 7, 2026', lastUsed: 'Never used',
+        });
+        close(); renderAiMcp(); revealMcpToken(server, shop);
+      },
+    });
+  }
+
+  // The plaintext token is shown exactly once and can never be read again.
+  function revealMcpToken(server, shop) {
+    const value = 'bcmcp_' + server.toLowerCase().replace(/[^a-z]/g, '') + '_' + Math.random().toString(36).slice(2, 12) + Math.random().toString(36).slice(2, 10);
+    const ref = modal({
+      title: 'Copy your token now', width: 540, okText: 'I have copied it', hideCancel: true,
+      body:
+        '<div class="mcp-note" style="margin-bottom:14px"><span>' + I.info + '</span><div>' +
+          '<strong>This is the only time the token is shown</strong>' +
+          '<p>Store it in the host configuration straight away. If you lose it, revoke this token and issue a new one.</p>' +
+        '</div></div>' +
+        '<div class="mcp-reveal"><code>' + esc(value) + '</code>' +
+          '<button class="btn btn-gray" data-mcp-copy-token>Copy</button></div>' +
+        '<div class="muted" style="font-size:12.5px;line-height:1.6;margin-top:12px">' +
+          esc(server) + ' · ' + esc(shop) + ' · send it as the Authorization header.</div>',
+      onOk: (_m, close) => close(),
+    });
+    ref.m.querySelector('[data-mcp-copy-token]').onclick = () => {
+      try { navigator.clipboard.writeText(value); } catch (e) {}
+      toast('Token copied');
+    };
+  }
+
   const ROUTES = {
     notifications: renderNotifications,
     base: renderShopifyStore,
@@ -5759,6 +6051,7 @@
     'shipping-rates': renderRates,
     roles: renderRoles,
     staff: renderStaff,
+    'ai-mcp': renderAiMcp,
   };
 
   let curRest = '';

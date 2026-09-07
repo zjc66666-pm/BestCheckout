@@ -525,9 +525,19 @@ window.DATA_SETTINGS = {
     ],
     // Contracts map GET subscription/lst + GET subscription/detail/:id.
     // Status values match the live API: active | unpaid | cancelled.
-    // These are BestCheckout-activated contracts after payment; Kaching / other
-    // Shopify apps keep their own historical contracts.
+    // These are BestCheckout-activated contracts after payment, including
+    // post-purchase Upsell / Downsell accepts. Kaching / other Shopify apps
+    // keep their own historical contracts.
     contracts: [
+      {
+        id: 'SUB-20680', subscriptionId: 20680, customer: 'Owen Park', email: 'owen.park@example.com',
+        plan: 'Subscribe at checkout', planKey: 'BCS-01', product: 'Editorial shell dress', productSku: 'DRS-EDT',
+        status: 'active', next: '2026-10-07', amount: 39.43, currency: 'USD', cyclesDone: 1, qty: 1,
+        interval: { every: 1, unit: 'month' }, gateway: 'airwallex', method: 'Visa ···· 4242',
+        startedAt: '2026-09-07', address: '44 Pine Street, Portland, OR 97204, US', phone: '503 555 0190',
+        source: 'post_purchase',
+        history: [{ id: 5088, sn: 'EN1088', date: '2026-09-07', amount: 37.35, status: 'paid' }],
+      },
       {
         id: 'SUB-20471', subscriptionId: 20471, customer: 'Grace Lee', email: 'grace.lee@example.com',
         plan: 'Subscribe at checkout', planKey: 'BCS-01', product: 'Daily Multivitamin (60 ct)', productSku: 'VIT-60',

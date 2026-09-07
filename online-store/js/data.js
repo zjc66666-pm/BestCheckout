@@ -210,6 +210,7 @@
       { id: 'p1', title: 'Linen-feel wide pants', vendor: 'Aura Studio', price: 32.99, compareAt: 45.0, rating: 4.8, reviews: 214, image: IMG.p1, swatches: ['#2b2f36', '#c8b6a6', '#d9d2c5'] },
       { id: 'p2', title: 'Soft rib tee', status: 'draft', vendor: 'Aura Studio', price: 18.99, compareAt: 26.0, rating: 4.6, reviews: 98, image: IMG.p2, swatches: ['#1b3a2b', '#eae3d6'] },
       { id: 'p3', title: 'Editorial shell dress', vendor: 'Aura Studio', price: 41.5, compareAt: 58.0, rating: 4.9, reviews: 176, image: IMG.p3, swatches: ['#3a3f4a', '#9fb0a0', '#d8c3a5'],
+        subscription: { status: 'active', interval: { every: 1, unit: 'month' }, discount: { type: 'percent', value: 5 } },
         variants: [
           { id: 'p3-blk-m', title: 'Black / M', price: 41.5, compareAt: 58.0 },
           { id: 'p3-blk-s', title: 'Black / S', price: 41.5, compareAt: 58.0 },
@@ -226,7 +227,8 @@
       { id: 'p6', title: 'Pleated midi skirt', vendor: 'Aura Studio', price: 38.0, compareAt: 49.0, rating: 4.4, reviews: 51, image: IMG.p6, swatches: ['#1b1f24', '#b08968'] },
       { id: 'p7', title: 'Canvas weekender tote', vendor: 'Aura Studio', price: 29.0, compareAt: 39.0, rating: 4.7, reviews: 83, image: IMG.cat1, swatches: ['#b08968', '#2b2f36'] },
       { id: 'p8', title: 'Everyday rib socks · 3 pack', vendor: 'Aura Studio', price: 16.0, compareAt: 24.0, rating: 4.6, reviews: 119, image: IMG.cat2, swatches: ['#eae3d6', '#1b1f24'] },
-      { id: 'p9', title: 'Mini canvas pouch', vendor: 'Aura Studio', price: 14.0, compareAt: 19.0, rating: 4.5, reviews: 72, image: IMG.p1, swatches: ['#c8b6a6', '#2b2f36'] },
+      { id: 'p9', title: 'Mini canvas pouch', vendor: 'Aura Studio', price: 14.0, compareAt: 19.0, rating: 4.5, reviews: 72, image: IMG.p1, swatches: ['#c8b6a6', '#2b2f36'],
+        subscription: { status: 'active', interval: { every: 2, unit: 'month' }, discount: { type: 'percent', value: 5 } } },
       { id: 'p10', title: 'Travel care kit', vendor: 'Aura Studio', price: 12.0, compareAt: 18.0, rating: 4.6, reviews: 91, image: IMG.p2, swatches: ['#d9d2c5'] },
       { id: 'p11', title: 'Essential hair scarf', vendor: 'Aura Studio', price: 18.0, compareAt: 25.0, rating: 4.4, reviews: 54, image: IMG.p3, swatches: ['#1b1f24', '#d8c3a5'] },
       { id: 'p12', title: 'Cotton sleep mask', vendor: 'Aura Studio', price: 9.5, compareAt: 14.0, rating: 4.7, reviews: 108, image: IMG.p4, swatches: ['#33415c', '#eae3d6'] },
@@ -580,6 +582,12 @@
       applePay: 'enabled',
       googlePay: 'enabled',
     },
+    // V1.151 runtime flags for this instrument. Editor preview defaults to both
+    // true; append &instrument=one-shot to hide the post-purchase selector.
+    payment: {
+      supports_post_sale_charge: true,
+      supports_subscription: true,
+    },
     countries: ['United States', 'Canada', 'United Kingdom', 'Australia', 'Germany', 'Japan'],
     states: ['California', 'New York', 'Texas', 'Florida', 'Illinois', 'Washington', 'Massachusetts', 'Georgia'],
     cities: ['New York', 'Los Angeles', 'Chicago', 'Houston', 'Seattle', 'Boston', 'Atlanta', 'Miami'],
@@ -723,6 +731,7 @@
       id: product.id, title: product.title, image: product.image, status: product.status, bestSellerRank: index + 1,
       published: product.published !== false, marketSupported: product.marketSupported !== false,
       available: product.available !== false, inventory: product.inventory == null ? 20 : product.inventory,
+      subscription: product.subscription || null,
       price, compareAt, total: price,
       savings: 'Save ' + Math.max(0, Math.round((1 - price / compareAt) * 100)) + '%',
       rating: product.rating, reviewCount: product.reviews,

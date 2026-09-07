@@ -176,6 +176,7 @@
     'Checkout preferences': '结账偏好设置',
     'Checkout domain': '结账域名',
     'Email notifications': '邮件通知',
+    'AI and MCP': 'AI 与 MCP',
     'Team access': '团队成员与权限',
     'Good morning, Lavender Labs': '早上好，Lavender Labs',
     'Good morning, Aura Living': '早上好，Aura Living',

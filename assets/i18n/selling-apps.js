@@ -167,6 +167,7 @@ window.I18N.extend({
   "Projected from the current schedule — skipping or rescheduling a charge shifts these dates.": "按当前计划推算——跳过或改期某次扣款会顺延这些日期。",
   "Activity log": "动态日志",
   "Subscription started": "订阅已开始",
+  "Opened after a post-purchase add-on.": "购后追加成功后开通。",
   "Charge succeeded": "扣款成功",
   "Charge failed": "扣款失败",
   "Subscription cancelled": "订阅已取消",
