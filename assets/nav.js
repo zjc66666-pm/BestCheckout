@@ -15,6 +15,7 @@ window.STORES = [
   { name: 'Northstar', url: 'northstar.myshopify.com', connectStatus: 'pending' },
   { name: 'Atelier', url: 'atelier.myshopify.com', connectStatus: 'install' },
   { name: 'Harbor', url: 'harbor.myshopify.com', connectStatus: 'expired' },
+  { name: 'River Remedy', url: 'river-remedy.myshopify.com', connectStatus: 'disabled' },
 ];
 
 // Store A has a complete Shopify grant. Store B is the “too few scopes at

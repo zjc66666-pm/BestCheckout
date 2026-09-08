@@ -726,6 +726,7 @@
     if (status === 'pending') return 'Preparing install link';
     if (status === 'install') return 'Ready to install';
     if (status === 'expired') return 'Install link expired';
+    if (status === 'disabled') return 'Disabled';
     return '';
   }
   function storeShopHandle(st) {

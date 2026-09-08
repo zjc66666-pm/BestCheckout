@@ -38,6 +38,23 @@ export const PROTOTYPE_ACCOUNTS = [
     label: 'Store connected',
   },
   {
+    email: 'disabled@bestcheckout.demo',
+    password: '12345678',
+    hasStore: false,
+    connectStatus: 'disabled',
+    shop: 'river-remedy',
+    label: 'Store disabled · link valid',
+  },
+  {
+    email: 'disabled-expired@bestcheckout.demo',
+    password: '12345678',
+    hasStore: false,
+    connectStatus: 'disabled',
+    shop: 'river-remedy',
+    installLinkExpired: true,
+    label: 'Store disabled · link expired',
+  },
+  {
     email: 'hello@lavenderlabs.co',
     password: 'demo-password',
     hasStore: true,
@@ -113,7 +130,7 @@ export function connectSetupRoute(state) {
   const ui = state && state.ui ? state.ui : {};
   const status = String(ui.connectStatus || '');
   const shop = String(ui.connectShop || ui.shop || 'your-store');
-  if (status === 'pending' || status === 'install' || status === 'expired') {
+  if (status === 'pending' || status === 'install' || status === 'expired' || status === 'disabled') {
     return 'connect-shopify?status=' + status + '&shop=' + encodeURIComponent(shop);
   }
   return 'connect-shopify';

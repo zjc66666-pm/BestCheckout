@@ -292,6 +292,8 @@
     'Preparing install link': '正在准备安装链接',
     'Ready to install': '安装链接已就绪',
     'Install link expired': '安装链接已过期',
+    'Disabled': '店铺已停用',
+    'Store disabled': '店铺已停用',
     'All flows are published': '所有流程均已发布',
     'Checkout sales trend': '结账销售额趋势',
     'Flow health': '流程表现',

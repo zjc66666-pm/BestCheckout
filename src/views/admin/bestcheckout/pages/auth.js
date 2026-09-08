@@ -229,8 +229,21 @@ function connectExpiredCard(shop) {
   return '<div class="connect-card"><span class="connect-icon is-warning">' + icon('alert', 23) + '</span><span class="portal-auth-eyebrow">Install link expired</span><h1>This install link has expired</h1><p>Shopify install links last 7 days. The previous link for <b>' + domain + '</b> can no longer be used. Request a new one and we\'ll email it to the store owner.</p><div class="connect-form-actions"><button type="button" class="portal-submit" data-action="request-new-install-link" data-shop="' + escapeHtml(handle) + '">Request a new install link</button></div><p class="portal-auth-foot"><button type="button" data-route="connect-shopify?shop=' + encodeURIComponent(handle) + '">Use a different store</button></p></div>';
 }
 
-function connectFailedCard(shop) {
-  return '<div class="connect-card"><span class="connect-icon">' + icon('alert', 23) + '</span><span class="portal-auth-eyebrow">Connection failed</span><h1>We couldn\'t connect this store</h1><p>Check the store address and who opened the install link, then try again.</p><ul class="connect-status-list"><li>Use <b>your-store.myshopify.com</b>, not a www custom domain.</li><li>The person who installs must be the store owner or have permission to manage apps.</li><li>Selecting Install is not enough if BestCheckout does not receive the callback.</li></ul><div class="connect-form-actions"><button type="button" class="portal-submit" data-route="connect-shopify' + (shop ? '?shop=' + encodeURIComponent(shop) : '') + '">Try again</button></div>' + '</div>';
+function connectDisabledCard(shop, options) {
+  const handle = shopHandle(shop) || 'your-store';
+  const domain = escapeHtml(shopDomain(handle));
+  const fromAdmin = options && options.fromAdmin;
+  const linkExpired = options && options.linkExpired;
+  const back = fromAdmin
+    ? '<div class="connect-form-actions"><a class="portal-submit" href="app/#/home">Back to workspace</a></div>'
+    : '';
+  const action = linkExpired
+    ? '<div class="connect-form-actions"><button type="button" class="portal-submit" data-action="request-new-install-link" data-shop="' + escapeHtml(handle) + '">Request new install link</button></div>'
+    : '<div class="connect-form-actions"><a class="portal-submit" href="#/connect-shopify?status=consent&amp;shop=' + encodeURIComponent(handle) + '">Install app</a></div>';
+  const note = linkExpired
+    ? 'The app was uninstalled from this Shopify store. The previous install link has expired. Request a new one to reconnect it.'
+    : 'The app was uninstalled from this Shopify store. Your install link is still valid. Install again to reconnect it.';
+  return '<div class="connect-card"><span class="connect-icon is-warning">' + icon('alert', 23) + '</span><span class="portal-auth-eyebrow">Store disabled</span><h1>This store is disabled</h1><p>BestCheckout for <b>' + domain + '</b> is disabled. You can\'t open the workspace until the store is enabled again.</p><p>' + note + '</p>' + action + back + '</div>';
 }
 
 export function renderConnectShopify(route, options) {
@@ -242,7 +255,7 @@ export function renderConnectShopify(route, options) {
   if (status === 'install') return connectFrame(connectInstallCard(shop || 'your-store'), logoHref);
   if (status === 'consent') return connectConsentPage(shop || 'your-store');
   if (status === 'expired') return connectFrame(connectExpiredCard(shop || 'your-store'), logoHref);
-  if (status === 'failed') return connectFrame(connectFailedCard(shop), logoHref);
+  if (status === 'disabled') return connectFrame(connectDisabledCard(shop || 'your-store', { fromAdmin: query.get('from') === 'admin', linkExpired: options && options.installLinkExpired }), logoHref);
   const domainField = '<div class="portal-domain-input"><input required type="text" name="shopDomain" placeholder="your-store" pattern="[a-z0-9]+(-[a-z0-9]+)*" autocomplete="off" value="' + escapeHtml(shop) + '" data-validation-required="Enter your Shopify store name." data-validation-invalid="Use the store name from your permanent myshopify.com address." /><span>.myshopify.com</span></div>';
   return connectFrame('<div class="connect-card"><span class="connect-icon">' + icon('store', 23) + '</span><span class="portal-auth-eyebrow">Shopify connection</span><h1>Connect your Shopify store</h1><p>Enter the permanent Shopify address. We\'ll prepare an install link and email it to you, usually within about 1 day.</p><form class="portal-form" id="connect-shopify-form" novalidate>'
     + portalField('Shopify store address', domainField, 'Enter <strong>your-store.myshopify.com</strong> only. Do not use a custom domain or add https://.')

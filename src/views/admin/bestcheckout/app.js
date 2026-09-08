@@ -505,7 +505,15 @@ const SHOPIFY_STORES = [
   { id: 'northstar', name: 'Northstar', domain: 'northstar.myshopify.com', connectStatus: 'pending', shop: 'northstar' },
   { id: 'atelier', name: 'Atelier', domain: 'atelier.myshopify.com', connectStatus: 'install', shop: 'atelier' },
   { id: 'harbor', name: 'Harbor', domain: 'harbor.myshopify.com', connectStatus: 'expired', shop: 'harbor' },
+  { id: 'river-remedy', name: 'River Remedy', domain: 'river-remedy.myshopify.com', connectStatus: 'disabled', shop: 'river-remedy' },
 ];
+
+/* Prototype-only stand-in for the server-side Shopify handle check. The real
+ * implementation must verify the myshopify storefront before creating the
+ * store record; here we only accept handles that already exist in the demo. */
+const KNOWN_SHOPIFY_HANDLES = SHOPIFY_STORES.map(function (store) {
+  return String(store.domain || '').replace(/\.myshopify\.com$/i, '');
+});
 
 function activeShopifyStore() {
   const id = state.ui.activeShopifyStoreId || SHOPIFY_STORES[0].id;
@@ -534,6 +542,7 @@ function connectStateLabel(status, isZh) {
   if (status === 'pending') return isZh ? '正在准备安装链接' : 'Preparing install link';
   if (status === 'install') return isZh ? '安装链接已就绪' : 'Ready to install';
   if (status === 'expired') return isZh ? '安装链接已过期' : 'Install link expired';
+  if (status === 'disabled') return isZh ? '店铺已停用' : 'Disabled';
   return '';
 }
 
@@ -672,7 +681,7 @@ function renderPublicRoute(route) {
   if (route.segments[0] === 'password-reset-email-preview') return renderPasswordResetEmailPage(route.query.get('email'));
   if (route.segments[0] === 'install-email-preview') return renderInstallEmailPage(route.query.get('shop'));
   if (route.segments[0] === 'forgot-password') return renderForgotPasswordCode(route.segments[1]);
-  if (route.segments[0] === 'connect-shopify') return renderConnectShopify(route, { logoHref: connectLogoHref(route) });
+  if (route.segments[0] === 'connect-shopify') return renderConnectShopify(route, { logoHref: connectLogoHref(route), installLinkExpired: state.ui.installLinkExpired });
   if (route.segments[0] === 'help') return renderHelpCenter(route, marketingSession());
   if (route.segments[0] === 'lookbook') return renderLookbookSite(marketingSession(), route.query);
   return renderMarketingSite(marketingSession());
@@ -2463,6 +2472,15 @@ function startShopifyConnection(form) {
     .replace(/\.myshopify\.com$/i, '')
     .replace(/[^a-z0-9-]/g, '');
   if (!shop) return;
+  const input = form.querySelector('[name="shopDomain"]');
+  const field = input && input.closest('[data-portal-field]');
+  const error = field && field.querySelector('[data-field-error]');
+  if (KNOWN_SHOPIFY_HANDLES.indexOf(shop) === -1) {
+    if (field) field.classList.add('is-invalid');
+    if (input) { input.setAttribute('aria-invalid', 'true'); input.focus(); }
+    if (error) { error.hidden = false; error.textContent = 'We couldn\'t find this Shopify store. Check the address and try again.'; }
+    return;
+  }
   state.ui.isAuthenticated = true;
   state.ui.hasConnectedStore = false;
   state.ui.connectStatus = 'pending';
@@ -2579,6 +2597,7 @@ function bindFormSubmissions(event) {
     state.ui.hasConnectedStore = account.hasStore;
     state.ui.connectStatus = account.connectStatus || '';
     state.ui.connectShop = account.shop || '';
+    state.ui.installLinkExpired = Boolean(account.installLinkExpired);
     persistPrototypeSession(state);
     useEnglishPortalDefault();
     enterSignedInDestination(parseRoute().query.get('next'));
