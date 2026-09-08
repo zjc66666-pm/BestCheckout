@@ -4,7 +4,7 @@ import {
   FUNNEL_STATUS,
   TRACKING_CONTRACT_VERSION,
 } from './type.js?rev=20260720-standalone-portal-v150';
-import { createMockBestCheckoutState } from './mock.js?rev=20260822-prototype-accounts1';
+import { createMockBestCheckoutState } from './mock.js?rev=20260907-connect-accounts1';
 import { buildRuntimePayload, deterministicPayloadHash, graphEdgesForNodes, validateGraphCoverage } from './runtime.js?rev=20260716-rich-audience-v19';
 import { icon } from './components/common.js?rev=20260716-focus-mode-v27';
 import {
@@ -36,15 +36,16 @@ import { renderActivity } from './pages/activity.js?rev=20260720-standalone-port
 import { renderSettings } from './pages/settings.js?rev=20260720-standalone-portal-v150';
 import { renderEditor, mountEditor } from './pages/editor.js?rev=20260719-preview-session-v92';
 import { renderAbandonedCheckouts, renderOrders } from './pages/orders.js?rev=20260825-abandoned1';
-import { renderConnectShopify, renderForgotPasswordCode, renderInstallEmailPage, renderPasswordResetEmailPage, renderSignIn, renderSignUp, renderSignupVerificationEmailPage } from './pages/auth.js?rev=20260907-install-link6';
+import { renderConnectShopify, renderForgotPasswordCode, renderInstallEmailPage, renderPasswordResetEmailPage, renderSignIn, renderSignUp, renderSignupVerificationEmailPage } from './pages/auth.js?rev=20260907-logo-back1';
 import { renderHelpCenter } from './pages/help.js?rev=20260907-install-link1';
 import { renderLookbookSite, renderMarketingSite } from './pages/website.js?rev=20260827-highlights3';
 import {
   applyPrototypeSession,
+  connectSetupRoute,
   findPrototypeAccount,
   persistPrototypeSession,
   clearPrototypeSession,
-} from './session.js?rev=20260822-prototype-accounts1';
+} from './session.js?rev=20260907-expired-link1';
 import { escapeHtml, formatDateTime, getRouteName, parseRoute, setRoute } from './utils.js?rev=20260720-standalone-portal-v145';
 import { applyLocale, renderLanguageSwitcher, translate } from './i18n.js?rev=20260820-nmi-card-only1';
 
@@ -65,8 +66,10 @@ try {
   if (entry === 'connect-new-shopify-store') {
     state.ui.isAuthenticated = true;
     state.ui.hasConnectedStore = true;
+    state.ui.connectFrom = 'admin';
   }
   applyPrototypeSession(state);
+  if (entry === 'connect-new-shopify-store') state.ui.connectFrom = 'admin';
   const storedLocale = window.localStorage.getItem('bestcheckout-prototype-locale');
   if (storedLocale === 'zh' || storedLocale === 'en') state.ui.locale = storedLocale;
 } catch (error) {
@@ -172,8 +175,32 @@ function marketingSession() {
   return {
     isAuthenticated: state.ui.isAuthenticated,
     hasConnectedStore: state.ui.hasConnectedStore,
+    connectStatus: state.ui.connectStatus,
+    shop: state.ui.connectShop,
     marketingMenuOpen: state.ui.marketingMenuOpen,
   };
+}
+
+function isConnectFromAdmin(route) {
+  const entry = new URLSearchParams(window.location.search).get('entry');
+  if (entry === 'connect-new-shopify-store') return true;
+  if (route && route.query && route.query.get('from') === 'admin') return true;
+  return state.ui.connectFrom === 'admin';
+}
+
+function connectLogoHref(route) {
+  return isConnectFromAdmin(route) ? 'app/#/home' : '#/landing';
+}
+
+function rememberConnectOrigin(route) {
+  const name = route && route.segments ? route.segments[0] : '';
+  if (name === 'landing' || name === 'lookbook' || name === 'sign-in' || name === 'sign-up') {
+    state.ui.connectFrom = 'site';
+    return;
+  }
+  if (name === 'connect-shopify' && isConnectFromAdmin(route)) {
+    state.ui.connectFrom = 'admin';
+  }
 }
 
 function enterSignedInDestination(next) {
@@ -182,7 +209,11 @@ function enterSignedInDestination(next) {
     return;
   }
   const requested = String(next || '').replace(/^#?\/?/, '');
-  setRoute(requested && requested !== 'home' ? requested : 'connect-shopify');
+  if (requested && requested !== 'home' && requested.indexOf('connect-shopify') !== 0) {
+    setRoute(requested);
+    return;
+  }
+  setRoute(connectSetupRoute(state));
 }
 
 function redirectPublicAuth(route) {
@@ -471,11 +502,14 @@ const SHOPIFY_STORES = [
   { id: 'aura-living', name: 'Aura Living', domain: 'aura-living.myshopify.com', checkoutDomain: 'checkout.auraliving.co', previewDomain: 'aura-living.preview.bestcheckout.app', bestShopioStoreId: 'bst_20031' },
   { id: 'northline', name: 'Northline Goods', domain: 'northline-goods.myshopify.com', checkoutDomain: 'checkout.northlinegoods.co', previewDomain: 'northline-goods.preview.bestcheckout.app', bestShopioStoreId: 'bst_20047' },
   { id: 'kiln-coffee', name: 'Kiln Coffee', domain: 'kiln-coffee.myshopify.com', checkoutDomain: 'checkout.kilncoffee.co', previewDomain: 'kiln-coffee.preview.bestcheckout.app', bestShopioStoreId: 'bst_20062' },
+  { id: 'northstar', name: 'Northstar', domain: 'northstar.myshopify.com', connectStatus: 'pending', shop: 'northstar' },
+  { id: 'atelier', name: 'Atelier', domain: 'atelier.myshopify.com', connectStatus: 'install', shop: 'atelier' },
+  { id: 'harbor', name: 'Harbor', domain: 'harbor.myshopify.com', connectStatus: 'expired', shop: 'harbor' },
 ];
 
 function activeShopifyStore() {
   const id = state.ui.activeShopifyStoreId || SHOPIFY_STORES[0].id;
-  return SHOPIFY_STORES.find(function (store) { return store.id === id; }) || SHOPIFY_STORES[0];
+  return SHOPIFY_STORES.find(function (store) { return store.id === id && !store.connectStatus; }) || SHOPIFY_STORES[0];
 }
 
 /* A BestCheckout login owns one or more connected Shopify stores. The linked
@@ -496,14 +530,27 @@ function renderHeaderLocaleToggle() {
   return '<div class="i18n-toggle i18n-skip" aria-label="Language"><button type="button" data-locale="zh" class="' + (isZh ? 'on' : '') + '">中</button><button type="button" data-locale="en" class="' + (!isZh ? 'on' : '') + '">EN</button></div>';
 }
 
+function connectStateLabel(status, isZh) {
+  if (status === 'pending') return isZh ? '正在准备安装链接' : 'Preparing install link';
+  if (status === 'install') return isZh ? '安装链接已就绪' : 'Ready to install';
+  if (status === 'expired') return isZh ? '安装链接已过期' : 'Install link expired';
+  return '';
+}
+
 function renderPortalStoreMenu() {
   const current = activeShopifyStore();
+  const isZh = state.ui.locale === 'zh';
   const rows = SHOPIFY_STORES.map(function (store) {
-    const selected = store.id === current.id;
-    return '<button type="button" class="hdr-store-row' + (selected ? ' current' : '') + '" data-action="switch-portal-store" data-store-id="' + escapeHtml(store.id) + '" role="menuitemradio" aria-checked="' + selected + '"><span class="hdr-store-ico"></span><span class="hdr-store-meta"><span class="hdr-store-name">' + escapeHtml(store.name) + '</span><span class="hdr-store-url">' + escapeHtml(store.domain) + '</span></span>' + (selected ? '<span class="hdr-store-check">✓</span>' : '') + '</button>';
+    const connecting = Boolean(store.connectStatus);
+    const selected = !connecting && store.id === current.id;
+    const stateChip = connecting ? '<span class="hdr-store-state is-' + store.connectStatus + '">' + escapeHtml(connectStateLabel(store.connectStatus, isZh)) + '</span>' : '';
+    const attrs = connecting
+      ? ' data-route="connect-shopify?status=' + encodeURIComponent(store.connectStatus) + '&shop=' + encodeURIComponent(store.shop || store.id) + '&from=admin"'
+      : ' data-action="switch-portal-store" data-store-id="' + escapeHtml(store.id) + '" role="menuitemradio" aria-checked="' + selected + '"';
+    return '<button type="button" class="hdr-store-row' + (selected ? ' current' : '') + '"' + attrs + '><span class="hdr-store-ico"></span><span class="hdr-store-meta"><span class="hdr-store-name">' + escapeHtml(store.name) + '</span><span class="hdr-store-url">' + escapeHtml(store.domain) + '</span>' + stateChip + '</span>' + (selected ? '<span class="hdr-store-check">✓</span>' : '') + '</button>';
   }).join('');
-  const foot = state.ui.locale === 'zh' ? '连接新的 Shopify 店铺' : 'Connect new Shopify store';
-  return '<div class="hdr-menu bc-shell-menu" role="menu">' + rows + '<button type="button" class="hdr-menu-foot" data-route="connect-shopify">' + escapeHtml(foot) + '</button></div>';
+  const foot = isZh ? '连接新的 Shopify 店铺' : 'Connect new Shopify store';
+  return '<div class="hdr-menu bc-shell-menu" role="menu">' + rows + '<button type="button" class="hdr-menu-foot" data-route="connect-shopify?from=admin">' + escapeHtml(foot) + '</button></div>';
 }
 
 function renderPortalAccountMenu() {
@@ -625,7 +672,7 @@ function renderPublicRoute(route) {
   if (route.segments[0] === 'password-reset-email-preview') return renderPasswordResetEmailPage(route.query.get('email'));
   if (route.segments[0] === 'install-email-preview') return renderInstallEmailPage(route.query.get('shop'));
   if (route.segments[0] === 'forgot-password') return renderForgotPasswordCode(route.segments[1]);
-  if (route.segments[0] === 'connect-shopify') return renderConnectShopify(route);
+  if (route.segments[0] === 'connect-shopify') return renderConnectShopify(route, { logoHref: connectLogoHref(route) });
   if (route.segments[0] === 'help') return renderHelpCenter(route, marketingSession());
   if (route.segments[0] === 'lookbook') return renderLookbookSite(marketingSession(), route.query);
   return renderMarketingSite(marketingSession());
@@ -698,9 +745,10 @@ function pageForRoute(route) {
 
 function renderShell(options) {
   const route = parseRoute();
+  rememberConnectOrigin(route);
   if (isPublicRoute(route)) {
     if (redirectPublicAuth(route)) return;
-    if (route.segments[0] === 'landing' && isMarketingLandingMounted()) {
+    if (route.segments[0] === 'landing' && isMarketingLandingMounted() && !(options && options.force)) {
       const section = landingSectionFromRoute(route);
       window.requestAnimationFrame(function () {
         scrollToLandingSection(section);
@@ -737,7 +785,7 @@ function renderShell(options) {
     return;
   }
   if (!state.ui.hasConnectedStore) {
-    setRoute('connect-shopify');
+    setRoute(connectSetupRoute(state));
     return;
   }
   enforceWritebackCircuit();
@@ -1375,12 +1423,30 @@ function handleAction(action, element) {
     state.ui.isAuthenticated = false;
     state.ui.sessionEmail = '';
     state.ui.hasConnectedStore = false;
+    state.ui.connectStatus = '';
+    state.ui.connectShop = '';
+    state.ui.connectFrom = 'site';
     state.ui.marketingMenuOpen = false;
     state.ui.languageOpen = false;
     clearPrototypeSession();
     closePortalHeaderMenus();
-    if (parseRoute().segments[0] === 'landing') appRoot.innerHTML = '';
-    setRoute('landing');
+    const route = parseRoute();
+    if (route.segments[0] === 'landing') {
+      renderShell({ force: true });
+      return;
+    }
+    window.location.assign(new URL('./#/landing', document.baseURI).href);
+    return;
+  }
+  if (action === 'request-new-install-link') {
+    requestNewInstallLink(element.dataset.shop);
+    return;
+  }
+  if (action === 'toggle-shopify-access') {
+    const wrap = element.closest('.shopify-install-access');
+    if (!wrap) return;
+    const collapsed = wrap.classList.toggle('is-collapsed');
+    element.setAttribute('aria-expanded', String(!collapsed));
     return;
   }
   if (action === 'toggle-marketing-menu') {
@@ -1423,7 +1489,7 @@ function handleAction(action, element) {
     return;
   }
   if (action === 'switch-portal-store') {
-    const nextStore = SHOPIFY_STORES.find(function (store) { return store.id === element.dataset.storeId; });
+    const nextStore = SHOPIFY_STORES.find(function (store) { return store.id === element.dataset.storeId && !store.connectStatus; });
     if (!nextStore) return;
     applyShopifyStoreContext(nextStore);
     closePortalHeaderMenus();
@@ -2367,6 +2433,26 @@ function handleClick(event) {
   handleAction(element.dataset.action, element);
 }
 
+function requestNewInstallLink(shop) {
+  const handle = String(shop || state.ui.connectShop || '')
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/\/.*$/, '')
+    .replace(/\.myshopify\.com$/i, '')
+    .replace(/[^a-z0-9-]/g, '');
+  if (!handle) {
+    setRoute('connect-shopify');
+    return;
+  }
+  state.ui.isAuthenticated = true;
+  state.ui.hasConnectedStore = false;
+  state.ui.connectStatus = 'pending';
+  state.ui.connectShop = handle;
+  persistPrototypeSession(state);
+  setRoute('connect-shopify?status=pending&shop=' + encodeURIComponent(handle) + '&renew=1' + (state.ui.connectFrom === 'admin' ? '&from=admin' : ''));
+}
+
 function startShopifyConnection(form) {
   const data = new FormData(form);
   const shop = String(data.get('shopDomain') || '')
@@ -2379,6 +2465,8 @@ function startShopifyConnection(form) {
   if (!shop) return;
   state.ui.isAuthenticated = true;
   state.ui.hasConnectedStore = false;
+  state.ui.connectStatus = 'pending';
+  state.ui.connectShop = shop;
   persistPrototypeSession(state);
   setRoute('connect-shopify?status=pending&shop=' + encodeURIComponent(shop));
 }
@@ -2387,6 +2475,8 @@ function completeShopifyInstall(shop) {
   const handle = String(shop || 'your-store').replace(/[^a-z0-9-]/g, '') || 'your-store';
   state.ui.isAuthenticated = true;
   state.ui.hasConnectedStore = true;
+  state.ui.connectStatus = '';
+  state.ui.connectShop = handle;
   persistPrototypeSession(state);
   window.location.assign('app/?rev=20260907-install-link1&shopify=connected#/home');
 }
@@ -2487,6 +2577,8 @@ function bindFormSubmissions(event) {
     state.ui.isAuthenticated = true;
     state.ui.sessionEmail = account.email;
     state.ui.hasConnectedStore = account.hasStore;
+    state.ui.connectStatus = account.connectStatus || '';
+    state.ui.connectShop = account.shop || '';
     persistPrototypeSession(state);
     useEnglishPortalDefault();
     enterSignedInDestination(parseRoute().query.get('next'));
@@ -2552,6 +2644,8 @@ function bindFormSubmissions(event) {
     state.ui.isAuthenticated = true;
     state.ui.sessionEmail = email;
     state.ui.hasConnectedStore = false;
+    state.ui.connectStatus = '';
+    state.ui.connectShop = '';
     persistPrototypeSession(state);
     useEnglishPortalDefault();
     enterSignedInDestination(parseRoute().query.get('next') || 'connect-shopify');

@@ -2,16 +2,40 @@ const SESSION_KEY = 'bestcheckout-prototype-session';
 
 export const PROTOTYPE_ACCOUNTS = [
   {
-    email: 'workspace@bestcheckout.demo',
-    password: '12345678',
-    hasStore: true,
-    label: 'Store connected',
-  },
-  {
     email: 'setup@bestcheckout.demo',
     password: '12345678',
     hasStore: false,
     label: 'No store yet',
+  },
+  {
+    email: 'pending@bestcheckout.demo',
+    password: '12345678',
+    hasStore: false,
+    connectStatus: 'pending',
+    shop: 'northstar',
+    label: 'Preparing install link',
+  },
+  {
+    email: 'install@bestcheckout.demo',
+    password: '12345678',
+    hasStore: false,
+    connectStatus: 'install',
+    shop: 'atelier',
+    label: 'Ready to install',
+  },
+  {
+    email: 'expired@bestcheckout.demo',
+    password: '12345678',
+    hasStore: false,
+    connectStatus: 'expired',
+    shop: 'harbor',
+    label: 'Install link expired',
+  },
+  {
+    email: 'workspace@bestcheckout.demo',
+    password: '12345678',
+    hasStore: true,
+    label: 'Store connected',
   },
   {
     email: 'hello@lavenderlabs.co',
@@ -37,6 +61,8 @@ export function loadPrototypeSession() {
     return {
       email: String(parsed.email || ''),
       hasStore: Boolean(parsed.hasStore),
+      connectStatus: String(parsed.connectStatus || ''),
+      shop: String(parsed.shop || ''),
     };
   } catch (error) {
     return null;
@@ -49,6 +75,8 @@ export function savePrototypeSession(session) {
       isAuthenticated: true,
       email: String(session && session.email || ''),
       hasStore: Boolean(session && session.hasStore),
+      connectStatus: String(session && session.connectStatus || ''),
+      shop: String(session && session.shop || ''),
     }));
   } catch (error) { /* no-op */ }
 }
@@ -63,6 +91,8 @@ export function applyPrototypeSession(state) {
   state.ui.isAuthenticated = true;
   state.ui.sessionEmail = session.email;
   state.ui.hasConnectedStore = session.hasStore;
+  state.ui.connectStatus = session.connectStatus || '';
+  state.ui.connectShop = session.shop || '';
   return state;
 }
 
@@ -74,7 +104,19 @@ export function persistPrototypeSession(state) {
   savePrototypeSession({
     email: state.ui.sessionEmail,
     hasStore: state.ui.hasConnectedStore,
+    connectStatus: state.ui.connectStatus,
+    shop: state.ui.connectShop,
   });
+}
+
+export function connectSetupRoute(state) {
+  const ui = state && state.ui ? state.ui : {};
+  const status = String(ui.connectStatus || '');
+  const shop = String(ui.connectShop || ui.shop || 'your-store');
+  if (status === 'pending' || status === 'install' || status === 'expired') {
+    return 'connect-shopify?status=' + status + '&shop=' + encodeURIComponent(shop);
+  }
+  return 'connect-shopify';
 }
 
 export function marketingCtas(session) {
@@ -88,11 +130,13 @@ export function marketingCtas(session) {
         footerLabel: 'Open workspace',
       };
     }
+    const setup = connectSetupRoute({ ui: session });
+    const setupHash = '#/' + setup;
     return {
       authenticated: true,
-      primaryHref: '#/connect-shopify',
+      primaryHref: setupHash,
       primaryLabel: 'Continue setup',
-      footerHref: '#/connect-shopify',
+      footerHref: setupHash,
       footerLabel: 'Continue setup',
     };
   }

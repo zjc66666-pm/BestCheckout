@@ -8120,7 +8120,8 @@ kbd {
 .portal-demo-account:hover { border-color:#c5d0ff; background:#f7f8ff; }
 .portal-demo-account strong { color:#1f2430; font-size:13px; }
 .portal-demo-account span { color:#62708d; font-size:12px; }
-.portal-auth-foot { margin:22px 0 0 !important; text-align:center; color:#748097 !important; font-size:13px; }
+.portal-auth-foot { margin:14px 0 0 !important; text-align:center; color:#748097 !important; font-size:13px; }
+.portal-form .portal-auth-foot + .portal-demo-accounts { margin-top:22px; }
 .portal-auth-foot button { padding:0; color:var(--bc-blue); border:0; background:transparent; font-weight:750; }
 .verification-email-page { min-height:100vh; padding:30px 16px 60px; color:#242833; background:#f1f3f7; }
 .verification-email-wrap { width:min(640px, 100%); margin:0 auto; }
@@ -8162,6 +8163,8 @@ kbd {
 .connect-flow > main { display:grid; justify-items:center; padding:54px 24px 100px; }
 .connect-card { width:min(100%, 590px); padding:38px; border:1px solid #e0e5ef; border-radius:16px; background:#fff; box-shadow:0 14px 42px rgba(24,35,63,.08); }
 .connect-icon { display:grid; width:44px; height:44px; place-items:center; margin-bottom:20px; color:#405de5; border-radius:12px; background:#eef1ff; }
+.connect-icon.is-warning { color:#b45309; background:#fff7ed; }
+.connect-card .portal-auth-foot { margin-top:16px !important; }
 .connect-card h1 { margin:9px 0 9px; color:#182238; font-size:34px; }
 .connect-card > p { margin-bottom:27px; color:#627087; line-height:1.65; }
 .portal-domain-input { display:flex; align-items:center; overflow:hidden; border:1px solid #d6dce8; border-radius:8px; }
@@ -8205,45 +8208,64 @@ kbd {
 .verification-email-card .portal-submit { width:100%; min-height:46px; }
 .verification-email-card .connect-install-link { margin:4px 0 18px; }
 
-.shopify-install-page { min-height:100vh; background:#f1f2f4; color:#202223; font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
-.shopify-install-topbar { display:flex; align-items:center; gap:16px; height:56px; padding:0 16px; background:#1a1a1a; color:#fff; }
-.shopify-install-brand { display:grid; place-items:center; width:28px; height:28px; }
-.shopify-search { display:flex; align-items:center; justify-content:space-between; flex:1; max-width:520px; height:32px; margin:0 auto; padding:0 12px; border-radius:8px; background:#303030; color:#b5b5b5; font-size:13px; }
-.shopify-search kbd { color:#8c8c8c; font-size:11px; font-weight:600; }
-.shopify-install-store { display:flex; align-items:center; gap:10px; margin-left:auto; color:#fff; font-size:13px; font-weight:650; }
-.shopify-install-avatar { display:grid; place-items:center; width:28px; height:28px; border-radius:50%; background:#5c6ac4; color:#fff; font-size:11px; font-weight:700; }
+.shopify-install-page { min-height:100vh; background:#f1f2f4; color:#202223; font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; -webkit-font-smoothing:antialiased; }
+.shopify-install-topbar { display:grid; grid-template-columns:1fr minmax(240px, 480px) 1fr; align-items:center; height:56px; padding:0 16px; background:#1a1a1a; color:#fff; }
+.shopify-install-brand { display:inline-flex; align-items:center; gap:8px; justify-self:start; color:#fff; }
+.shopify-install-brand span { font-size:18px; font-weight:750; letter-spacing:-.04em; line-height:1; text-transform:lowercase; }
+.shopify-search { display:flex; align-items:center; gap:8px; width:100%; height:36px; padding:0 12px; border-radius:8px; background:#303030; color:#b5b5b5; font-size:13px; }
+.shopify-search svg { flex:none; color:#8c8c8c; }
+.shopify-search span { flex:1; }
+.shopify-search kbd { color:#8c8c8c; font-family:inherit; font-size:11px; font-weight:600; letter-spacing:.02em; }
+.shopify-install-store { display:flex; align-items:center; justify-content:flex-end; gap:8px; color:#fff; }
+.shopify-install-bell { display:grid; place-items:center; width:32px; height:32px; color:#d4d4d4; }
+.shopify-install-store-switch { display:flex; align-items:center; gap:8px; height:36px; padding:0 2px 0 2px; color:#fff; }
+.shopify-install-store-name { font-size:13px; font-weight:650; }
+.shopify-install-avatar { display:grid; place-items:center; width:28px; height:28px; border-radius:50%; background:#e17ead; color:#fff; font-size:11px; font-weight:700; }
 .shopify-install-body { display:grid; grid-template-columns:240px minmax(0,1fr); min-height:calc(100vh - 56px); }
-.shopify-install-sidebar { padding:14px 10px 24px; background:#fff; border-right:1px solid #e3e3e3; }
-.shopify-install-nav-group { display:grid; gap:2px; margin-bottom:16px; }
-.shopify-install-nav-group small { padding:8px 10px 4px; color:#8c9196; font-size:12px; font-weight:650; }
-.shopify-install-nav-item { display:block; padding:7px 10px; border-radius:8px; color:#202223; font-size:13.5px; font-weight:550; }
+.shopify-install-sidebar { display:flex; flex-direction:column; justify-content:space-between; padding:12px 8px 12px; background:#fff; border-right:1px solid #e3e3e3; }
+.shopify-install-nav { display:grid; gap:10px; }
+.shopify-install-nav-group { display:grid; gap:2px; }
+.shopify-install-nav-group small { padding:10px 10px 4px; color:#8c9196; font-size:12px; font-weight:650; }
+.shopify-install-nav-item { display:flex; align-items:center; gap:10px; min-height:32px; padding:6px 10px; border-radius:8px; color:#202223; font-size:13px; font-weight:550; }
+.shopify-install-nav-item svg { flex:none; color:#4a4a4a; }
 .shopify-install-nav-item.is-current { background:#f1f2f4; font-weight:650; }
-.shopify-install-settings { margin-top:18px; padding:8px 10px; color:#202223; font-size:13.5px; }
-.shopify-install-main { padding:28px 40px 48px; }
-.shopify-install-main > h1 { margin:0 0 18px; color:#202223; font-size:24px; font-weight:700; letter-spacing:-.02em; }
-.shopify-install-panel { width:min(100%, 720px); overflow:hidden; border:1px solid #e3e3e3; border-radius:12px; background:#fff; box-shadow:0 1px 0 rgba(0,0,0,.04); }
-.shopify-install-banner { display:flex; gap:10px; margin:16px 16px 0; padding:12px 14px; border-radius:8px; background:#e0f0ff; color:#003a5a; }
-.shopify-install-banner > span { display:grid; place-items:center; flex:none; width:20px; height:20px; margin-top:1px; border-radius:50%; background:#005bd3; color:#fff; font-size:12px; font-weight:800; }
-.shopify-install-banner strong { display:block; margin-bottom:2px; font-size:13.5px; }
-.shopify-install-banner p { margin:0; font-size:13px; line-height:1.5; }
+.shopify-install-settings .shopify-install-nav-item { margin:0; }
+.shopify-install-main { display:flex; justify-content:center; align-items:flex-start; padding:48px 32px 72px; background:#f1f2f4; }
+.shopify-install-stage { width:min(100%, 620px); }
+.shopify-install-stage > h1 { display:flex; align-items:center; gap:8px; margin:0 0 16px; color:#202223; font-size:20px; font-weight:650; letter-spacing:-.015em; }
+.shopify-install-stage > h1 svg { color:#4a4a4a; }
+.shopify-install-panel { overflow:hidden; border:1px solid #e3e3e3; border-radius:12px; background:#fff; box-shadow:0 1px 0 rgba(26,26,26,.04); }
+.shopify-install-banner { display:flex; gap:12px; margin:16px 16px 0; padding:12px 14px; border-radius:8px; background:#eaf4ff; color:#001e33; }
+.shopify-install-banner-icon { display:grid; place-items:center; flex:none; width:20px; height:20px; margin-top:1px; border-radius:50%; background:#005bd3; color:#fff; }
+.shopify-install-banner-icon svg { width:12px; height:12px; stroke-width:2.2; }
+.shopify-install-banner strong { display:block; margin-bottom:2px; font-size:13px; font-weight:650; }
+.shopify-install-banner p { margin:0; color:#003a5a; font-size:13px; line-height:1.5; }
 .shopify-install-app { display:flex; align-items:center; gap:12px; padding:20px 20px 8px; }
-.shopify-install-app-icon { display:grid; grid-template-columns:repeat(2,8px); gap:3px; width:40px; height:40px; place-content:center; border-radius:8px; background:#f1f2f4; }
-.shopify-install-app-icon i { width:8px; height:8px; border-radius:1px; background:#8c9196; }
-.shopify-install-app strong { display:block; color:#202223; font-size:16px; }
+.shopify-install-app-icon { width:40px; height:40px; padding:6px; object-fit:contain; border:1px solid #e3e3e3; border-radius:8px; background:#f6f6f7; }
+.shopify-install-app strong { display:block; color:#202223; font-size:14px; font-weight:650; }
 .shopify-install-app small { display:block; margin-top:2px; color:#6d7175; font-size:13px; }
-.shopify-install-access { padding:8px 20px 8px; }
-.shopify-install-access-toggle { display:flex; align-items:center; justify-content:space-between; width:100%; padding:8px 0; border:0; background:transparent; color:#202223; font:inherit; font-size:13.5px; font-weight:650; cursor:default; }
-.shopify-install-access ul { margin:0; padding:0 0 6px 18px; color:#202223; font-size:13.5px; line-height:1.7; }
-.shopify-install-actions { display:flex; justify-content:flex-end; gap:8px; padding:16px 20px 20px; }
-.shopify-install-cancel, .shopify-install-submit { display:inline-flex; align-items:center; height:32px; padding:0 12px; border-radius:8px; font-size:13px; font-weight:650; text-decoration:none; }
-.shopify-install-cancel { border:1px solid #8c9196; background:#fff; color:#202223; }
-.shopify-install-submit { border:1px solid #303030; background:#303030; color:#fff; }
-.shopify-install-submit:hover { background:#1a1a1a; }
-.shopify-install-main .connect-demo { max-width:720px; margin-top:28px; padding-top:16px; border-top:1px dashed #c9cccf; }
+.shopify-install-access { padding:4px 20px 20px; }
+.shopify-install-access-toggle { display:flex; align-items:center; justify-content:space-between; width:100%; padding:8px 0 10px; border:0; background:transparent; color:#202223; font:inherit; font-size:13px; font-weight:650; cursor:pointer; }
+.shopify-install-chevron { display:grid; place-items:center; color:#6d7175; transition:transform .15s ease; }
+.shopify-install-access.is-collapsed .shopify-install-chevron { transform:rotate(-90deg); }
+.shopify-install-access.is-collapsed .shopify-install-scopes { display:none; }
+.shopify-install-scopes { overflow:hidden; border:1px solid #e3e3e3; border-radius:8px; background:#fff; }
+.shopify-install-scope { padding:10px 12px; color:#202223; font-size:13px; font-weight:550; }
+.shopify-install-scope + .shopify-install-scope { border-top:1px solid #f1f2f4; }
+.shopify-install-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:16px; }
+.shopify-install-cancel, .shopify-install-submit { display:inline-flex; align-items:center; justify-content:center; min-width:68px; height:32px; padding:0 12px; border-radius:8px; font-size:13px; font-weight:650; text-decoration:none; }
+.shopify-install-cancel { border:1px solid #8a8a8a; background:#fff; color:#202223; }
+.shopify-install-cancel:hover { background:#f6f6f7; }
+.shopify-install-submit { border:1px solid #1a1a1a; background:#1a1a1a; color:#fff; }
+.shopify-install-submit:hover { background:#303030; border-color:#303030; }
+.shopify-install-main .connect-demo { max-width:620px; margin-top:28px; padding-top:16px; border-top:1px dashed #c9cccf; }
 @media (max-width:820px) {
+  .shopify-install-topbar { grid-template-columns:auto minmax(0,1fr) auto; gap:10px; padding:0 10px; }
+  .shopify-install-brand span { display:none; }
+  .shopify-install-store-name { display:none; }
   .shopify-install-body { grid-template-columns:1fr; }
   .shopify-install-sidebar { display:none; }
-  .shopify-install-main { padding:20px 16px 40px; }
+  .shopify-install-main { padding:24px 16px 40px; }
 }
 .connect-help { display:grid; grid-template-columns:20px 1fr; gap:10px; margin-top:24px; padding:15px; border-radius:9px; background:#f2f5ff; color:#3450c5; }
 .connect-help svg { margin-top:2px; }
@@ -8576,6 +8598,10 @@ kbd {
 .bc-shell .bc-shell-menu { top: 42px; min-width: 270px; padding: 6px; border-color: #dfe5ef; border-radius: 8px; z-index: 80; }
 .bc-shell .hdr-store-row.current { background: #e8efff; }
 .bc-shell .hdr-store-check { color: #0066e6; font-weight: 700; }
+.bc-shell .hdr-store-state { display: inline-flex; align-items: center; width: max-content; height: 18px; margin-top: 4px; padding: 0 6px; border-radius: 4px; background: #fff0ce; color: #9a5a00; font-size: 10px; font-weight: 650; }
+.bc-shell .hdr-store-state.is-pending { background: #fff0ce; color: #9a5a00; }
+.bc-shell .hdr-store-state.is-install { background: #eef2ff; color: #3450c5; }
+.bc-shell .hdr-store-state.is-expired { background: #fff1f0; color: #b42318; }
 .bc-shell .hdr-menu-foot { width: 100%; border: 0; border-top: 1px solid #eaedf1; border-radius: 0; background: transparent; text-align: left; cursor: pointer; }
 .bc-shell .bc-mobile-store-switch { display: none; }
 .bc-shell .sidebar-backdrop { display: none; }

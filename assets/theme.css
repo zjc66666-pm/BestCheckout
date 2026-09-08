@@ -820,7 +820,7 @@ select::-ms-expand { display: none; }
 
 /* ---- Header dropdowns: store switcher + account menu (V1.129 SSO multi-store) ---- */
 .hdr-menu-wrap { position: relative; display: inline-flex; }
-.hdr-menu { position: absolute; top: 44px; right: 0; min-width: 244px; background: #fff; border: 1px solid var(--hair); border-radius: 10px; box-shadow: var(--float-shadow); padding: 6px; z-index: 70; }
+.hdr-menu { position: absolute; top: 44px; right: 0; min-width: 280px; background: #fff; border: 1px solid var(--hair); border-radius: 10px; box-shadow: var(--float-shadow); padding: 6px; z-index: 70; }
 .hdr-menu-head { display: flex; align-items: center; gap: 8px; padding: 8px 10px; color: var(--ink); font-size: 14px; }
 .hdr-menu-head svg { width: 16px; height: 16px; color: var(--ink-muted); flex: 0 0 auto; }
 .hdr-menu-divider { height: 1px; background: var(--hair); margin: 4px 0; }
@@ -836,7 +836,10 @@ select::-ms-expand { display: none; }
 .hdr-store-ico::after { content: ''; position: absolute; left: 50%; top: 12px; transform: translateX(-50%); width: 18px; height: 12px; border-radius: 0 0 3px 3px; background: #fff; }
 .hdr-store-meta { display: flex; flex-direction: column; min-width: 0; flex: 1; }
 .hdr-store-name { font-size: 13.5px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.hdr-store-state { display: inline-flex; align-items: center; height: 17px; margin-left: 6px; padding: 0 5px; border-radius: 4px; background: #fff0ce; color: #9a5a00; font-size: 10px; font-weight: 650; vertical-align: 1px; }
+.hdr-store-state { display: inline-flex; align-items: center; width: max-content; height: 18px; margin-top: 4px; padding: 0 6px; border-radius: 4px; background: #fff0ce; color: #9a5a00; font-size: 10px; font-weight: 650; }
+.hdr-store-state.is-pending { background: #fff0ce; color: #9a5a00; }
+.hdr-store-state.is-install { background: #eef2ff; color: #3450c5; }
+.hdr-store-state.is-expired { background: #fff1f0; color: #b42318; }
 .hdr-store-url { font-size: 12px; color: var(--ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hdr-store-check { display: inline-flex; color: #3b66ff; flex: 0 0 auto; }
 .hdr-store-check svg { width: 16px; height: 16px; }

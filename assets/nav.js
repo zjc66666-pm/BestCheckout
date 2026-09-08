@@ -12,6 +12,9 @@ window.STORES = [
   { name: 'Aura Living', url: 'aura-living.myshopify.com', homeState: 'ready' },
   { name: 'Northline Goods', url: 'northline-goods.myshopify.com', homeState: 'live' },
   { name: 'Kiln Coffee', url: 'kiln-coffee.myshopify.com', homeState: 'live', homeDataKey: 'kiln' },
+  { name: 'Northstar', url: 'northstar.myshopify.com', connectStatus: 'pending' },
+  { name: 'Atelier', url: 'atelier.myshopify.com', connectStatus: 'install' },
+  { name: 'Harbor', url: 'harbor.myshopify.com', connectStatus: 'expired' },
 ];
 
 // Store A has a complete Shopify grant. Store B is the “too few scopes at

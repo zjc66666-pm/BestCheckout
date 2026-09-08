@@ -57,9 +57,10 @@
   try {
     var query = new URLSearchParams(location.search);
     var qsStore = query.get('store');
-    activeStore = STORES.filter(function (store) { return store.name === qsStore; })[0] || null;
+    var connectedStores = STORES.filter(function (store) { return !store.connectStatus; });
+    activeStore = connectedStores.filter(function (store) { return store.name === qsStore; })[0] || null;
     if (activeStore) SITE.store = activeStore.name;
-    if (!activeStore) activeStore = STORES.filter(function (store) { return store.name === SITE.store; })[0] || STORES[0] || null;
+    if (!activeStore) activeStore = connectedStores.filter(function (store) { return store.name === SITE.store; })[0] || connectedStores[0] || null;
     if (activeStore) SITE.store = activeStore.name;
     var shopifyQuery = query.get('shopify');
     shopifyConnectionState = (shopifyQuery === 'unlinked' || shopifyQuery === 'pending' || shopifyQuery === 'install' || shopifyQuery === 'failed')
@@ -721,13 +722,23 @@
     if (onMount) onMount(panel);
     setTimeout(function () { document.addEventListener('mousedown', onDocClickHdr, true); }, 0);
   }
+  function connectStateLabel(status) {
+    if (status === 'pending') return 'Preparing install link';
+    if (status === 'install') return 'Ready to install';
+    if (status === 'expired') return 'Install link expired';
+    return '';
+  }
+  function storeShopHandle(st) {
+    return String((st && st.url) || '').replace(/\.myshopify\.com$/i, '').replace(/[^a-z0-9-]/g, '') || 'your-store';
+  }
   function storeSwitcherHtml() {
     var rows = STORES.map(function (st) {
-      var cur = st.name === SITE.store;
-      var state = st.stateLabel ? '<span class="hdr-store-state">' + st.stateLabel + '</span>' : '';
-      return '<button class="hdr-store-row' + (cur ? ' current' : '') + '" data-store="' + st.name + '">' +
+      var cur = !st.connectStatus && st.name === SITE.store;
+      var state = st.connectStatus ? '<span class="hdr-store-state is-' + st.connectStatus + '">' + connectStateLabel(st.connectStatus) + '</span>' : '';
+      return '<button class="hdr-store-row' + (cur ? ' current' : '') + (st.connectStatus ? ' is-pending-connect' : '') + '" data-store="' + st.name + '"' +
+        (st.connectStatus ? ' data-connect-status="' + st.connectStatus + '" data-shop="' + storeShopHandle(st) + '"' : '') + '>' +
         '<span class="hdr-store-ico"></span>' +
-        '<span class="hdr-store-meta"><span class="hdr-store-name">' + st.name + state + '</span><span class="hdr-store-url">' + st.url + '</span></span>' +
+        '<span class="hdr-store-meta"><span class="hdr-store-name">' + st.name + '</span><span class="hdr-store-url">' + st.url + '</span>' + state + '</span>' +
         (cur ? '<span class="hdr-store-check">' + MICO.check + '</span>' : '') +
       '</button>';
     }).join('');
@@ -796,8 +807,14 @@
       toggleHdrMenu(storeBtn.parentNode, storeSwitcherHtml(), function (panel) {
         panel.querySelectorAll('[data-store]').forEach(function (row) {
           row.onclick = function () {
-            var name = row.getAttribute('data-store');
+            var status = row.getAttribute('data-connect-status');
+            var shop = row.getAttribute('data-shop');
             closeHdrMenus();
+            if (status) {
+              window.location.assign(new URL('./?entry=connect-new-shopify-store#/connect-shopify?status=' + encodeURIComponent(status) + '&shop=' + encodeURIComponent(shop || 'your-store'), document.baseURI).href);
+              return;
+            }
+            var name = row.getAttribute('data-store');
             if (name === SITE.store) return;
             var dest = new URL(window.location.href);
             dest.searchParams.set('store', name);
@@ -814,7 +831,8 @@
         var signout = panel.querySelector('[data-signout]');
         if (signout) signout.onclick = function () {
           closeHdrMenus();
-          window.location.assign('./?rev=20260723accountmenu1#/sign-in');
+          try { localStorage.removeItem('bestcheckout-prototype-session'); } catch (error) { /* no-op */ }
+          window.location.assign(new URL('./#/landing', document.baseURI).href);
         };
       });
     };
