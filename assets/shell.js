@@ -180,14 +180,12 @@
   var MCP_URL = 'https://mcp.bestcheckout.com';
   var mcpToken = { value: 'bcmcp_live_7k9m2q4x8n3p', shops: 'all', lastUsed: '2 hours ago' };
   var MCP_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
-  var MCP_INFO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>';
   function shellEsc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
     });
   }
   function mcpShops() { return window.STORES || []; }
-  function mcpCanManage() { var role = (SITE && SITE.role) || ''; return role === 'Owner' || role === 'Admin'; }
   function mcpShopScope(shops) {
     return shops === 'all' ? 'All ' + mcpShops().length + ' shops' : shops.join(', ');
   }
@@ -230,26 +228,30 @@
   function renderAccountAiContent() {
     if (!accountModal) return;
     var contentEl = accountModal.querySelector('#acct-ai-content');
-    var canManage = mcpCanManage();
     var shops = mcpToken.shops;
     contentEl.innerHTML =
       '<div class="mcp-stack">' +
-        '<p class="mcp-lead">Copy the address and token, then add them in any AI tool that supports MCP, such as Claude, ChatGPT, Cursor, Codex, or Gemini. <a href="../help/#guide=connect-ai" target="_blank" rel="noopener">Setup guide</a></p>' +
-        (canManage ? '' :
-          '<div class="mcp-note"><span>' + MCP_INFO + '</span><div><strong>Only the Owner and Admin can copy or rotate the token</strong>' +
-          '<p>You can see the address, but you cannot use or change the token with your current role.</p></div></div>') +
         '<div class="mcp-grid">' +
           '<div class="mcp-card"><div class="mcp-field"><div class="mcp-field-head"><strong>Connection address</strong></div>' +
             '<div class="mcp-url"><code>' + shellEsc(MCP_URL) + '</code><button class="btn btn-gray" data-copy-mcp>Copy</button></div></div></div>' +
           '<div class="mcp-card"><div class="mcp-field"><div class="mcp-field-head"><strong>Access token</strong></div>' +
-            '<div class="mcp-url"><code>' + (canManage ? shellEsc(mcpToken.value) : '••••••••••••••••') + '</code>' +
-              (canManage ? '<button class="btn btn-gray" data-copy-token>Copy</button><button class="btn btn-gray" data-mcp-rotate>Rotate token</button>' : '') + '</div>' +
+            '<div class="mcp-url"><code>' + shellEsc(mcpToken.value) + '</code>' +
+              '<button class="btn btn-gray" data-copy-token>Copy</button><button class="btn btn-gray" data-mcp-rotate>Rotate token</button></div>' +
             '<div class="mcp-meta"><span>' + shellEsc(mcpShopScope(shops)) + '</span> · <span>Last used ' + shellEsc(mcpToken.lastUsed) + '</span>' +
-              (canManage ? ' · <button class="btn btn-gray" style="height:26px;padding:0 8px;margin-left:4px" data-mcp-shops>Shop access</button>' : '') +
+              ' · <button class="btn btn-gray" style="height:26px;padding:0 8px;margin-left:4px" data-mcp-shops>Shop access</button>' +
             '</div></div></div>' +
           '<div class="mcp-card">' +
+            '<div class="mcp-card-head"><strong>Claude Code, Codex, Cursor, Gemini CLI, and others</strong></div>' +
+            '<p class="mcp-how">Copy the address and the token above, add an MCP server in the tool, paste the address as the server URL, and paste the token as the Authorization Bearer header.</p></div>' +
+          '<div class="mcp-card">' +
+            '<div class="mcp-card-head"><strong>Claude.ai on the web</strong></div>' +
+            '<p class="mcp-how">Open Customize → Connectors → Add custom connector, paste the address, click Add, leave token or header fields empty, then click Connect and sign in to BestCheckout to approve.</p></div>' +
+          '<div class="mcp-card">' +
+            '<div class="mcp-card-head"><strong>ChatGPT on the web</strong></div>' +
+            '<p class="mcp-how">Open Settings → Security and login and turn on Developer mode, open Plugins, click +, paste the address, choose OAuth, then sign in to BestCheckout to approve.</p></div>' +
+          '<div class="mcp-card">' +
             '<div class="mcp-card-head"><strong>What the assistant can do</strong>' +
-              '<small>Same access as this admin, limited to the shops on this token.</small></div>' +
+              '<small>The assistant can do what this account can do in each selected shop.</small></div>' +
             '<ul class="mcp-can">' +
               '<li><i>' + MCP_CHECK + '</i><span>Create and edit purchase flows, plus Checkout, Upsell, Downsell, and Thank you pages.</span></li>' +
               '<li><i>' + MCP_CHECK + '</i><span>Manage bundles, subscriptions, orders, and abandoned checkouts.</span></li>' +
@@ -340,7 +342,7 @@
         '<div class="acct-modal" role="dialog" aria-modal="true" aria-labelledby="acct-ai-title">' +
           '<header class="acct-modal-head"><span class="acct-modal-title" id="acct-ai-title">AI & MCP</span>' +
             '<button type="button" class="acct-modal-x" data-acct-close title="Close" aria-label="Close">' + ICONS.x + '</button></header>' +
-          '<div class="acct-modal-body scroll-thin" id="acct-ai-content"></div>' +
+          '<div class="acct-modal-body" id="acct-ai-content"></div>' +
         '</div>';
       document.body.appendChild(accountModal);
       accountModal.addEventListener('click', function (e) { if (e.target === accountModal) closeAccountAiRoute(); });
