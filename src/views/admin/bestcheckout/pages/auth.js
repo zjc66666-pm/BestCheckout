@@ -1,5 +1,6 @@
 import { icon } from '../components/common.js';
 import { escapeHtml } from '../utils.js';
+import { renderLanguageSwitcher } from '../i18n.js?rev=20260820-nmi-card-only1';
 import { PROTOTYPE_ACCOUNTS } from '../session.js?rev=20260907-expired-link1';
 
 function brand(href) {
@@ -266,4 +267,91 @@ export function renderInstallEmailPage(shop) {
   const handle = shopHandle(shop) || 'your-store';
   const domain = escapeHtml(shopDomain(handle));
   return '<div class="verification-email-page"><main class="verification-email-wrap"><p class="verification-email-context">Prototype-only · install email sent after BestCheckout prepares the Custom App.</p><section class="verification-email-inbox" aria-label="Email metadata"><p><span>From</span><b>BestCheckout</b> <small>&lt;no-reply@bestcheckout.com&gt;</small></p><p><span>Subject</span><b>Install BestCheckout on ' + domain + '</b></p></section><section class="verification-email-stage"><article class="verification-email-card"><div class="verification-email-bar"></div><header><a class="verification-email-brand" href="#/landing" aria-label="BestCheckout home"><img src="assets/brand-mark.svg?v=20260723transparentmark1" alt="" aria-hidden="true"/><strong>BestCheckout</strong></a></header><main><h1>Install BestCheckout on your Shopify store</h1><p class="verification-email-lead">Your install link for <b>' + domain + '</b> is ready. Open it with the <b>store owner</b> account for this shop.</p><div class="connect-form-actions verification-email-install-actions">' + installStoreButton(handle) + '</div><p class="verification-email-note">Do not open this while signed into a different Shopify store.</p></main><footer><p>This is an automated message from BestCheckout — please don’t reply.</p><small>© 2026 BestCheckout</small></footer></article></section><a class="verification-email-back" href="#/connect-shopify?status=install&amp;shop=' + encodeURIComponent(handle) + '">← Back to connection</a></main></div>';
+}
+
+var OAUTH_CONSENT_SCOPES = [
+  { id: 'shops.read', title: 'View your stores', titleZh: '查看你的店铺', desc: 'See which BestCheckout stores this account can access.', descZh: '查看这个账号能进入的 BestCheckout 店铺。' },
+  { id: 'overview.read', title: 'View overview metrics', titleZh: '查看概览指标', desc: 'See GMV, orders, average order value, and conversion for your stores.', descZh: '查看各店的 GMV、订单、客单价和转化。' },
+  { id: 'flows', title: 'View and edit purchase flows', titleZh: '查看和编辑购买流程', desc: 'See purchase flows, then create, edit, or publish them.', descZh: '查看购买流程，并可以创建、编辑或发布。' },
+  { id: 'pages', title: 'View and edit checkout pages', titleZh: '查看和编辑结账页', desc: 'See checkout pages, then create or edit them.', descZh: '查看结账页，并可以创建或编辑。' },
+  { id: 'orders.read', title: 'View orders', titleZh: '查看订单', desc: 'See order list and order details.', descZh: '查看订单列表和订单详情。' }
+];
+
+var OAUTH_CONSENT_STORES = [
+  { name: 'Lavender Labs', domain: 'lavender-labs.myshopify.com' },
+  { name: 'Aura Living', domain: 'aura-living.myshopify.com' },
+  { name: 'Northline Goods', domain: 'northline-goods.myshopify.com' },
+  { name: 'Kiln Coffee', domain: 'kiln-coffee.myshopify.com' }
+];
+
+export function oauthConsentScopes() {
+  return OAUTH_CONSENT_SCOPES;
+}
+
+export function renderOauthConsent(route, options) {
+  const opts = options || {};
+  const zh = opts.locale === 'zh';
+  const t = function (en, cn) { return zh ? cn : en; };
+  const client = String((route && route.query && route.query.get('client')) || opts.client || 'Claude');
+  const email = opts.email || 'hello@lavenderlabs.co';
+  const result = opts.result || '';
+  const switcher = renderLanguageSwitcher(opts.locale || 'en', Boolean(opts.languageOpen));
+
+  if (result === 'allowed' || result === 'denied') {
+    const ok = result === 'allowed';
+    return '<div class="oauth-consent-page">' +
+      '<div class="oauth-consent-lang" data-i18n-skip>' + switcher + '</div>' +
+      '<article class="oauth-consent-card oauth-consent-card--result">' +
+        '<header class="oauth-consent-head">' + brand() + '</header>' +
+        '<div class="oauth-result-mark' + (ok ? ' is-ok' : ' is-no') + '">' + icon(ok ? 'check' : 'close', 22) + '</div>' +
+        '<h1>' + escapeHtml(ok
+          ? t('This assistant can now use this BestCheckout account', '助手现在可以使用这个 BestCheckout 账号')
+          : t('You denied access', '你已拒绝访问')) + '</h1>' +
+        '<p class="oauth-consent-lead">' + escapeHtml(ok
+          ? t('Return to the assistant to continue. You can revoke this later in BestCheckout.', '回到助手继续。之后可在 BestCheckout 里收回访问。')
+          : t('Nothing was connected. You can start the connection again from the assistant.', '没有建立连接。你可以在助手里重新发起。')) + '</p>' +
+        '<div class="oauth-consent-foot"><button type="button" class="button button-primary" data-action="oauth-consent-done">' + escapeHtml(t('Done', '完成')) + '</button></div>' +
+      '</article></div>';
+  }
+
+  const rows = OAUTH_CONSENT_SCOPES.map(function (scope) {
+    return '<li class="oauth-perm">' +
+      '<span class="oauth-perm-mark" aria-hidden="true">' + icon('check', 14) + '</span>' +
+      '<span><strong>' + escapeHtml(t(scope.title, scope.titleZh)) + '</strong>' +
+      '<small>' + escapeHtml(t(scope.desc, scope.descZh)) + '</small></span></li>';
+  }).join('');
+
+  const shops = OAUTH_CONSENT_STORES.map(function (store) {
+    return '<li class="oauth-perm">' +
+      '<span class="oauth-perm-mark oauth-perm-mark--store" aria-hidden="true">' + icon('store', 14) + '</span>' +
+      '<span><strong>' + escapeHtml(store.name) + '</strong>' +
+      '<small>' + escapeHtml(store.domain) + '</small></span></li>';
+  }).join('');
+
+  return '<div class="oauth-consent-page">' +
+    '<div class="oauth-consent-lang" data-i18n-skip>' + switcher + '</div>' +
+    '<article class="oauth-consent-card">' +
+      '<header class="oauth-consent-head">' + brand() + '</header>' +
+      '<h1>' + escapeHtml(t(client + ' wants to access your BestCheckout data', client + ' 想访问你的 BestCheckout 数据')) + '</h1>' +
+      '<p class="oauth-consent-lead">' + t(
+        'Signed in as <b>' + escapeHtml(email) + '</b>',
+        '当前登录 <b>' + escapeHtml(email) + '</b>'
+      ) + '</p>' +
+      '<section class="oauth-panel">' +
+        '<h2>' + escapeHtml(t('What this account can allow', '这个账号能授予的权限')) + '</h2>' +
+        '<p class="oauth-panel-note">' + escapeHtml(t(
+          'The assistant only receives this account’s existing permissions. It cannot do more than you can.',
+          '助手只会拥有这个账号已有的权限，不能越权。'
+        )) + '</p>' +
+        '<ul class="oauth-perm-list">' + rows + '</ul>' +
+      '</section>' +
+      '<section class="oauth-panel">' +
+        '<h2>' + escapeHtml(t('Stores this account can reach', '这个账号能进入的店铺')) + '</h2>' +
+        '<ul class="oauth-perm-list">' + shops + '</ul>' +
+      '</section>' +
+      '<div class="oauth-consent-foot">' +
+        '<button type="button" class="button button-secondary" data-action="oauth-consent-deny">' + escapeHtml(t('Deny', '拒绝')) + '</button>' +
+        '<button type="button" class="button button-primary" data-action="oauth-consent-allow">' + escapeHtml(t('Allow', '允许')) + '</button>' +
+      '</div>' +
+    '</article></div>';
 }

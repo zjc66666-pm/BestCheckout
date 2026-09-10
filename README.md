@@ -61,12 +61,13 @@ BestCheckout 与 BestShopio 应共享兼容的 Funnel、页面、Offer 和支付
 ## 本地预览
 
 ```powershell
-python -m http.server 4195 --bind 127.0.0.1
+python -m http.server 4200 --bind 127.0.0.1
 ```
 
-- 官网：`http://127.0.0.1:4195/#/landing`
-- 后台：`http://127.0.0.1:4195/app/#/home`
-- Help：`http://127.0.0.1:4195/help/#guide=connect-shopify`
+- 官网：`http://127.0.0.1:4200/#/landing`
+- 后台：`http://127.0.0.1:4200/app/#/home`
+- Help：`http://127.0.0.1:4200/help/#guide=connect-shopify`
+- MCP 授权：`http://127.0.0.1:4200/oauth/consent.html?client=Claude`
 
 ## GitHub
 

@@ -1015,6 +1015,7 @@ window.I18N.extend({
   "AI & MCP": "AI & MCP",
   "Claude Code, Codex, Cursor, Gemini CLI, and others": "Claude Code、Codex、Cursor、Gemini CLI 等",
   "Copy the address and the token above, add an MCP server in the tool, paste the address as the server URL, and paste the token as the Authorization Bearer header.": "复制上面的地址和令牌，在工具里添加 MCP 服务器，把地址填成服务器 URL，把令牌填到 Authorization Bearer。",
+  "Preview authorization": "预览授权页",
   "Claude.ai on the web": "Claude.ai 网页版",
   "Open Customize → Connectors → Add custom connector, paste the address, click Add, leave token or header fields empty, then click Connect and sign in to BestCheckout to approve.": "打开 Customize → Connectors → Add custom connector，粘贴地址并点 Add，令牌或请求头留空，再点 Connect，登录 BestCheckout 并授权。",
   "ChatGPT on the web": "ChatGPT 网页版",

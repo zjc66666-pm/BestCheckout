@@ -21,15 +21,27 @@ export function statusTone(status) {
   return 'neutral';
 }
 
+export function isOauthConsentEntry() {
+  const search = new URLSearchParams(window.location.search);
+  const pathName = String(window.location.pathname || '').replace(/\\/g, '/');
+  return /\/oauth\/consent(\.html)?$/i.test(pathName) || search.get('view') === 'oauth-consent';
+}
+
 export function parseRoute() {
-  const raw = window.location.hash.replace(/^#\/?/, '') || 'landing';
+  const search = new URLSearchParams(window.location.search);
+  const raw = window.location.hash.replace(/^#\/?/, '');
   const parts = raw.split('?');
-  const path = parts[0].replace(/^\/+|\/+$/g, '');
+  const hashPath = parts[0].replace(/^\/+|\/+$/g, '');
+  const query = new URLSearchParams(parts[1] || '');
+  const path = isOauthConsentEntry() ? 'oauth-consent' : (hashPath || 'landing');
+  if (path === 'oauth-consent' && !query.get('client') && search.get('client')) {
+    query.set('client', search.get('client'));
+  }
   return {
-    raw: raw,
-    path: path || 'landing',
-    segments: (path || 'landing').split('/').filter(Boolean),
-    query: new URLSearchParams(parts[1] || ''),
+    raw: raw || path,
+    path: path,
+    segments: path.split('/').filter(Boolean),
+    query: query,
   };
 }
 

@@ -36,7 +36,7 @@ import { renderActivity } from './pages/activity.js?rev=20260720-standalone-port
 import { renderSettings } from './pages/settings.js?rev=20260720-standalone-portal-v150';
 import { renderEditor, mountEditor } from './pages/editor.js?rev=20260719-preview-session-v92';
 import { renderAbandonedCheckouts, renderOrders } from './pages/orders.js?rev=20260825-abandoned1';
-import { renderConnectShopify, renderForgotPasswordCode, renderInstallEmailPage, renderPasswordResetEmailPage, renderSignIn, renderSignUp, renderSignupVerificationEmailPage } from './pages/auth.js?rev=20260907-logo-back1';
+import { renderConnectShopify, renderForgotPasswordCode, renderInstallEmailPage, renderOauthConsent, renderPasswordResetEmailPage, renderSignIn, renderSignUp, renderSignupVerificationEmailPage } from './pages/auth.js?rev=20260910-oauth13';
 import { renderHelpCenter } from './pages/help.js?rev=20260907-install-link1';
 import { renderLookbookSite, renderMarketingSite } from './pages/website.js?rev=20260827-highlights3';
 import {
@@ -46,7 +46,7 @@ import {
   persistPrototypeSession,
   clearPrototypeSession,
 } from './session.js?rev=20260907-expired-link1';
-import { escapeHtml, formatDateTime, getRouteName, parseRoute, setRoute } from './utils.js?rev=20260720-standalone-portal-v145';
+import { escapeHtml, formatDateTime, getRouteName, isOauthConsentEntry, parseRoute, setRoute } from './utils.js?rev=20260910-oauth3';
 import { applyLocale, renderLanguageSwitcher, translate } from './i18n.js?rev=20260820-nmi-card-only1';
 
 const appRoot = document.getElementById('app');
@@ -671,7 +671,7 @@ function renderShopifyChrome(pageMarkup, route) {
 }
 
 function isPublicRoute(route) {
-  return ['landing', 'lookbook', 'sign-in', 'sign-up', 'email-preview', 'password-reset-email-preview', 'install-email-preview', 'forgot-password', 'connect-shopify', 'help'].includes(route.segments[0]);
+  return ['landing', 'lookbook', 'sign-in', 'sign-up', 'email-preview', 'password-reset-email-preview', 'install-email-preview', 'forgot-password', 'connect-shopify', 'help', 'oauth-consent'].includes(route.segments[0]);
 }
 
 function renderPublicRoute(route) {
@@ -682,6 +682,14 @@ function renderPublicRoute(route) {
   if (route.segments[0] === 'install-email-preview') return renderInstallEmailPage(route.query.get('shop'));
   if (route.segments[0] === 'forgot-password') return renderForgotPasswordCode(route.segments[1]);
   if (route.segments[0] === 'connect-shopify') return renderConnectShopify(route, { logoHref: connectLogoHref(route), installLinkExpired: state.ui.installLinkExpired });
+  if (route.segments[0] === 'oauth-consent') {
+    return renderOauthConsent(route, {
+      locale: state.ui.locale,
+      languageOpen: state.ui.languageOpen,
+      email: state.ui.sessionEmail || 'hello@lavenderlabs.co',
+      result: state.ui.oauthConsentResult
+    });
+  }
   if (route.segments[0] === 'help') return renderHelpCenter(route, marketingSession());
   if (route.segments[0] === 'lookbook') return renderLookbookSite(marketingSession(), route.query);
   return renderMarketingSite(marketingSession());
@@ -1620,6 +1628,25 @@ function handleAction(action, element) {
     state.ui.languageOpen = !state.ui.languageOpen;
     renderShell();
     focusVisibleLanguageElement(state.ui.languageOpen ? '.language-option[aria-checked="true"]' : '.language-trigger');
+    return;
+  }
+  if (action === 'oauth-consent-allow') {
+    state.ui.oauthConsentResult = 'allowed';
+    renderShell();
+    return;
+  }
+  if (action === 'oauth-consent-deny') {
+    state.ui.oauthConsentResult = 'denied';
+    renderShell();
+    return;
+  }
+  if (action === 'oauth-consent-done') {
+    state.ui.oauthConsentResult = '';
+    if (isOauthConsentEntry()) {
+      window.location.assign(new URL('./?rev=20260824webpnav1#/landing', document.baseURI).href);
+      return;
+    }
+    setRoute('landing');
     return;
   }
   if (action === 'dismiss-toast') {

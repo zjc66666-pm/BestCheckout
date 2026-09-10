@@ -244,10 +244,12 @@
             '<div class="mcp-card-head"><strong>Claude Code, Codex, Cursor, Gemini CLI, and others</strong></div>' +
             '<p class="mcp-how">Copy the address and the token above, add an MCP server in the tool, paste the address as the server URL, and paste the token as the Authorization Bearer header.</p></div>' +
           '<div class="mcp-card">' +
-            '<div class="mcp-card-head"><strong>Claude.ai on the web</strong></div>' +
+            '<div class="mcp-card-head mcp-card-head--split"><strong>Claude.ai on the web</strong>' +
+              '<a class="mcp-preview" href="oauth/consent.html?client=Claude" target="_blank" rel="noopener">Preview authorization</a></div>' +
             '<p class="mcp-how">Open Customize → Connectors → Add custom connector, paste the address, click Add, leave token or header fields empty, then click Connect and sign in to BestCheckout to approve.</p></div>' +
           '<div class="mcp-card">' +
-            '<div class="mcp-card-head"><strong>ChatGPT on the web</strong></div>' +
+            '<div class="mcp-card-head mcp-card-head--split"><strong>ChatGPT on the web</strong>' +
+              '<a class="mcp-preview" href="oauth/consent.html?client=ChatGPT" target="_blank" rel="noopener">Preview authorization</a></div>' +
             '<p class="mcp-how">Open Settings → Security and login and turn on Developer mode, open Plugins, click +, paste the address, choose OAuth, then sign in to BestCheckout to approve.</p></div>' +
           '<div class="mcp-card">' +
             '<div class="mcp-card-head"><strong>What the assistant can do</strong>' +

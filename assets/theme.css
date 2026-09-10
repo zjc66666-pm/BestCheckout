@@ -771,6 +771,9 @@ select::-ms-expand { display: none; }
 .mcp-card-head { margin-bottom: 4px; }
 .mcp-card-head strong { display: block; font-size: 13px; font-weight: 650; color: var(--ink); line-height: 1.35; }
 .mcp-card-head small { display: block; margin-top: 2px; font-size: 12px; line-height: 1.45; color: var(--ink-muted); }
+.mcp-card-head--split { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.mcp-preview { flex: none; font-size: 12.5px; font-weight: 600; color: var(--brand); text-decoration: none; }
+.mcp-preview:hover { text-decoration: underline; }
 .mcp-can { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .mcp-can li { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; line-height: 1.45; color: var(--ink-body); }
 .mcp-can i { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: #edf8f2; color: #16875b; flex: none; }
