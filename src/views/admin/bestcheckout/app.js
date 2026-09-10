@@ -2483,10 +2483,11 @@ function requestNewInstallLink(shop) {
   }
   state.ui.isAuthenticated = true;
   state.ui.hasConnectedStore = false;
-  state.ui.connectStatus = 'pending';
+  state.ui.connectStatus = 'install';
   state.ui.connectShop = handle;
+  state.ui.installLinkExpired = false;
   persistPrototypeSession(state);
-  setRoute('connect-shopify?status=pending&shop=' + encodeURIComponent(handle) + '&renew=1' + (state.ui.connectFrom === 'admin' ? '&from=admin' : ''));
+  setRoute('connect-shopify?status=install&shop=' + encodeURIComponent(handle) + (state.ui.connectFrom === 'admin' ? '&from=admin' : ''));
 }
 
 function startShopifyConnection(form) {
