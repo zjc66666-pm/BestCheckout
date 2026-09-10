@@ -32,6 +32,7 @@
     search: s('<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>'),
     bell: s('<path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>'),
     help: s('<circle cx="12" cy="12" r="9"/><path d="M9.5 9.2a2.65 2.65 0 1 1 4.36 2.03c-.98.8-1.86 1.34-1.86 2.77"/><path d="M12 17.35h.01"/>'),
+    spark: s('<path d="M12 3v3M12 18v3M3 12h3M18 12h3M6.2 6.2l2.1 2.1M15.7 15.7l2.1 2.1M17.8 6.2l-2.1 2.1M8.3 15.7l-2.1 2.1"/><circle cx="12" cy="12" r="3"/>'),
     chevDown: s('<path d="m6 9 6 6 6-6"/>'),
     caret: s('<path d="m9 18 6-6-6-6"/>'),
     menu: s('<path d="M3 6h18M3 12h18M3 18h18"/>'),
@@ -172,6 +173,184 @@
     });
   }
   function removeSettings() { if (settingsModal) { settingsModal.remove(); settingsModal = null; window.SettingsChrome = null; } }
+
+  var accountModal = null;
+  var lastShopHash = '#/home';
+  var restoreShopView = false;
+  var MCP_URL = 'https://mcp.bestcheckout.com';
+  var mcpToken = { value: 'bcmcp_live_7k9m2q4x8n3p', shops: 'all', lastUsed: '2 hours ago' };
+  var MCP_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  var MCP_INFO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>';
+  function shellEsc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+    });
+  }
+  function mcpShops() { return window.STORES || []; }
+  function mcpCanManage() { var role = (SITE && SITE.role) || ''; return role === 'Owner' || role === 'Admin'; }
+  function mcpShopScope(shops) {
+    return shops === 'all' ? 'All ' + mcpShops().length + ' shops' : shops.join(', ');
+  }
+  function mcpNewToken() {
+    return 'bcmcp_live_' + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 8);
+  }
+  function setHdrAiOn(on) {
+    var el = document.querySelector('.hdr-ai');
+    if (el) el.classList.toggle('is-on', !!on);
+  }
+  function closeAccountAi() {
+    if (!accountModal) return;
+    document.removeEventListener('keydown', onAccountAiEsc, true);
+    accountModal.remove();
+    accountModal = null;
+    setHdrAiOn(false);
+  }
+  function onAccountAiEsc(e) {
+    if (e.key === 'Escape' && accountModal) closeAccountAiRoute();
+  }
+  function closeAccountAiRoute() {
+    closeAccountAi();
+    if (parse().first === 'account') {
+      var dest = lastShopHash || '#/home';
+      if ((location.hash || '') !== dest) {
+        restoreShopView = true;
+        location.hash = dest;
+      }
+    }
+  }
+  function ensureShopUnderlay() {
+    if (current) return Promise.resolve();
+    renderSidebar('home');
+    return loadHomeDependencies().then(function () {
+      if (current) return;
+      renderHome();
+      current = 'home';
+    });
+  }
+  function renderAccountAiContent() {
+    if (!accountModal) return;
+    var contentEl = accountModal.querySelector('#acct-ai-content');
+    var canManage = mcpCanManage();
+    var shops = mcpToken.shops;
+    contentEl.innerHTML =
+      '<div class="mcp-stack">' +
+        '<p class="mcp-lead">Copy the address and token, then add them in any AI tool that supports MCP, such as Claude, ChatGPT, Cursor, Codex, or Gemini. <a href="../help/#guide=connect-ai" target="_blank" rel="noopener">Setup guide</a></p>' +
+        (canManage ? '' :
+          '<div class="mcp-note"><span>' + MCP_INFO + '</span><div><strong>Only the Owner and Admin can copy or rotate the token</strong>' +
+          '<p>You can see the address, but you cannot use or change the token with your current role.</p></div></div>') +
+        '<div class="mcp-grid">' +
+          '<div class="mcp-card"><div class="mcp-field"><div class="mcp-field-head"><strong>Connection address</strong></div>' +
+            '<div class="mcp-url"><code>' + shellEsc(MCP_URL) + '</code><button class="btn btn-gray" data-copy-mcp>Copy</button></div></div></div>' +
+          '<div class="mcp-card"><div class="mcp-field"><div class="mcp-field-head"><strong>Access token</strong></div>' +
+            '<div class="mcp-url"><code>' + (canManage ? shellEsc(mcpToken.value) : '••••••••••••••••') + '</code>' +
+              (canManage ? '<button class="btn btn-gray" data-copy-token>Copy</button><button class="btn btn-gray" data-mcp-rotate>Rotate token</button>' : '') + '</div>' +
+            '<div class="mcp-meta"><span>' + shellEsc(mcpShopScope(shops)) + '</span> · <span>Last used ' + shellEsc(mcpToken.lastUsed) + '</span>' +
+              (canManage ? ' · <button class="btn btn-gray" style="height:26px;padding:0 8px;margin-left:4px" data-mcp-shops>Shop access</button>' : '') +
+            '</div></div></div>' +
+          '<div class="mcp-card">' +
+            '<div class="mcp-card-head"><strong>What the assistant can do</strong>' +
+              '<small>Same access as this admin, limited to the shops on this token.</small></div>' +
+            '<ul class="mcp-can">' +
+              '<li><i>' + MCP_CHECK + '</i><span>Create and edit purchase flows, plus Checkout, Upsell, Downsell, and Thank you pages.</span></li>' +
+              '<li><i>' + MCP_CHECK + '</i><span>Manage bundles, subscriptions, orders, and abandoned checkouts.</span></li>' +
+              '<li><i>' + MCP_CHECK + '</i><span>Update Settings: Shopify connection, checkout domain, payments, ad data, email, roles, and staff.</span></li>' +
+              '<li><i>' + MCP_CHECK + '</i><span>Read overview metrics and shop health for those shops.</span></li>' +
+              '<li><i>' + MCP_CHECK + '</i><span>Answer setup questions from official BestCheckout help.</span></li>' +
+            '</ul></div>' +
+        '</div></div>';
+    var copyUrl = contentEl.querySelector('[data-copy-mcp]');
+    if (copyUrl) copyUrl.onclick = function () {
+      try { navigator.clipboard.writeText(MCP_URL); } catch (e) {}
+      shellToast('Address copied');
+    };
+    var copyToken = contentEl.querySelector('[data-copy-token]');
+    if (copyToken) copyToken.onclick = function () {
+      try { navigator.clipboard.writeText(mcpToken.value); } catch (e) {}
+      shellToast('Token copied');
+    };
+    var shopBtn = contentEl.querySelector('[data-mcp-shops]');
+    if (shopBtn) shopBtn.onclick = openMcpShopAccessModal;
+    var rotate = contentEl.querySelector('[data-mcp-rotate]');
+    if (rotate) rotate.onclick = rotateMcpToken;
+    if (window.I18N) window.I18N.apply(accountModal);
+  }
+  function openMcpShopAccessModal() {
+    var all = mcpToken.shops === 'all';
+    var shops = mcpShops();
+    var backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop';
+    var rows = shops.map(function (s, i) {
+      return '<label class="mcp-shop-pick"><input type="checkbox" data-mcp-shop="' + i + '"' +
+        (all || mcpToken.shops.indexOf(s.name) >= 0 ? ' checked' : '') + '/>' +
+        '<span class="mcp-shop-name">' + shellEsc(s.name) + '</span>' +
+        '<span class="mcp-shop-url">' + shellEsc(s.url) + '</span></label>';
+    }).join('');
+    backdrop.innerHTML = '<div class="modal" style="width:440px;max-width:calc(100vw - 24px)">' +
+      '<div class="modal-head flex items-center justify-between"><span>Shop access</span>' +
+        '<button type="button" class="acct-modal-x" data-x>' + ICONS.x + '</button></div>' +
+      '<div class="modal-body" style="max-height:none;overflow:visible;padding-top:12px;padding-bottom:12px">' +
+        '<p class="mcp-shop-hint">This token can only access the shops you select.</p>' +
+        '<div class="mcp-shop-list">' + rows + '</div></div>' +
+      '<div class="modal-foot"><button class="btn btn-default" data-cancel>Cancel</button>' +
+        '<button class="btn btn-primary" data-ok>Save</button></div></div>';
+    document.body.appendChild(backdrop);
+    if (window.I18N) window.I18N.apply(backdrop);
+    var close = function () { backdrop.remove(); };
+    backdrop.querySelector('[data-x]').onclick = close;
+    backdrop.querySelector('[data-cancel]').onclick = close;
+    backdrop.onclick = function (e) { if (e.target === backdrop) close(); };
+    backdrop.querySelector('[data-ok]').onclick = function () {
+      var picked = shops.filter(function (s, i) {
+        return backdrop.querySelector('[data-mcp-shop="' + i + '"]').checked;
+      }).map(function (s) { return s.name; });
+      if (!picked.length) { shellToast('Select at least one shop'); return; }
+      mcpToken.shops = picked.length === shops.length ? 'all' : picked;
+      close();
+      shellToast('Shop access updated');
+      renderAccountAiContent();
+    };
+  }
+  function rotateMcpToken() {
+    if (window.UI && window.UI.confirm) {
+      window.UI.confirm({
+        title: 'Rotate this token?',
+        okText: 'Rotate',
+        danger: true,
+        content: 'The current token stops working immediately. Update it in every AI tool that still uses it.',
+        onOk: function () {
+          mcpToken.value = mcpNewToken();
+          mcpToken.lastUsed = 'Never used';
+          shellToast('Token rotated');
+          renderAccountAiContent();
+        }
+      });
+      return;
+    }
+    mcpToken.value = mcpNewToken();
+    mcpToken.lastUsed = 'Never used';
+    shellToast('Token rotated');
+    renderAccountAiContent();
+  }
+  function openAccountAi() {
+    closeHdrMenus();
+    if (!accountModal) {
+      accountModal = document.createElement('div');
+      accountModal.className = 'acct-modal-bd';
+      accountModal.innerHTML =
+        '<div class="acct-modal" role="dialog" aria-modal="true" aria-labelledby="acct-ai-title">' +
+          '<header class="acct-modal-head"><span class="acct-modal-title" id="acct-ai-title">AI & MCP</span>' +
+            '<button type="button" class="acct-modal-x" data-acct-close title="Close" aria-label="Close">' + ICONS.x + '</button></header>' +
+          '<div class="acct-modal-body scroll-thin" id="acct-ai-content"></div>' +
+        '</div>';
+      document.body.appendChild(accountModal);
+      accountModal.addEventListener('click', function (e) { if (e.target === accountModal) closeAccountAiRoute(); });
+      accountModal.querySelector('[data-acct-close]').onclick = closeAccountAiRoute;
+      document.addEventListener('keydown', onAccountAiEsc, true);
+    }
+    renderAccountAiContent();
+    setHdrAiOn(true);
+    if (!current) ensureShopUnderlay();
+  }
 
   // ---------- lazy module loader ----------
   function loadScript(src) {
@@ -636,6 +815,23 @@
       return;
     }
     if (p.first === 'settings' && p.rest.split('/')[0] === 'subscriptions') { location.hash = '#/subscriptions'; return; }
+    if (p.first === 'settings' && (p.rest.split('/')[0] === 'ai-mcp' || p.rest.split('/')[0] === 'ai')) {
+      location.hash = '#/account/ai';
+      return;
+    }
+    if (p.first === 'account' && p.rest !== 'ai') { location.hash = '#/account/ai'; return; }
+    if (p.first === 'account') {
+      closeHdrMenus();
+      openAccountAi();
+      return;
+    }
+    closeAccountAi();
+    if (restoreShopView) {
+      restoreShopView = false;
+      lastShopHash = '#/' + (p.first === 'home' ? 'home' : (p.first + (p.rest ? '/' + p.rest : '')));
+      return;
+    }
+    lastShopHash = '#/' + (p.first === 'home' ? 'home' : (p.first + (p.rest ? '/' + p.rest : '')));
     // Checkout appearance is edited in Checkout pages. Keep old bookmarks useful
     // without retaining a second, competing settings surface.
     if (p.first === 'checkout' || (p.first === 'settings' && p.rest.split('/')[0] === 'checkout')) { location.hash = '#/pages'; return; }
@@ -703,6 +899,7 @@
     check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
     user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
     lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+    spark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M6.2 6.2l2.1 2.1M15.7 15.7l2.1 2.1M17.8 6.2l-2.1 2.1M8.3 15.7l-2.1 2.1"/><circle cx="12" cy="12" r="3"/></svg>',
     out: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>',
   };
   function closeHdrMenus() {
@@ -748,6 +945,8 @@
   }
   function userMenuHtml() {
     return '<div class="hdr-menu-head">' + MICO.user + '<span>' + (SITE.email || 'owner@bestshopio.com') + '</span></div>' +
+      '<div class="hdr-menu-divider"></div>' +
+      '<a class="hdr-menu-item" href="#/account/ai" data-account-ai>' + MICO.spark + 'AI & MCP</a>' +
       '<div class="hdr-menu-divider"></div>' +
       '<button class="hdr-menu-item" data-changepw>' + MICO.lock + 'Change password</button>' +
       '<button class="hdr-menu-item" data-signout>' + MICO.out + 'Sign out</button>';
@@ -803,6 +1002,12 @@
   function wireHeader(app) {
     var storeBtn = app.querySelector('#hdr-store');
     var userBtn = app.querySelector('#hdr-user');
+    var aiBtn = app.querySelector('.hdr-ai');
+    if (aiBtn) aiBtn.onclick = function (e) {
+      e.preventDefault();
+      if (accountModal) closeAccountAiRoute();
+      else openAccountAi();
+    };
     if (storeBtn) storeBtn.onclick = function (e) {
       e.stopPropagation();
       toggleHdrMenu(storeBtn.parentNode, storeSwitcherHtml(), function (panel) {
@@ -827,6 +1032,8 @@
     if (userBtn) userBtn.onclick = function (e) {
       e.stopPropagation();
       toggleHdrMenu(userBtn.parentNode, userMenuHtml(), function (panel) {
+        var ai = panel.querySelector('[data-account-ai]');
+        if (ai) ai.onclick = function (e) { e.preventDefault(); closeHdrMenus(); openAccountAi(); };
         var cp = panel.querySelector('[data-changepw]');
         if (cp) cp.onclick = function () { closeHdrMenus(); openChangePassword(); };
         var signout = panel.querySelector('[data-signout]');
@@ -856,6 +1063,7 @@
         '<a class="hdr-logo" href="#/home" title="BestCheckout"><img class="brand-mark" src="assets/brand-mark.svg?v=20260723brandmark1" alt="" aria-hidden="true"><span class="hdr-logo-name">BestCheckout</span></a>' +
         '<div class="hdr-right">' +
           '<a class="hdr-help" href="' + helpCenterUrl() + '" target="_blank" rel="noopener" aria-label="Help Center" title="Help Center" data-tooltip="Help Center">' + ICONS.help + '</a>' +
+          '<a class="hdr-ai" href="#/account/ai" aria-label="AI & MCP">' + ICONS.spark + '<span>AI & MCP</span></a>' +
           '<div class="hdr-menu-wrap"><button class="hdr-store" id="hdr-store">' + (SITE.store || 'Store') + ICONS.chevDown + '</button></div>' +
           '<div class="hdr-menu-wrap"><button class="hdr-user" id="hdr-user" aria-label="Account">' + ICONS.user + '</button></div>' +
         '</div>' +

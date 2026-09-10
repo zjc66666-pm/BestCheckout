@@ -47,7 +47,6 @@ window.NAV_MENU = [
       { id: 'settings-payments', label: 'Payment services', route: '#/settings/payments' },
       { id: 'settings-advertising-analytics', label: 'Ad data', route: '#/settings/advertising-analytics' },
       { id: 'settings-notifications', label: 'Email notifications', route: '#/settings/notifications' },
-      { id: 'settings-ai-mcp', label: 'AI and MCP', route: '#/settings/ai-mcp' },
       { id: 'settings-roles', label: 'Roles', route: '#/settings/roles' },
       { id: 'settings-staff', label: 'Staff', route: '#/settings/staff' },
     ],
@@ -62,7 +61,6 @@ window.NAV_SETTINGS = [
   { id: 'payments', label: 'Payment services', icon: 'card', route: '#/settings/payments' },
   { id: 'advertising-analytics', label: 'Ad data', icon: 'analytics', route: '#/settings/advertising-analytics' },
   { id: 'notifications', label: 'Email notifications', icon: 'bell', route: '#/settings/notifications' },
-  { id: 'ai-mcp', label: 'AI and MCP', icon: 'settings', route: '#/settings/ai-mcp' },
   {
     id: 'staffperms', label: 'Staff and permissions', icon: 'userPen', route: '#/settings/roles',
     children: [
@@ -88,6 +86,7 @@ window.ROUTE_MODULE = {
   domains: 'settings',
   notifications: 'settings',
   settings: 'settings',
+  account: 'settings',
   bestcheckout: 'bestcheckout',
   'online-store': 'online-store',
 };
