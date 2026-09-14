@@ -375,7 +375,7 @@
     chain = chain.then(function () {
       if (id === 'customers' && !window.DATA_ORDERS) return loadScript('orders/js/data.js?v=' + V);
     });
-    var moduleV = id === 'settings' ? '20260907-pp-sub3'
+    var moduleV = id === 'settings' ? '20260914-pay-mode1'
       : id === 'online-store' ? '20260907-pp-sub2'
       : id === 'bestcheckout' ? '20260907-pp-sub2'
       : id === 'bundles' ? '20260905-err-frame1'
