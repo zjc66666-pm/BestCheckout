@@ -146,6 +146,12 @@ input[list]::-webkit-calendar-picker-indicator { display: none !important; }
 .pill-gray { background: #f3f4f6; } .pill-gray .dot { background: #6b7280; }
 .pill-purple { background: #ede9fe; } .pill-purple .dot { background: #7c3aed; }
 
+/* Ant-style hover tooltip (body-fixed so table overflow cannot clip it) */
+.ui-tip { position: fixed; z-index: 1080; max-width: 360px; pointer-events: none; }
+.ui-tip-inner { background: rgba(0,0,0,.85); color: #fff; padding: 6px 8px; border-radius: 6px; font-size: 12px; line-height: 1.55; font-weight: 400; white-space: pre-line; box-shadow: 0 6px 16px rgba(0,0,0,.12); }
+.ui-tip-arrow { position: absolute; bottom: -4px; width: 8px; height: 8px; margin-left: -4px; background: rgba(0,0,0,.85); transform: rotate(45deg); }
+.ui-tip.is-below .ui-tip-arrow { bottom: auto; top: -4px; }
+
 /* count badge on tabs */
 .count-badge { display: inline-flex; align-items: center; border: 1px solid var(--hair); background: #fff; border-radius: 9999px; padding: 1px 8px; font-size: 12px; color: var(--ink-body); margin-left: 6px; }
 

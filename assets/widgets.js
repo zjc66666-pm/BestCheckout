@@ -125,8 +125,12 @@
         panel.style.boxSizing = 'border-box';
         panel.style.width = btn.offsetWidth + 'px';
         panel.style.minWidth = '0';
+      } else if (sel.hasAttribute('data-ui-compact')) {
+        panel.style.minWidth = Math.max(160, Math.min(btn.offsetWidth, 280)) + 'px';
+        panel.style.maxWidth = '320px';
       } else panel.style.minWidth = Math.max(btn.offsetWidth, 160) + 'px';
       var appendOption = function (o) {
+        if (!o || o.hidden || o.hasAttribute('hidden')) return;
         var i = o.index;
         var opt = document.createElement('div');
         opt.className = 'opt' + (i === sel.selectedIndex ? ' sel' : '');
@@ -308,7 +312,7 @@
   // ---------- scan + observe ----------
   // enhance filter-bar selects, page-size, and form-field selects (.input);
   // skip the rich-text toolbar (.rt-select) and anything opting out via data-no-ui.
-  var SEL = 'select.filter-select, select.pg-size, select.input';
+  var SEL = 'select.filter-select, select.pg-size, select.input, select.sa-select, select.sa-dial-sel';
   function scan(scope) {
     var root = scope || document;
     root.querySelectorAll(SEL).forEach(function (s) {
@@ -319,9 +323,80 @@
   }
   // setTimeout (not rAF) so enhancement still fires in a backgrounded/hidden tab where rAF is paused
   var pending = false;
-  function schedule() { if (pending) return; pending = true; setTimeout(function () { pending = false; scan(document); }, 0); }
+  var hideHoverTip = function () {};
+  var hideStaleHoverTip = function () {};
+  function schedule() {
+    if (pending) return;
+    pending = true;
+    setTimeout(function () { pending = false; hideStaleHoverTip(); scan(document); }, 0);
+  }
+  function bindHoverTips() {
+    if (document.documentElement.getAttribute('data-ui-tip') === '1') return;
+    document.documentElement.setAttribute('data-ui-tip', '1');
+    var tip = null;
+    function hideTip() {
+      if (tip && tip.parentNode) tip.parentNode.removeChild(tip);
+      tip = null;
+    }
+    hideHoverTip = hideTip;
+    hideStaleHoverTip = function () {
+      if (tip && tip._el && !tip._el.isConnected) hideTip();
+    };
+    function contentRect(el) {
+      var child = el.firstElementChild;
+      if (child) return child.getBoundingClientRect();
+      var r = el.getBoundingClientRect();
+      var cs = window.getComputedStyle(el);
+      var pl = parseFloat(cs.paddingLeft) || 0;
+      var pt = parseFloat(cs.paddingTop) || 0;
+      var pb = parseFloat(cs.paddingBottom) || 0;
+      return { left: r.left + pl, top: r.top + pt, bottom: r.bottom - pb, width: r.width };
+    }
+    function showTip(el) {
+      var text = el.getAttribute('data-tip');
+      if (!text) return hideTip();
+      if (tip && tip._el === el) return;
+      hideTip();
+      tip = document.createElement('div');
+      tip.className = 'ui-tip';
+      tip.innerHTML = '<div class="ui-tip-inner"></div><i class="ui-tip-arrow"></i>';
+      tip.querySelector('.ui-tip-inner').textContent = text;
+      document.body.appendChild(tip);
+      tip._el = el;
+      var r = contentRect(el);
+      var origin = r.left;
+      var tw = tip.offsetWidth;
+      var th = tip.offsetHeight;
+      var left = origin;
+      if (left + tw > window.innerWidth - 8) left = window.innerWidth - 8 - tw;
+      if (left < 8) left = 8;
+      var top = r.top - th - 8;
+      var below = false;
+      if (top < 8) { top = r.bottom + 8; below = true; }
+      tip.style.left = left + 'px';
+      tip.style.top = top + 'px';
+      if (below) tip.classList.add('is-below');
+      tip.querySelector('.ui-tip-arrow').style.left = Math.max(10, Math.min(tw - 10, origin + 10 - left)) + 'px';
+    }
+    document.addEventListener('mouseover', function (e) {
+      var el = e.target && e.target.closest ? e.target.closest('[data-tip]') : null;
+      if (el) showTip(el);
+    });
+    document.addEventListener('mouseout', function (e) {
+      var el = e.target && e.target.closest ? e.target.closest('[data-tip]') : null;
+      if (!el) return;
+      var to = e.relatedTarget;
+      if (to && el.contains(to)) return;
+      hideTip();
+    });
+    window.addEventListener('scroll', hideTip, true);
+    window.addEventListener('resize', hideTip);
+    document.addEventListener('pointerdown', hideTip, true);
+    window.addEventListener('hashchange', hideTip);
+  }
   function init() {
     try { scan(document); } catch (e) {}
+    try { bindHoverTips(); } catch (e) {}
     try { new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true }); } catch (e) {}
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
@@ -355,7 +430,6 @@
   var PP_FIELDS = [
     { value: 'name', label: 'Product title', placeholder: 'Search product title' },
     { value: 'id', label: 'Shopify product ID', placeholder: 'Search Shopify product ID' },
-    { value: 'sku', label: 'SKU', placeholder: 'Search SKU' },
   ];
   var SRCH_ICO = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>';
   var X_ICO = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
@@ -367,6 +441,34 @@
   }
   function ppPrice(p) { return (p.priceMax && p.priceMax > p.price) ? ppMoney(p.price) + ' ~ ' + ppMoney(p.priceMax) : ppMoney(p.price); }
   function ppNormStatus(p) { return String((p && p.status) || '').toLowerCase() === 'active' ? 'active' : 'draft'; }
+  function ppActiveBundle(p) {
+    var list = ((window.DATA_BUNDLES || {}).bundles || []);
+    var name = String((p && p.name) || '').trim().toLowerCase();
+    var id = String((p && p.id) || '').replace(/\D/g, '');
+    var i, b, bn, bid;
+    for (i = 0; i < list.length; i++) {
+      b = list[i];
+      if ((b.status || '') !== 'active') continue;
+      bn = String(b.parentProduct || '').trim().toLowerCase();
+      bid = String(b.parentProductId || '').replace(/\D/g, '');
+      if (id && bid && bid === id) return b;
+      if (name && bn && (name === bn || name.indexOf(bn) === 0 || bn.indexOf(name) === 0)) return b;
+    }
+    return null;
+  }
+  function ppBundleTag() {
+    return '<span class="pill pill-blue" style="font-size:10px;margin-top:3px;display:inline-block">Sold as a bundle</span>';
+  }
+  function cheapestActiveProduct() {
+    var rows = PP_PRODUCTS.filter(function (p) { return ppNormStatus(p) === 'active'; });
+    if (!rows.length) return null;
+    rows.sort(function (a, b) {
+      var pa = Number(a.price), pb = Number(b.price);
+      if (pa !== pb) return pa - pb;
+      return String(a.name || '').localeCompare(String(b.name || ''));
+    });
+    return rows[0];
+  }
   var PP_STATUS = [['active', 'Active'], ['draft', 'Draft']];
 
   function productPicker(opts) {
@@ -376,6 +478,7 @@
     var onConfirm = opts.onConfirm || function () {};
     // Subscriptions, Bundles and BestCheckout share this picker.  Callers can
     // provide their own catalog while keeping the same filtering/table UX.
+    var showBundleTag = opts.showBundleTag !== false;
     var products = (opts.products && opts.products.length ? opts.products : PP_PRODUCTS).slice();
     var categories = (opts.categories && opts.categories.length) ? opts.categories : [];
     var fields = opts.fields || PP_FIELDS;
@@ -447,7 +550,7 @@
         return '<tr data-pp="' + escAttr(p.name) + '" style="cursor:pointer">' +
           '<td style="width:44px"><input type="' + (multiple ? 'checkbox' : 'radio') + '"' + (on ? ' checked' : '') + ' style="width:15px;height:15px;accent-color:var(--brand);pointer-events:none" /></td>' +
           '<td><div class="flex items-center gap-2"><span style="width:36px;height:36px;border-radius:6px;overflow:hidden;background:#e9ecf2;flex:none;display:inline-block">' + (p.image ? '<img src="' + escAttr(p.image) + '" alt="" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.remove()" />' : IMG) + '</span><div style="min-width:0"><div style="color:var(--ink)">' + escAttr(p.name) + '</div>' +
-            ((p.sku || p.id) ? '<div class="muted" style="font-size:12px">' + escAttr([p.sku, p.id].filter(Boolean).join(' · ')) + '</div>' : '') +
+            (showBundleTag && ppActiveBundle(p) ? '<div>' + ppBundleTag() + '</div>' : '') +
           '</div></div></td>' +
           '<td class="muted" style="font-size:13px">' + ppInventory(p) + '</td>' +
           '<td>' + ppPrice(p) + '</td>' +
@@ -592,14 +695,19 @@
         '<button class="btn ' + (opts.danger ? '' : 'btn-primary') + '"' + (opts.danger ? ' style="background:var(--err);color:#fff;border-color:var(--err)"' : '') + ' data-ok>' + escAttr(opts.okText || 'OK') + '</button>' +
       '</div>';
     backdrop.appendChild(m); document.body.appendChild(backdrop);
+    var accepted = false;
     var onKey = function (e) { if (e.key === 'Escape') close(); else if (e.key === 'Enter') { var ok = m.querySelector('[data-ok]'); if (ok) ok.click(); } };
-    var close = function () { document.removeEventListener('keydown', onKey); backdrop.remove(); };
+    var close = function () {
+      document.removeEventListener('keydown', onKey);
+      backdrop.remove();
+      if (!accepted && opts.onCancel) opts.onCancel();
+    };
     m.querySelector('[data-x]').onclick = close;
     m.querySelector('[data-cancel]').onclick = close;
     backdrop.addEventListener('mousedown', function (e) { if (e.target === backdrop) close(); });
-    m.querySelector('[data-ok]').onclick = function () { close(); if (opts.onOk) opts.onOk(); };
+    m.querySelector('[data-ok]').onclick = function () { accepted = true; close(); if (opts.onOk) opts.onOk(); };
     document.addEventListener('keydown', onKey);
   }
 
-  window.UI = { scan: scan, closePop: closePop, unsavedBar: unsavedBar, setUnsavedBar: setUnsavedBar, productPicker: productPicker, bundlePicker: bundlePicker, confirm: confirmDialog };
+  window.UI = { scan: scan, closePop: closePop, unsavedBar: unsavedBar, setUnsavedBar: setUnsavedBar, productPicker: productPicker, bundlePicker: bundlePicker, confirm: confirmDialog, cheapestActiveProduct: cheapestActiveProduct };
 })();

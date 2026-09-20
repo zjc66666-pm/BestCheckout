@@ -87,7 +87,7 @@
 
   // ---------- route parsing ----------
   function parse() {
-    var h = (location.hash || '').replace(/^#\/?/, '');
+    var h = (location.hash || '').replace(/^#\/?/, '').split('?')[0];
     var parts = h.split('/').filter(Boolean);
     var first = parts[0] || 'home';
     return { first: first, rest: parts.slice(1).join('/'), settings: first === 'settings' };
@@ -375,15 +375,19 @@
     chain = chain.then(function () {
       if (id === 'customers' && !window.DATA_ORDERS) return loadScript('orders/js/data.js?v=' + V);
     });
-    var moduleV = id === 'settings' ? '20260917-pay-wh'
+    var moduleV = id === 'settings' ? '20260921-addr8'
       : id === 'online-store' ? '20260907-pp-sub2'
       : id === 'bestcheckout' ? '20260907-pp-sub2'
-      : id === 'bundles' ? '20260905-err-frame1'
+      : id === 'bundles' ? '20260920-ph1'
       : id === 'orders' ? '20260905-ord-ct1'
       : id === 'abandoned-checkouts' ? '20260905-ac-filt1' : V;
     chain = chain.then(function () {
       if (id === 'online-store' && !window.POST_PURCHASE_ORDER_MOCK)
         return loadScript('assets/post-purchase-order-mock.js?v=' + moduleV);
+    });
+    chain = chain.then(function () {
+      if (id === 'bundles' && !window.DATA_SETTINGS)
+        return loadScript('settings/js/data.js?v=20260920-pl-id1');
     });
     chain = chain.then(function () {
       if (id === 'subscriptions' && window.DATA_SUBS) return;

@@ -55,7 +55,7 @@ BestCheckout 与 BestShopio 应共享兼容的 Funnel、页面、Offer 和支付
 | `orders/` | BestCheckout 订单和 Shopify 回写状态 |
 | `settings/` | Shopify、支付、结账域名、邮件与员工设置 |
 | `online-store/` | 仅保留 Checkout 与 post-purchase 页面编辑器 |
-| `bundles/` | BestCheckout 裁剪版 Bundle：数量档创建/编辑，供结账计价 |
+| `bundles/` | BestCheckout 数量档 Bundle：挂在 Shopify 父商品上，启用后接管商品页购买区 |
 | `subscriptions/js/data.js` | Subscription 订单展示兼容数据；售卖计划列表与创建在一级菜单 Subscriptions |
 
 ## 本地预览

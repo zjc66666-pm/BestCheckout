@@ -30,7 +30,7 @@ window.NAV_MENU = [
   { id: 'home', label: 'Overview', icon: 'home', route: '#/home', desc: 'Setup, attention items, and checkout data for this store.' },
   { id: 'flows', label: 'Purchase flows', icon: 'apps', route: '#/flows', desc: 'Choose who sees each checkout, Upsell, and Downsell flow.' },
   { id: 'pages', label: 'Checkout pages', icon: 'page', route: '#/pages', desc: 'Customize Checkout, Upsell, Downsell, and Thank you pages.' },
-  { id: 'bundles', label: 'Bundles', icon: 'box', route: '#/bundles', desc: 'Quantity-break offers used when BestCheckout prices the order.' },
+  { id: 'bundles', label: 'Bundles', icon: 'box', route: '#/bundles', desc: 'Quantity-break offers shown on the Shopify product page purchase area.' },
   { id: 'subscriptions', label: 'Subscriptions', icon: 'refresh', route: '#/subscriptions', desc: 'Subscriptions and contracts created after BestCheckout payment.',
     children: [
       { id: 'subscriptions-contracts', label: 'Contracts', route: '#/subscriptions/contracts' },
@@ -102,7 +102,7 @@ window.CHANGELOG = [
     items: [
       'Public website and merchant admin now have separate entry paths.',
       'Checkout, Upsell, Downsell, and Thank you pages share one focused editor.',
-      'Bundles are created in BestCheckout for checkout pricing. Subscriptions can be synced from Shopify or created here for checkout only.',
+      'Bundles take over the Shopify product page. Subscriptions are created in BestCheckout, not imported. They appear on the product page only with an active Bundle; otherwise they stay at checkout.',
       'Shopify connection, payments, checkout domain, notifications, and order writeback remain in one workspace.',
     ],
   },
