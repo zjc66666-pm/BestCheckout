@@ -44,7 +44,9 @@
     '.bn-pdp-opt label{display:block;font-size:11px;font-weight:650;color:var(--ink-muted);margin-bottom:4px}' +
     '.bn-pdp-opt select{width:100%;height:32px;border:1px solid var(--ctl);border-radius:7px;padding:0 8px;font-size:12.5px;background:#fff}' +
     '.bn-pdp-cta{width:100%;height:42px;margin-top:12px;border:0;border-radius:8px;color:#fff;font-size:13.5px;font-weight:700;cursor:default}' +
-    '.bn-pdp-note{font-size:11.5px;line-height:1.45;color:var(--ink-muted);margin-top:8px}';
+    '.bn-pdp-note{font-size:11.5px;line-height:1.45;color:var(--ink-muted);margin-top:8px}' +
+    '.bc-sticky-rail{position:sticky;top:16px;align-self:flex-start;max-height:calc(100vh - 32px);overflow-y:auto}' +
+    '@media(max-width:980px){.bc-sticky-rail{position:static;max-height:none;overflow:visible}}';
   const STATUS = { active: { label: 'Activated', cls: 'pill-green' }, draft: { label: 'Deactivated', cls: 'pill-gray' } };
   const statusPill = (status) => {
     const m = STATUS[status] || STATUS.draft;
@@ -288,10 +290,16 @@
       'Add Subscribe & Save?': '要加订阅省吗？',
       'This product page only shows one-time packs until you add a plan. Add Subscribe & Save so shoppers can pick subscribe on the product page.': '现在商品页只有一次性档位。加上订阅省后，买家才能在商品页选择订阅。',
       'Add subscription': '添加订阅',
+      'Subscribe & Save': '订阅省',
+      'This product page only shows one-time packs until you add a plan.': '现在商品页只有一次性档位。加上订阅后，买家才能在商品页选择订阅。',
       'Not now': '暂不加',
       'Fix the highlighted fields before saving.': '请先修正标红的字段再保存。',
       'Activated': '已启用',
       'Deleted': '已删除',
+      "Can't delete this bundle": '不能删除这个套装',
+      'This product has a subscription. Delete the subscription first.': '这个商品已经有订阅。请先删除订阅，再删套装。',
+      'View subscription': '查看订阅',
+      'OK': '确定',
       'This Bundle was not found': '未找到该套装',
       'Reset': '重置',
       'All status': '全部状态',
@@ -770,15 +778,14 @@
         '<div class="flex items-center" style="margin-top:20px">' +
           (isEdit ? '<button type="button" class="btn btn-default" data-act="delete" style="color:var(--err);border-color:#f3c4ba">Delete</button>' : '<span></span>') +
           '<button class="btn btn-primary" data-act="save" style="margin-left:auto">' + (isEdit ? 'Save' : 'Add bundle') + '</button></div>' +
-        '</div><div class="detail-rail" style="width:400px;flex:0 0 400px">' +
-          '<div style="position:sticky;top:16px">' +
+        '</div><div class="detail-rail bc-sticky-rail" style="width:400px;flex:0 0 400px">' +
           card('Status',
             '<div style="display:flex;flex-direction:column;gap:11px;padding:2px 0">' +
               '<label class="flex items-center gap-2" style="cursor:pointer;font-size:13.5px;color:var(--ink)"><input type="radio" name="bn-status" class="bn-statusr" value="active"' + (EDIT.status === 'active' ? ' checked' : '') + ' style="width:16px;height:16px;accent-color:var(--brand);cursor:pointer" /> Activated</label>' +
               '<label class="flex items-center gap-2" style="cursor:pointer;font-size:13.5px;color:var(--ink)"><input type="radio" name="bn-status" class="bn-statusr" value="draft"' + (EDIT.status === 'draft' ? ' checked' : '') + ' style="width:16px;height:16px;accent-color:var(--brand);cursor:pointer" /> Deactivated</label>' +
             '</div>') +
+          subscribeGuideCard() +
           card('Preview', '<div id="bn-preview">' + previewHtml() + '</div>') +
-          '</div>' +
         '</div></div>' +
       '</div>';
     if (window.I18N && window.I18N.apply) window.I18N.apply(root);
@@ -893,8 +900,13 @@
     });
   }
 
+  function sellingPlans() {
+    const d = window.DATA_SETTINGS || {};
+    const nested = d.subscriptions && d.subscriptions.sellingPlans;
+    return nested || d.sellingPlans || [];
+  }
   function plansForParent(name, productId) {
-    const plans = (((window.DATA_SETTINGS || {}).sellingPlans) || []).filter((p) => p && p.origin === 'bestcheckout');
+    const plans = (sellingPlans() || []).filter((p) => p && p.origin === 'bestcheckout');
     const n = String(name || '').trim().toLowerCase();
     const id = String(productId || '').replace(/\D/g, '');
     return plans.filter((p) => {
@@ -905,31 +917,40 @@
       return false;
     });
   }
-  function offerSubscribeAfterActivate() {
+  function subscribeGuideCard() {
+    if (!EDIT_ID || !String(EDIT.parentProduct || '').trim()) return '';
+    if (plansForParent(EDIT.parentProduct, EDIT.parentProductId).length) return '';
+    return card('Subscribe & Save',
+      '<div class="muted" style="font-size:12.5px;line-height:1.5;margin-bottom:12px">This product page only shows one-time packs until you add a plan.</div>' +
+      '<button type="button" class="btn btn-primary" data-act="add-sub" style="width:100%">Add subscription</button>');
+  }
+  function goAddSubscription() {
+    try {
+      sessionStorage.setItem('bcSubFromBundle', JSON.stringify({
+        product: String(EDIT.parentProduct || '').trim(),
+        productId: String(EDIT.parentProductId || ''),
+        image: EDIT.parentImage || '',
+        bundleId: EDIT_ID || '',
+        tierIndex: Math.max(0, Number(EDIT.defaultTier) || 0),
+      }));
+    } catch (e) {}
+    location.hash = '#/subscriptions/new';
+  }
+  function offerSubscribeAfterSave() {
     if (!window.UI || !window.UI.confirm) { location.hash = '#/bundles'; return; }
     window.UI.confirm({
       title: 'Add Subscribe & Save?',
       content: 'This product page only shows one-time packs until you add a plan. Add Subscribe & Save so shoppers can pick subscribe on the product page.',
       okText: 'Add subscription',
       cancelText: 'Not now',
-      onOk: () => {
-        try {
-          sessionStorage.setItem('bcSubFromBundle', JSON.stringify({
-            product: String(EDIT.parentProduct || '').trim(),
-            productId: String(EDIT.parentProductId || ''),
-            image: EDIT.parentImage || '',
-            bundleId: EDIT_ID || '',
-            tierIndex: Math.max(0, Number(EDIT.defaultTier) || 0),
-          }));
-        } catch (e) {}
-        location.hash = '#/subscriptions/new';
-      },
+      onOk: () => { goAddSubscription(); },
       onCancel: () => { location.hash = '#/bundles'; },
     });
   }
   function saveBundle() {
     readEditor();
     if (!validate()) { paintEditor(); scrollToFirstError(); return; }
+    const isCreate = !(EDIT_ID && byId(EDIT_ID));
     const becomingActive = EDIT.status === 'active';
     const wasActive = !!(EDIT_ID && byId(EDIT_ID) && byId(EDIT_ID).status === 'active');
     const apply = () => {
@@ -937,7 +958,7 @@
       EDIT_ORIGIN = snapshot();
       toast(EDIT.status === 'active' ? 'Bundle saved and active' : 'Bundle saved');
       const hasPlan = plansForParent(EDIT.parentProduct, EDIT.parentProductId).length > 0;
-      if (becomingActive && !wasActive && !hasPlan) offerSubscribeAfterActivate();
+      if (!hasPlan && (isCreate || (becomingActive && !wasActive))) offerSubscribeAfterSave();
       else location.hash = '#/bundles';
     };
     if (EDIT.status === 'active') confirmReplaceActive({ id: EDIT_ID, name: EDIT.name, parentProduct: EDIT.parentProduct, status: EDIT.status }, apply);
@@ -955,6 +976,8 @@
       EDIT.status = r.value;
       syncUnsaved();
     });
+    const addSub = root.querySelector('[data-act="add-sub"]');
+    if (addSub) addSub.onclick = () => { goAddSubscription(); };
     const color = root.querySelector('#bn-color');
     if (color) color.oninput = () => {
       EDIT.brandColor = color.value;
@@ -1139,6 +1162,21 @@
     const del = root.querySelector('[data-act="delete"]');
     if (del) del.onclick = () => {
       if (!EDIT_ID) return;
+      const linked = plansForParent(EDIT.parentProduct, EDIT.parentProductId);
+      if (linked.length) {
+        const plan = linked[0];
+        const key = (plan && (plan.key || plan.id)) || '';
+        window.UI.confirm({
+          title: "Can't delete this bundle",
+          content: 'This product has a subscription. Delete the subscription first.',
+          okText: 'View subscription',
+          cancelText: 'OK',
+          onOk: () => {
+            location.hash = key ? '#/subscriptions/edit/' + encodeURIComponent(key) : '#/subscriptions';
+          },
+        });
+        return;
+      }
       window.UI.confirm({
         title: 'Delete bundle',
         content: 'Delete ' + (EDIT.name || EDIT_ID) + '? This product page will no longer use a BestCheckout purchase area.',

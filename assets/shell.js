@@ -375,10 +375,10 @@
     chain = chain.then(function () {
       if (id === 'customers' && !window.DATA_ORDERS) return loadScript('orders/js/data.js?v=' + V);
     });
-    var moduleV = id === 'settings' ? '20260921-addr8'
+    var moduleV = id === 'settings' ? '20260921-subg1'
       : id === 'online-store' ? '20260907-pp-sub2'
       : id === 'bestcheckout' ? '20260907-pp-sub2'
-      : id === 'bundles' ? '20260920-ph1'
+      : id === 'bundles' ? '20260921-del1'
       : id === 'orders' ? '20260905-ord-ct1'
       : id === 'abandoned-checkouts' ? '20260905-ac-filt1' : V;
     chain = chain.then(function () {

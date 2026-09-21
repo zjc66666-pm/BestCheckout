@@ -1171,6 +1171,7 @@
     '.bn-act{display:inline-grid;place-items:center;width:30px;height:30px;border:0;border-radius:7px;background:transparent;color:var(--ink-muted);cursor:pointer}' +
     '.bn-act:hover{background:var(--panel);color:var(--ink)}' +
     '.sub-editor{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:24px;align-items:start;max-width:1220px;margin:0 auto}' +
+    '.bc-sticky-rail{position:sticky;top:16px;align-self:flex-start;max-height:calc(100vh - 32px);overflow-y:auto}' +
     '.sub-preview-card{position:sticky;top:16px}' +
     '.sub-ck{background:#f5f5f5;border:1px solid var(--hair);border-radius:12px;padding:16px 14px}' +
     '.sub-ck-row{display:flex;align-items:flex-start;gap:10px}' +
@@ -1204,7 +1205,7 @@
     '.sub-ct-tbl th.num,.sub-ct-tbl td.num{width:112px}' +
     '.sub-ct-tbl th.sub-ct-next,.sub-ct-tbl td.sub-ct-next{width:132px}' +
     '.sub-ct-tbl .sub-clip{overflow:hidden;text-overflow:ellipsis}' +
-    '@media(max-width:980px){.sub-editor{grid-template-columns:1fr}.sub-preview-card{position:static}}';
+    '@media(max-width:980px){.sub-editor{grid-template-columns:1fr}.sub-preview-card{position:static}.bc-sticky-rail{position:static;max-height:none;overflow:visible}}';
 
   function isLocalPlan(p) { return !!(p && p.origin === 'bestcheckout'); }
   function activeBundleFor(productName, productId) {
@@ -2566,7 +2567,7 @@
             (!readonly && !isNew ? '<button class="btn btn-default" data-act="delete" style="color:var(--err);border-color:#f3c4ba">Delete subscription</button>' : '<span></span>') +
             (readonly ? '' : '<button class="btn btn-primary" data-act="save" style="margin-left:auto">' + saveText + '</button>') +
           '</div>' +
-        '</div><div class="detail-rail" style="width:400px;flex:0 0 400px">' +
+        '</div><div class="detail-rail bc-sticky-rail" style="width:400px;flex:0 0 400px">' +
           card('Status', '<div style="display:flex;flex-direction:column;gap:11px;padding:2px 0">' + statusRadios +
             '<div class="muted" style="font-size:12px;line-height:1.45;padding-top:2px">One product can have only one active subscription plan on the storefront. Draft/deactivated plans can be kept.</div></div>') +
           card('Preview', '<div id="pl-preview">' + planPreviewHtml(p) + '</div>') +
