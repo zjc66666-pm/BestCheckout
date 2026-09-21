@@ -1171,6 +1171,17 @@
     '.bn-act{display:inline-grid;place-items:center;width:30px;height:30px;border:0;border-radius:7px;background:transparent;color:var(--ink-muted);cursor:pointer}' +
     '.bn-act:hover{background:var(--panel);color:var(--ink)}' +
     '.sub-editor{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:24px;align-items:start;max-width:1220px;margin:0 auto}' +
+    '.pl-discbox.has-error{border-color:var(--err)!important}' +
+    '.pl-bill{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}' +
+    '.pl-bill>div{min-width:0}' +
+    '.pl-disc-row{display:flex;gap:8px;align-items:stretch;min-width:0;width:100%}' +
+    '.pl-dttog{display:inline-flex;border:1px solid var(--ctl);border-radius:8px;overflow:hidden;flex:none}' +
+    '.pl-dtbtn{height:36px;padding:0 10px;font-size:12.5px;border:none;cursor:pointer;white-space:nowrap}' +
+    '.pl-discbox{display:inline-flex;align-items:stretch;border:1px solid var(--ctl);border-radius:8px;overflow:hidden;height:36px;flex:1;min-width:0}' +
+    '.pl-disc-affix{display:grid;place-items:center;width:36px;flex:none;background:var(--panel)}' +
+    '.pl-disc-affix.is-pre{border-right:1px solid var(--ctl)}' +
+    '.pl-disc-affix.is-suf{border-left:1px solid var(--ctl)}' +
+    '.pl-disc-affix.is-off{visibility:hidden}' +
     '.bc-sticky-rail{position:sticky;top:16px;align-self:flex-start;max-height:calc(100vh - 32px);overflow-y:auto}' +
     '.sub-preview-card{position:sticky;top:16px}' +
     '.sub-ck{background:#f5f5f5;border:1px solid var(--hair);border-radius:12px;padding:16px 14px}' +
@@ -2435,8 +2446,9 @@
     if (['week', 'month', 'year'].indexOf(unit) < 0) SUB_ERRORS.unit = 'Select week, month, or year.';
     const dtype = SUB_EDIT.discount && SUB_EDIT.discount.type;
     if (dtype !== 'percent' && dtype !== 'fixed') SUB_ERRORS.dtype = 'Select a discount type.';
-    const dval = Number(SUB_EDIT.discount && SUB_EDIT.discount.value);
-    if (dval < 0 || (SUB_EDIT.discount && SUB_EDIT.discount.value === '')) SUB_ERRORS.dval = 'Enter a discount of 0 or more.';
+    const rawDisc = SUB_EDIT.discount && SUB_EDIT.discount.value;
+    const dval = Number(rawDisc);
+    if (rawDisc === '' || rawDisc == null || isNaN(dval) || dval <= 0) SUB_ERRORS.dval = 'Enter a discount greater than 0.';
     else if (dtype === 'percent' && dval > 100) SUB_ERRORS.dval = 'Percentage discount cannot exceed 100.';
     return !Object.keys(SUB_ERRORS).length;
   }
@@ -2540,19 +2552,19 @@
                 '</div>'
               : '<div class="muted" style="font-size:12px;margin-top:8px">Subscribe &amp; Save offers one product or bundle on a recurring schedule. Customers pick one-time or subscribe on its product page.</div>')) +
           card('Billing',
-            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">' +
-              '<div>' + label('Bill every') + '<div style="display:flex;gap:8px">' + subNumInput('pl-every', (p.interval && p.interval.every) || 1, { min: 1, w: '92px', placeholder: 'e.g. 1' }) + '<select class="input" id="pl-unit" style="flex:1"' + (readonly ? ' disabled' : '') + '>' + unitOpt + '</select></div>' + subFieldErr(SUB_ERRORS.every) + '</div>' +
+            '<div class="pl-bill">' +
+              '<div>' + label('Bill every') + '<div style="display:flex;gap:8px">' + subNumInput('pl-every', (p.interval && p.interval.every) || 1, { min: 1, w: '92px', placeholder: 'e.g. 1' }) + '<select class="input" id="pl-unit" style="flex:1;min-width:0"' + (readonly ? ' disabled' : '') + '>' + unitOpt + '</select></div>' + subFieldErr(SUB_ERRORS.every) + '</div>' +
               '<div>' + label('One-time price') + '<div class="input" id="pl-onetime" style="display:flex;align-items:center;background:var(--panel);color:var(--ink)">' + (oneTimePriceOf(p) != null ? subMoney(oneTimePriceOf(p)) : '<span class="muted">—</span>') + '</div><div class="muted" style="font-size:11px;margin-top:5px">' + (isBun ? 'From the selected bundle tier' : 'From the product') + '</div></div>' +
               '<div>' + label('Subscription discount') +
-                '<div style="display:flex;gap:8px;align-items:stretch">' +
-                  '<div style="display:inline-flex;border:1px solid var(--ctl);border-radius:8px;overflow:hidden;flex:none">' +
-                    '<button type="button" class="pl-dtbtn" data-dt="percent" style="height:36px;padding:0 11px;font-size:12.5px;border:none;cursor:pointer;' + (dtype !== 'fixed' ? 'background:var(--brand);color:#fff' : 'background:#fff;color:var(--ink)') + '">Percentage off</button>' +
-                    '<button type="button" class="pl-dtbtn" data-dt="fixed" style="height:36px;padding:0 11px;font-size:12.5px;border:none;border-left:1px solid var(--ctl);cursor:pointer;' + (dtype === 'fixed' ? 'background:var(--brand);color:#fff' : 'background:#fff;color:var(--ink)') + '">Fixed amount</button>' +
+                '<div class="pl-disc-row">' +
+                  '<div class="pl-dttog">' +
+                    '<button type="button" class="pl-dtbtn" data-dt="percent" style="' + (dtype !== 'fixed' ? 'background:var(--brand);color:#fff' : 'background:#fff;color:var(--ink)') + '">Percentage off</button>' +
+                    '<button type="button" class="pl-dtbtn" data-dt="fixed" style="border-left:1px solid var(--ctl);' + (dtype === 'fixed' ? 'background:var(--brand);color:#fff' : 'background:#fff;color:var(--ink)') + '">Fixed amount</button>' +
                   '</div>' +
-                  '<div style="display:inline-flex;align-items:stretch;border:1px solid var(--ctl);border-radius:8px;overflow:hidden;height:36px;flex:1;min-width:0">' +
-                    (dtype === 'fixed' ? '<span style="display:grid;place-items:center;padding:0 9px;background:var(--panel);border-right:1px solid var(--ctl)">$</span>' : '') +
-                    '<input id="pl-discval" type="number" min="0" step="' + (dtype === 'fixed' ? '0.01' : '1') + '" value="' + esc((p.discount && p.discount.value) || 0) + '" placeholder="e.g. 10" style="flex:1;border:none;outline:none;padding:0 10px;font-size:13px;min-width:0"' + (readonly ? ' disabled' : '') + ' />' +
-                    (dtype !== 'fixed' ? '<span style="display:grid;place-items:center;padding:0 9px;background:var(--panel);border-left:1px solid var(--ctl)">%</span>' : '') +
+                  '<div class="pl-discbox' + errCls(SUB_ERRORS.dval) + '">' +
+                    '<span class="pl-disc-affix is-pre' + (dtype === 'fixed' ? '' : ' is-off') + '">$</span>' +
+                    '<input id="pl-discval" type="number" min="0.01" step="' + (dtype === 'fixed' ? '0.01' : '1') + '" value="' + esc((p.discount && p.discount.value) || 0) + '" placeholder="e.g. 10" style="flex:1;border:none;outline:none;padding:0 10px;font-size:13px;min-width:0"' + (readonly ? ' disabled' : '') + ' />' +
+                    '<span class="pl-disc-affix is-suf' + (dtype !== 'fixed' ? '' : ' is-off') + '">%</span>' +
                   '</div>' +
                 '</div>' + subFieldErr(SUB_ERRORS.dval) + '</div>' +
               '<div>' + label('Recurring price') + '<div class="input" id="pl-recurring" style="display:flex;align-items:center;background:var(--panel);font-weight:600">' + recurringDisplay(p) + '</div></div>' +
@@ -2604,11 +2616,11 @@
       if (unitEl) unitEl.onchange = () => { SUB_EDIT.interval.unit = unitEl.value; refreshPreview(); };
       const dvalEl = root.querySelector('#pl-discval');
       if (dvalEl) dvalEl.oninput = () => {
-        let d = dvalEl.value === '' ? 0 : Number(dvalEl.value);
-        if (d < 0) d = 0;
-        if (SUB_EDIT.discount.type !== 'fixed' && d > 100) d = 100;
+        const raw = dvalEl.value;
+        let d = raw === '' ? '' : Number(raw);
+        if (d !== '' && !isNaN(d) && SUB_EDIT.discount.type !== 'fixed' && d > 100) d = 100;
         SUB_EDIT.discount.value = d;
-        if (d >= 0) clearSubMarkedError('dval', dvalEl);
+        if (d !== '' && !isNaN(d) && d > 0) clearSubMarkedError('dval', dvalEl, dvalEl.closest('.pl-discbox'));
         refreshPreview();
       };
       const minEl = root.querySelector('#pl-min');
