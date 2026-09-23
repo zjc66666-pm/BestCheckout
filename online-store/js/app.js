@@ -3471,9 +3471,10 @@
   // ==========================================================================
   let routeGeneration = 0;
   function route(rest) {
-    const first = (location.hash || '').replace(/^#\/?/, '').split('/')[0];
-    const liveRest = (location.hash || '').replace(/^#\/?/, '').split('/').filter(Boolean).slice(1).join('/');
-    const rawRest = rest || '';
+    const hashPath = (location.hash || '').replace(/^#\/?/, '').split('?')[0];
+    const first = hashPath.split('/').filter(Boolean)[0] || '';
+    const liveRest = hashPath.split('/').filter(Boolean).slice(1).join('/');
+    const rawRest = (rest || '').split('?')[0];
     if (rawRest !== liveRest) return; // Ignore a stale shell dispatch for an older same-module hash.
     const generation = ++routeGeneration;
     closePops(); closeStandalonePreview();

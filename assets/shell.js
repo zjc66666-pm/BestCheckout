@@ -376,7 +376,7 @@
       if (id === 'customers' && !window.DATA_ORDERS) return loadScript('orders/js/data.js?v=' + V);
     });
     var moduleV = id === 'settings' ? '20260921-dgt3'
-      : id === 'online-store' ? '20260907-pp-sub2'
+      : id === 'online-store' ? '20260923-upsell1'
       : id === 'bestcheckout' ? '20260907-pp-sub2'
       : id === 'bundles' ? '20260921-del1'
       : id === 'orders' ? '20260905-ord-ct1'
