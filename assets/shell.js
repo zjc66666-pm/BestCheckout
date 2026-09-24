@@ -376,11 +376,11 @@
       if (id === 'customers' && !window.DATA_ORDERS) return loadScript('orders/js/data.js?v=' + V);
     });
     var moduleV = id === 'settings' ? '20260921-dgt3'
-      : id === 'online-store' ? '20260923-upsell1'
+      : id === 'online-store' ? '20260924-v23-33'
       : id === 'bestcheckout' ? '20260907-pp-sub2'
-      : id === 'bundles' ? '20260921-del1'
+      : id === 'bundles' ? '20260924-1p1b'
       : id === 'orders' ? '20260905-ord-ct1'
-      : id === 'abandoned-checkouts' ? '20260905-ac-filt1' : V;
+      : id === 'abandoned-checkouts' ? '20260923-ac-detail1' : V;
     chain = chain.then(function () {
       if (id === 'online-store' && !window.POST_PURCHASE_ORDER_MOCK)
         return loadScript('assets/post-purchase-order-mock.js?v=' + moduleV);
