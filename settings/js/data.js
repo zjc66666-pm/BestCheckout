@@ -137,8 +137,13 @@ window.DATA_SETTINGS = {
       { key: 'adyen',     name: 'Adyen',        connected: false, phase2: true, mode: 'live' },
       { key: 'checkout',  name: 'Checkout.com', connected: false, phase2: true, mode: 'live' },
       { key: 'mollie',    name: 'Mollie',       connected: false, phase2: true, mode: 'live' },
-      { key: 'nmi',       name: 'NMI',          connected: false, phase2: true, mode: 'live' }, // Card only (Collect.js); no Apple/Google Pay
+      { key: 'nmi',       name: 'NMI',          connected: false, phase2: true, mode: 'live' }, // Apple Pay / Google Pay under Cards; fixed address; no subscription or additional charge
       { key: 'braintree', name: 'Braintree',    connected: false, phase2: true, mode: 'live' },
+      { key: 'worldpay',  name: 'Worldpay',     connected: false, mode: 'live' }, // Access Checkout SDK: cards only
+      { key: 'nuvei',     name: 'Nuvei',        connected: false, mode: 'live' }, // Web SDK cards + Apple Pay + Google Pay; no local APMs
+      { key: 'antom',     name: 'Antom',        connected: false, mode: 'live' }, // Cards plus wallets from the same account
+      { key: 'useepay',   name: 'UseePay',      connected: false, mode: 'live' }, // Cards + Apple Pay
+      { key: 'oceanpay',  name: 'Oceanpay',     connected: false, mode: 'live' }, // Google Pay under Cards; fixed address; no Apple Pay
     ],
     // PayPal 账户只连一次：Wallet、Cards、Apple Pay、Google Pay 共享同一收款账户。
     // 具体钱包是否展示由账户能力、Checkout 域名状态和买家环境共同决定。
@@ -146,11 +151,14 @@ window.DATA_SETTINGS = {
       connected: true,
       walletOn: true,
       mode: 'live',
-      capabilities: { cards: 'enabled', wallet: 'enabled', applePay: 'enabled', googlePay: 'enabled' },
+      capabilities: { cards: 'enabled', wallet: 'enabled', applePay: 'enabled', googlePay: 'enabled', venmo: 'enabled' },
       domain: { checkout: 'checkout.lovecross.com', applePay: 'verified' },
       lastSynced: 'just now',
     },
     klarna: { directConnected: true, directOn: true, mode: 'live' }, // 自有直连，仅二期展示
+    // Shop Pay 不占卡槽、不收密钥。是否可用按当前店铺读 Shopify Payments
+    //（Lavender Labs 已开通，Aura Living 未开通，见 assets/nav.js）。
+    shopPay: { shopifyPayments: false },
   },
 
   // =========================================================================

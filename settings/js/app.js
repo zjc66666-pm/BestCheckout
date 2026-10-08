@@ -67,6 +67,13 @@
     return stores.filter((store) => store.name === name)[0] || stores[0] || { name: name, url: 'lavender-labs.myshopify.com' };
   }
 
+  // Shop Pay 是否出现只看当前店铺的 Shopify Payments，不看卡处理方。
+  function shopPayShopifyPaymentsOn() {
+    const store = currentShopifyStore();
+    if (store && typeof store.shopifyPayments === 'boolean') return store.shopifyPayments;
+    return !!(D.payments.shopPay && D.payments.shopPay.shopifyPayments);
+  }
+
   function shopifyStoreHandle(store) {
     return String((store && store.url) || '').replace(/\.myshopify\.com$/i, '') || 'lavender-labs';
   }
@@ -2845,11 +2852,18 @@
   };
   // 各处理方「我们采用的集成方式」下 Express 块实际能出的方式（均已查官方文档核实 2026-06，见 PRD §5.2）。
   // PayPal 的 Cards、Apple Pay、Google Pay 共用同一个收款账户；具体钱包仍由资格条件决定。
-  // Adyen=Components / Checkout=Flow / NMI=Collect.js（仅卡；钱包不对接——改地址无法更新运费）
+  // NMI 的 Apple Pay、Google Pay，以及 Oceanpay 的 Google Pay，不进 Express：只能传固定地址，显示在银行卡下方。Oceanpay 不支持 Apple Pay。
+  // NMI 的这两个钱包还不支持订阅和追加扣款。
   // Mollie=Components(GooglePay 待确认) / Braintree=Hosted Fields
   const PAY_EXPRESS = {
     stripe: ['applepay', 'googlepay', 'link', 'klarna', 'amazonpay'], airwallex: ['applepay', 'googlepay'],
     paypal_cards: ['applepay', 'googlepay'], adyen: ['applepay', 'googlepay'], checkout: ['applepay', 'googlepay'], mollie: ['applepay'], nmi: [], braintree: ['applepay', 'googlepay'],
+    worldpay: [], nuvei: ['applepay', 'googlepay'], antom: [], useepay: ['applepay'], oceanpay: [],
+  };
+  // 只能传固定地址的钱包：显示在银行卡下方，不进 Express Checkout。
+  const PAY_UNDER_CARD = {
+    nmi: ['applepay', 'googlepay'],
+    oceanpay: ['googlepay'],
   };
   // Official merchant dashboards. Stripe has a public payment-methods URL; others
   // land on login / dashboard home because payment-method pages need an account context.
@@ -2863,6 +2877,11 @@
     braintree: 'https://www.braintreegateway.com/login',
     paypal: 'https://developer.paypal.com/dashboard',
     paypal_cards: 'https://developer.paypal.com/dashboard',
+    worldpay: 'https://dashboard.worldpay.com/',
+    nuvei: 'https://cpanel.nuvei.com/',
+    antom: 'https://dashboard.antom.com/',
+    useepay: 'https://merchants.useepay.com/',
+    oceanpay: 'https://accounts.oceanpayment.com/',
   };
   function pDashLink(key, label) {
     const href = PAY_DASH[key];
@@ -2906,7 +2925,7 @@
       { k: 'api', label: 'API key', msg: 'Please enter API key' },
       { k: 'pid', label: 'Profile ID', msg: 'Please enter Profile ID' },
     ], file: { label: 'Mollie domain verification file', button: 'Upload file', accept: '', marginBottom: 16 } },
-    nmi: { desc: 'Allows users to pay with Visa, Mastercard, American Express, Discover, Diners Club, and JCB. Apple Pay and Google Pay are not available with NMI.',
+    nmi: { desc: 'Allows users to pay with Visa, Mastercard, American Express, Discover, Diners Club, and JCB. Apple Pay and Google Pay appear under Cards with a fixed shipping address. Those wallets do not support subscriptions or additional charges.',
       fields: [
         { k: 'sk', label: 'Private Security Key', msg: 'Please enter Private Security Key' },
         { k: 'tk', label: 'Public Security Key', msg: 'Please enter Public Security Key' },
@@ -2918,6 +2937,37 @@
       { k: 'gpay', label: 'Google merchant ID', optional: true },
     ], file: { label: 'Braintree domain verification file', button: 'Upload file', accept: '', marginBottom: 16 } },
     klarna_direct: { fields: [{ k: 'uid', label: 'API username (UID)' }, { k: 'pwd', label: 'API password' }, { k: 'region', label: 'Region（EU / NA / OC）' }] },
+    worldpay: { desc: 'Allows users to pay with card. Apple Pay and Google Pay are not available with this connection.',
+      fields: [
+        { k: 'user', label: 'Username', msg: 'Please enter Username' },
+        { k: 'pwd', label: 'Password', msg: 'Please enter Password' },
+        { k: 'entity', label: 'Merchant entity', msg: 'Please enter Merchant entity' },
+        { k: 'ckid', label: 'Checkout ID', msg: 'Please enter Checkout ID' },
+      ] },
+    nuvei: { desc: 'Allows users to pay with card, Apple Pay, and Google Pay.',
+      fields: [
+        { k: 'mid', label: 'Merchant ID', msg: 'Please enter Merchant ID' },
+        { k: 'site', label: 'Merchant Site ID', msg: 'Please enter Merchant Site ID' },
+        { k: 'sec', label: 'Secret key', msg: 'Please enter Secret key' },
+      ] },
+    antom: { desc: 'Allows users to pay with card. Alipay and other wallets from this same account appear by buyer country.',
+      fields: [
+        { k: 'cid', label: 'Client ID', msg: 'Please enter Client ID' },
+        { k: 'priv', label: 'Merchant private key', msg: 'Please enter Merchant private key' },
+        { k: 'pub', label: 'Antom public key', msg: 'Please enter Antom public key' },
+      ] },
+    useepay: { desc: 'Allows users to pay with card and Apple Pay. Google Pay is not available.',
+      fields: [
+        { k: 'mid', label: 'Merchant ID', msg: 'Please enter Merchant ID' },
+        { k: 'app', label: 'App ID', msg: 'Please enter App ID' },
+        { k: 'sec', label: 'Secret key', msg: 'Please enter Secret key' },
+      ] },
+    oceanpay: { desc: 'Allows users to pay with card and Google Pay. Apple Pay is not available. Google Pay appears under Cards with a fixed shipping address.',
+      fields: [
+        { k: 'acct', label: 'Account', msg: 'Please enter Account' },
+        { k: 'terminal', label: 'Terminal', msg: 'Please enter Terminal' },
+        { k: 'secure', label: 'SecureCode', msg: 'Please enter SecureCode' },
+      ] },
   };
 
   const ppCapKey = (id) => ({ applepay: 'applePay', googlepay: 'googlePay' }[id] || id);
@@ -2928,6 +2978,10 @@
   function pExpressFor(processor) {
     if (!processor) return [];
     return processor.key === 'paypal_cards' ? pPaypalExpress().slice() : (PAY_EXPRESS[processor.key] || []).slice();
+  }
+  function pUnderCard(processor) {
+    if (!processor) return [];
+    return (PAY_UNDER_CARD[processor.key] || []).slice();
   }
   // PayPal reuses the connected PayPal account for Card Fields and eligible Express wallets.
   const pProcsVis = () => {
@@ -2965,24 +3019,57 @@
         '<div class="muted" style="padding:14px 0 4px;font-size:13px">No processor connected yet. Click “+ …” above to connect one and start accepting cards and Apple/Google Pay.</div></div>';
     }
     const paypalCards = a.key === 'paypal_cards';
+    const antom = a.key === 'antom';
     const express = pExpressFor(a);
+    const under = pUnderCard(a);
     const expIcos = express.map((id) => PAY_ICON[id]).join(' ');
-    const cardOnly = !express.length;
-    const intro = cardOnly
-      ? 'Once a processor is connected, card input shows at checkout. This processor does not provide Apple Pay or Google Pay.'
-      : 'Once a processor is connected, card input and Express both show at checkout automatically; the specific wallets are auto-detected by buyer device/environment.';
+    const fixedAddress = under.length > 0;
+    const cardOnly = !express.length && !antom && !fixedAddress;
+    const intro = antom
+      ? 'Card fields use this Antom account. Wallets from the same account appear by buyer country.'
+      : (a.key === 'oceanpay'
+        ? 'Card input shows at checkout. Google Pay appears under Cards, because only a fixed shipping address can be passed. Apple Pay is not available.'
+        : (fixedAddress
+          ? 'Card input shows at checkout. Apple Pay and Google Pay appear under Cards, because only a fixed shipping address can be passed.'
+          : (cardOnly
+            ? 'Once a processor is connected, card input shows at checkout. This processor does not provide Apple Pay or Google Pay.'
+            : 'Once a processor is connected, card input and Express both show at checkout automatically; the specific wallets are auto-detected by buyer device/environment.')));
     const cardMeta = (paypalCards ? 'PayPal Card Fields · Visa / Mastercard / Amex …' : 'Visa / Mastercard / Amex / UnionPay …') + ' · ' + pDashLink(a.key, 'Manage in dashboard ↗');
-    const expressMeta = cardOnly
-      ? (a.key === 'nmi'
-        ? 'NMI currently supports card payments only. Apple Pay and Google Pay are not available. To offer wallets, switch the card processor to Stripe, Airwallex, or PayPal.'
-        : 'This processor supports card payments only. Apple Pay and Google Pay are not available.')
-      : 'Auto-rendered by buyer environment';
-    const expressRow = '<div class="slot-row"><span class="ic">' + (expIcos || '<span class="muted" style="font-size:12px">This processor has no Express</span>') + '</span><div class="bd"><span class="lbl">Express Checkout</span><span class="meta">' + expressMeta + '</span></div></div>';
+    const underMeta = a.key === 'nmi'
+      ? 'Apple Pay and Google Pay appear under Cards. They use a fixed shipping address, so buyers cannot change the shipping method. Subscriptions and additional charges are not supported.'
+      : (a.key === 'oceanpay'
+        ? 'Google Pay appears under Cards. It uses a fixed shipping address, so buyers cannot change the shipping method. Apple Pay is not available.'
+        : 'Apple Pay and Google Pay appear under Cards. They use a fixed shipping address, so buyers cannot change the shipping method.');
+    const expressMeta = a.key === 'oceanpay'
+      ? 'Google Pay is not shown in Express Checkout. It appears under Cards. Apple Pay is not available.'
+      : (fixedAddress
+        ? 'Apple Pay and Google Pay are not shown in Express Checkout. They appear under Cards.'
+      : (a.key === 'worldpay'
+        ? 'Worldpay card checkout supports cards only. Apple Pay and Google Pay are not available.'
+        : (a.key === 'useepay'
+          ? 'Apple Pay appears when the UseePay account, checkout domain, and buyer device are eligible. Google Pay is not available.'
+          : (a.key === 'nuvei'
+            ? 'Apple Pay and Google Pay. Local methods such as iDEAL are not offered.'
+            : (antom
+              ? 'Apple Pay and Google Pay are not part of this connection.'
+              : (cardOnly
+                ? 'This processor supports card payments only. Apple Pay and Google Pay are not available.'
+                : 'Auto-rendered by buyer environment'))))));
+    const underRow = fixedAddress
+      ? '<div class="slot-row"><span class="ic">' + under.map((id) => PAY_ICON[id]).join(' ') + '</span><div class="bd"><span class="lbl">Under Cards</span><span class="meta">' + underMeta + '</span></div></div>'
+      : '';
+    const expressEmpty = fixedAddress ? 'Not in Express Checkout' : 'This processor has no Express';
+    const expressRow = '<div class="slot-row"><span class="ic">' + (expIcos || '<span class="muted" style="font-size:12px">' + expressEmpty + '</span>') + '</span><div class="bd"><span class="lbl">Express Checkout</span><span class="meta">' + expressMeta + '</span></div></div>';
+    const antomWallets = antom
+      ? '<div class="slot-row"><span class="ic"><span class="pm-mono">Alipay</span></span><div class="bd"><span class="lbl">Wallets from this account</span><span class="meta">Alipay, AlipayHK, Kakao Pay, GCash, Touch \'n Go, and DANA appear by buyer country. They use this Antom account and are not connected separately.</span></div></div>'
+      : '';
     return '<div class="panel card-pad">' +
       '<div class="slot-head"><span class="slot-title">Processed by ' + esc(a.name) + '</span>' + picker + '</div>' +
       '<div class="sec-sub" style="margin:0 0 14px">' + intro + '</div>' +
       '<div class="slot-row"><span class="ic">' + PAY_ICON.cards + '</span><div class="bd"><span class="lbl">Cards</span><span class="meta">' + cardMeta + '</span></div></div>' +
+      underRow +
       expressRow +
+      antomWallets +
       '<div class="syncline">Synced from the active processor · just now · <span class="lnkico" data-refresh>↻ Refresh</span></div>' +
     '</div>';
   }
@@ -2990,7 +3077,13 @@
   // ② 独立支付方式（PayPal / Klarna 自有直连）
   function pIndep() {
     let html = ''; const pp = D.payments.paypal;
-    html += '<div class="panel imeth paypal-method"><div class="imeth-head"><span class="lg">' + payImg('paypal-logo.svg', 24) + '</span><div><div class="nm">PayPal Wallet</div><div class="sub">Independent wallet, self-settling · runs alongside the card processor</div></div><div class="right">' + pMethPill(pp.connected) + (pp.connected ? '<button class="set-prim" data-cfg="paypal">Manage</button>' : '<button class="btn btn-primary" data-cfg="paypal">Connect</button>') + '</div></div></div>';
+    const venmoOn = pp.connected && (pp.capabilities || {}).venmo === 'enabled';
+    const venmoNote = pp.connected
+      ? (venmoOn
+        ? '<div class="dnote">Venmo is included with this PayPal account and appears for buyers in the United States. It is not a separate connection.</div>'
+        : '<div class="dnote">Venmo is not enabled on this PayPal account, so it does not appear for buyers.</div>')
+      : '<div class="dnote">Venmo appears for buyers in the United States after this PayPal account is connected and Venmo is enabled. It is not a separate connection.</div>';
+    html += '<div class="panel imeth paypal-method"><div class="imeth-head"><span class="lg">' + payImg('paypal-logo.svg', 24) + '</span><div><div class="nm">PayPal Wallet</div><div class="sub">Independent wallet, self-settling · runs alongside the card processor</div></div><div class="right">' + pMethPill(pp.connected) + (pp.connected ? '<button class="set-prim" data-cfg="paypal">Manage</button>' : '<button class="btn btn-primary" data-cfg="paypal">Connect</button>') + '</div></div>' + venmoNote + '</div>';
     {
       const k = D.payments.klarna;
       if (k.directConnected) {
@@ -3006,17 +3099,23 @@
   function pPreview() {
     const a = pActive();
     const express = a ? pExpressFor(a) : [];
+    const underCard = a ? pUnderCard(a) : [];
     const hasPaypal = D.payments.paypal.connected;
+    const venmoOn = hasPaypal && (D.payments.paypal.capabilities || {}).venmo === 'enabled';
+    const shopPayOn = shopPayShopifyPaymentsOn();
+    const antomOn = !!(a && a.key === 'antom');
     const klarnaDirect = D.payments.klarna.directConnected;
     const hasCard = !!a;
-    if (!express.length && !hasPaypal && !klarnaDirect && !hasCard) return '<div class="muted" style="text-align:center;padding:24px 0;font-size:13px">No payment provider connected yet, buyers can\'t pay.</div>';
+    if (!express.length && !hasPaypal && !klarnaDirect && !hasCard && !shopPayOn) return '<div class="muted" style="text-align:center;padding:24px 0;font-size:13px">No payment provider connected yet, buyers can\'t pay.</div>';
     const order = { applepay: 0, googlepay: 1, link: 2, amazonpay: 3, klarna: 4 };
     express.sort((x, y) => (order[x] ?? 9) - (order[y] ?? 9));
     const stacked = a && a.key === 'airwallex';
     const ppBtn = '<div style="height:46px;border-radius:9px;background:#ffc439;display:grid;place-items:center;margin-bottom:8px">' + payImg('paypal-logo.svg', 20) + '</div>';
     const fullBox = (id) => '<div class="wallet" style="width:100%;height:46px;margin-bottom:8px">' + PAY_ICON[id] + '</div>';
     let html = '';
+    if (shopPayOn) html += '<div style="height:46px;border-radius:9px;background:#5a31f4;color:#fff;display:grid;place-items:center;margin-bottom:8px;font-weight:700">Shop Pay</div>';
     if (hasPaypal) html += ppBtn;
+    if (venmoOn) html += '<div style="height:46px;border-radius:9px;background:#3d95ce;color:#fff;display:grid;place-items:center;margin-bottom:8px;font-weight:700">Venmo</div>';
     if (stacked) {
       express.forEach((id) => html += fullBox(id));
       if (klarnaDirect && !express.includes('klarna')) html += fullBox('klarna');
@@ -3025,10 +3124,17 @@
       if (grid.length) html += '<div class="wallets">' + grid.map((id, i) => { const full = (grid.length % 2 === 1) && (i === grid.length - 1); return '<div class="wallet"' + (full ? ' style="grid-column:1 / -1"' : '') + '>' + PAY_ICON[id] + '</div>'; }).join('') + '</div>';
     }
     if (hasCard) {
-      const anyW = hasPaypal || express.length || klarnaDirect;
+      const anyW = hasPaypal || venmoOn || shopPayOn || express.length || klarnaDirect || antomOn;
       if (anyW) html += '<div style="text-align:center;font-size:11px;color:var(--ink-muted);margin:2px 0 10px">or pay with card</div>';
       html += '<div class="ck-opt sel"><span class="ck-radio"></span><span>Cards</span><span class="ck-ico">' + PAY_ICON.cards + '</span></div>';
     }
+    if (underCard.length) {
+      const walletLabel = { applepay: 'Apple Pay', googlepay: 'Google Pay' };
+      underCard.forEach((id) => {
+        html += '<div class="ck-opt"><span class="ck-radio"></span><span>' + walletLabel[id] + '</span><span class="ck-ico">' + PAY_ICON[id] + '</span></div>';
+      });
+    }
+    if (antomOn) html += '<div class="ck-opt"><span class="ck-radio"></span><span>Alipay</span></div><div class="muted" style="font-size:11px;margin:-4px 0 8px">Other Antom wallets appear by buyer country.</div>';
     if (hasPaypal) html += '<div class="ck-opt" data-preview-wallet="paypal"><span class="ck-radio"></span><span>PayPal</span><span class="ck-ico">' + PAY_ICON.paypal + '</span></div>';
     if (klarnaDirect) html += '<div class="ck-opt" data-preview-wallet="klarna"><span class="ck-radio"></span><span>Pay With Klarna</span><span class="ck-ico">' + PAY_ICON.klarna + '</span></div>';
     return html + '<div class="ck-pay">Pay now</div>';
@@ -3046,10 +3152,25 @@
       ? '<div class="dnote" style="margin-top:10px">Cards will move to PayPal. Apple Pay and Google Pay will appear only after the PayPal account, checkout domain, and buyer environment are eligible.</div>'
       : '';
     const nmiImpact = key === 'nmi'
-      ? '<div class="dnote" style="margin-top:10px">Apple Pay and Google Pay will no longer appear at checkout. Buyers can still pay by card through NMI. PayPal Wallet and Klarna are not affected.</div>'
+      ? '<div class="dnote" style="margin-top:10px">Apple Pay and Google Pay appear under Cards. They use a fixed shipping address, so buyers cannot change the shipping method. Subscriptions and additional charges are not supported. PayPal Wallet and Klarna are not affected.</div>'
+      : '';
+    const worldpayImpact = key === 'worldpay'
+      ? '<div class="dnote" style="margin-top:10px">Apple Pay and Google Pay will no longer appear. Buyers can still pay by card through Worldpay. PayPal Wallet and Klarna are not affected.</div>'
+      : '';
+    const nuveiImpact = key === 'nuvei'
+      ? '<div class="dnote" style="margin-top:10px">Apple Pay and Google Pay appear when the Nuvei account and the buyer\'s device are eligible. Local methods such as iDEAL are not offered.</div>'
+      : '';
+    const antomImpact = key === 'antom'
+      ? '<div class="dnote" style="margin-top:10px">Cards move to Antom. Alipay and other wallets from this account appear by buyer country. Apple Pay and Google Pay from the previous processor no longer appear.</div>'
+      : '';
+    const useepayImpact = key === 'useepay'
+      ? '<div class="dnote" style="margin-top:10px">Apple Pay appears when the UseePay account, checkout domain, and buyer device are eligible. Google Pay is not available.</div>'
+      : '';
+    const oceanpayImpact = key === 'oceanpay'
+      ? '<div class="dnote" style="margin-top:10px">Google Pay appears under Cards. It uses a fixed shipping address, so buyers cannot change the shipping method. Apple Pay is not available. PayPal Wallet and Klarna are not affected.</div>'
       : '';
     modal({ title: 'Switch card processor', width: 440, okText: 'Switch',
-      body: '<div style="font-size:13.5px;line-height:1.65;color:var(--ink-body)">Cards and Express Checkout at checkout will switch processor. The payment methods buyers see may change accordingly.</div><div style="font-size:13px;margin-top:8px"><b>' + esc(cur ? cur.name : '—') + '</b> → <b>' + esc(p.name) + '</b></div>' + paypalImpact + nmiImpact + '<div class="muted" style="font-size:12px;margin-top:10px">Switch during off-peak hours; in-flight transactions are unaffected.</div>',
+      body: '<div style="font-size:13.5px;line-height:1.65;color:var(--ink-body)">Cards and Express Checkout at checkout will switch processor. The payment methods buyers see may change accordingly.</div><div style="font-size:13px;margin-top:8px"><b>' + esc(cur ? cur.name : '—') + '</b> → <b>' + esc(p.name) + '</b></div>' + paypalImpact + nmiImpact + worldpayImpact + nuveiImpact + antomImpact + useepayImpact + oceanpayImpact + '<div class="muted" style="font-size:12px;margin-top:10px">Switch during off-peak hours; in-flight transactions are unaffected.</div>',
       onOk: (m, close) => { D.payments.cardProcessor = key; close(); renderPayments(); toast('Switched successfully'); } });
   }
 
@@ -3280,6 +3401,7 @@
     '.payv2 .imeth{display:flex;align-items:center;gap:13px;padding:15px 16px;margin-bottom:12px}' +
     '.payv2 .paypal-method{display:block}.payv2 .imeth-head{display:flex;align-items:center;gap:13px}' +
     '.payv2 .imeth .lg{height:24px;display:flex;align-items:center}.payv2 .imeth .lg img{height:24px}' +
+    '.payv2 .imeth .lg:has(.shop-pay-mark){height:auto}.payv2 .shop-pay-mark{height:36px;width:auto;display:block}' +
     '.payv2 .imeth .nm{font-weight:700;font-size:14px;color:var(--ink)}' +
     '.payv2 .imeth .sub{font-size:12.5px;color:var(--ink-muted);margin-top:2px}' +
     '.payv2 .imeth .right{margin-left:auto;display:flex;align-items:center;gap:10px}' +
@@ -3304,6 +3426,21 @@
     '.payv2 .preview-note{font-size:11.5px;color:var(--ink-muted);text-align:center;margin-top:10px;line-height:1.5}' +
     '.payv2 .foot-note{font-size:12px;color:var(--ink-muted);margin-top:20px;line-height:1.7}';
 
+  const SHOP_PAY_MARK = '<svg class="shop-pay-mark" viewBox="0 0 1621 1024" aria-hidden="true"><path d="M1493.333333 0H128C55.466667 0 0 55.466667 0 128v768c0 72.533333 59.733333 128 128 128h1365.333333c72.533333 0 128-55.466667 128-128V128c0-72.533333-59.733333-128-128-128z" fill="#000000" opacity=".07"></path><path d="M1531.264 0C1580.8 0 1621.333333 41.898667 1621.333333 93.098667v837.802666c0 51.2-40.533333 93.098667-90.069333 93.098667H90.026667C40.533333 1024 0 982.101333 0 930.901333V93.098667C0 41.898667 40.533333 0 90.069333 0h1441.194667z" fill="#5A31F4"></path><path d="M398.933333 485.034667c-43.392-9.514667-62.72-13.226667-62.72-30.08 0-15.872 13.056-23.808 39.253334-23.808 23.04 0 39.850667 10.154667 52.266666 30.037333a3.413333 3.413333 0 0 0 4.437334 1.28l48.896-24.917333a3.413333 3.413333 0 0 0 1.706666-2.133334 3.498667 3.498667 0 0 0-0.341333-2.730666c-20.266667-35.456-57.728-54.869333-107.093333-54.869334-64.853333 0-105.130667 32.213333-105.130667 83.456 0 54.4 49.066667 68.138667 92.586667 77.653334 43.52 9.472 62.890667 13.226667 62.890666 30.08 0 16.896-14.165333 24.832-42.368 24.832-26.112 0-45.44-12.032-57.173333-35.413334a3.413333 3.413333 0 0 0-4.565333-1.493333l-48.768 24.32a3.541333 3.541333 0 0 0-1.536 4.736c19.370667 39.253333 59.050667 61.312 112.085333 61.312 67.541333 0 108.330667-31.658667 108.330667-84.48s-49.28-68.181333-92.714667-77.653333l-0.042667-0.128z m261.973334-107.221334c-27.733333 0-52.224 9.898667-69.802667 27.562667a1.706667 1.706667 0 0 1-1.92 0.426667 1.706667 1.706667 0 0 1-1.024-1.706667v-112.64a3.413333 3.413333 0 0 0-3.413333-3.456H523.52a3.413333 3.413333 0 0 0-3.413333 3.498667v349.610666a3.413333 3.413333 0 0 0 0.981333 2.474667 3.413333 3.413333 0 0 0 2.432 1.024h61.141333a3.413333 3.413333 0 0 0 3.456-3.498667v-153.344c0-29.653333 22.528-52.352 52.864-52.352 30.293333 0 52.309333 22.229333 52.309334 52.352v153.344a3.370667 3.370667 0 0 0 0.981333 2.474667 3.413333 3.413333 0 0 0 2.474667 1.024h61.141333a3.413333 3.413333 0 0 0 3.456-3.498667v-153.344c0-64.426667-41.813333-109.952-100.437333-109.952z m224.554666-10.026666c-33.194667 0-64.298667 10.24-86.613333 25.088a3.498667 3.498667 0 0 0-1.152 4.650666l26.965333 46.421334a3.413333 3.413333 0 0 0 4.693334 1.28 106.666667 106.666667 0 0 1 56.234666-15.616c53.333333 0 92.586667 38.016 92.586667 88.234666 0 42.794667-31.402667 74.453333-71.210667 74.453334-32.426667 0-54.954667-19.029333-54.954666-45.952 0-15.402667 6.485333-28.032 23.381333-36.949334a3.413333 3.413333 0 0 0 1.365333-4.821333l-25.429333-43.434667a3.413333 3.413333 0 0 0-4.181333-1.493333c-34.090667 12.757333-57.984 43.434667-57.984 84.650667 0 62.293333 49.152 108.8 117.76 108.8 80.085333 0 137.685333-56.021333 137.685333-136.32 0-86.101333-66.986667-148.992-159.146667-148.992z m338.005334 9.514666c-30.890667 0-58.581333 11.52-78.72 31.829334-1.109333 1.152-2.944 0.298667-2.944-1.237334v-24.405333a3.413333 3.413333 0 0 0-2.090667-3.242667 3.413333 3.413333 0 0 0-1.322667-0.256h-59.605333a3.413333 3.413333 0 0 0-3.413333 3.498667v349.098667a3.413333 3.413333 0 0 0 3.413333 3.456h61.141333a3.456 3.456 0 0 0 2.474667-0.981334 3.498667 3.498667 0 0 0 0.981333-2.474666v-114.474667c0-1.536 1.834667-2.304 2.944-1.28a110.933333 110.933333 0 0 0 77.141334 29.866667c71.765333 0 127.701333-58.581333 127.701333-134.698667s-56.021333-134.698667-127.701333-134.698667z m-11.562667 210.304c-40.789333 0-71.722667-32.768-71.722667-76.074666s30.848-76.074667 71.722667-76.074667c40.874667 0 71.68 32.213333 71.68 76.074667 0 43.818667-30.378667 76.074667-71.68 76.074666z" fill="#FFFFFF"></path></svg>';
+
+  function pShopPay() {
+    const on = shopPayShopifyPaymentsOn();
+    const pill = on
+      ? '<span class="pill pill-green"><span class="dot"></span>Available</span>'
+      : '<span class="pill pill-gray"><span class="dot"></span>Not available</span>';
+    const sub = on
+      ? 'Shown in express checkout for buyers with a Shop account. Payouts stay with Shopify Payments. This does not replace the card processor.'
+      : 'Shopify Payments is off. Enable it in Shopify before Shop Pay can appear.';
+    return '<div class="sec-title">③ Shop Pay</div>' +
+      '<div class="sec-sub">Read from your Shopify store. No Shop Pay credentials are entered here.</div>' +
+      '<div class="panel imeth"><span class="lg">' + SHOP_PAY_MARK + '</span><div><div class="nm">Shop Pay</div><div class="sub">' + sub + '</div></div><div class="right">' + pill + '</div></div>';
+  }
+
   function renderPayments() {
     const main =
       '<div class="sec-title" style="margin-top:0">① Cards &amp; Express checkout</div>' +
@@ -3311,7 +3448,8 @@
       pSlot() +
       '<div class="sec-title">② Independent payment methods</div>' +
       '<div class="sec-sub">Self-settling — can run alongside the card processor, each on its own rails.</div>' +
-      pIndep();
+      pIndep() +
+      pShopPay();
     const preview =
       '<div class="preview-col"><div class="phone"><div class="phone-notch"></div>' +
         '<div class="ck-h">Checkout · methods buyers see</div>' + pPreview() + '</div>' +
@@ -5365,7 +5503,7 @@
       ? ['block.refund_summary']
       : isAbandoned
         ? ['block.cta_button', 'block.order_summary']
-        : ['block.cta_button', 'block.order_summary', 'block.customer_information'];
+      : ['block.cta_button', 'block.order_summary', 'block.customer_information'];
     return '<section class="nf-variable-panel"><div class="nf-variable-panel-head"><div><div class="nf-variable-panel-title">' + tx('Available variables') + '</div><div class="nf-variable-panel-copy">' + tx('Click a variable to insert it at the cursor. Blocks are inserted into the email body.') + '</div></div><div class="nf-variable-panel-note">' + tx('Only the variables and blocks listed here are supported.') + '</div></div><div class="nf-variable-grid">' +
       group('Customer', ['customer.first_name', 'customer.name'], 'scalar') +
       group('Store', ['store.name', 'store.url', 'store.contact_email'], 'scalar') +

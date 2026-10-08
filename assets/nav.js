@@ -8,8 +8,8 @@ window.SITE = {
 };
 
 window.STORES = [
-  { name: 'Lavender Labs', url: 'lavender-labs.myshopify.com', homeState: 'unconfigured' },
-  { name: 'Aura Living', url: 'aura-living.myshopify.com', homeState: 'ready' },
+  { name: 'Lavender Labs', url: 'lavender-labs.myshopify.com', homeState: 'unconfigured', shopifyPayments: true },
+  { name: 'Aura Living', url: 'aura-living.myshopify.com', homeState: 'ready', shopifyPayments: false },
   { name: 'Northline Goods', url: 'northline-goods.myshopify.com', homeState: 'live' },
   { name: 'Kiln Coffee', url: 'kiln-coffee.myshopify.com', homeState: 'live', homeDataKey: 'kiln' },
   { name: 'Northstar', url: 'northstar.myshopify.com', connectStatus: 'pending' },
