@@ -375,12 +375,12 @@
     chain = chain.then(function () {
       if (id === 'customers' && !window.DATA_ORDERS) return loadScript('orders/js/data.js?v=' + V);
     });
-    var moduleV = id === 'settings' ? '20261008-ocean-note'
+    var moduleV = id === 'settings' ? '20261010-ac-noline'
       : id === 'online-store' ? '20260924-v23-33'
       : id === 'bestcheckout' ? '20260907-pp-sub2'
       : id === 'bundles' ? '20260924-1p1b'
       : id === 'orders' ? '20260905-ord-ct1'
-      : id === 'abandoned-checkouts' ? '20260923-ac-detail1' : V;
+      : id === 'abandoned-checkouts' ? '20261010-ac-contact' : V;
     chain = chain.then(function () {
       if (id === 'online-store' && !window.POST_PURCHASE_ORDER_MOCK)
         return loadScript('assets/post-purchase-order-mock.js?v=' + moduleV);

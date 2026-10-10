@@ -644,6 +644,17 @@ window.I18N.extend({
   "Template applied": "模板已应用",
   "Send a test email": "发送测试邮件",
   "Send test": "发送测试",
+  "Abandoned checkout emails": "弃单挽回邮件",
+  "Send an email to customers who didn't finish checking out.": "向未完成结账的客户发送一封邮件。",
+  "Send abandoned checkout emails automatically": "自动发送弃单挽回邮件",
+  "Anyone who abandons their checkout": "任何放弃结账的客户",
+  "Email subscribers who abandon their checkout": "放弃结账的邮件订阅客户",
+  "Send after": "发送时间",
+  "1 hour": "1 小时",
+  "6 hours": "6 小时",
+  "10 hours (recommended)": "10 小时（推荐）",
+  "24 hours": "24 小时",
+  "A checkout becomes abandoned about 10 minutes after the buyer leaves an email. The reminder email is sent after the delay above.": "买家留下邮箱约 10 分钟后，这笔结账才会记为弃单。挽回邮件按上面选择的时间发送。",
   "We'll send this notification with sample order data so you can check how it looks in a real inbox.": "我们将使用示例订单数据发送这封通知，便于你查看它在真实收件箱中的效果。",
   "Send to": "发送至",
   // ---- preset / block labels ----
@@ -659,12 +670,17 @@ window.I18N.extend({
   // ---- preview body copy ----
   "View your order": "查看你的订单",
   "Visit our store": "访问我们的店铺",
+  "You left items in your cart": "你的购物车里还有商品",
+  "Complete your Purchase": "完成购买",
+  "Items in your cart": "购物车中的商品",
+  "Complete your purchase": "完成购买",
   "Track package": "追踪包裹",
   "Subtotal": "小计",
   "Total": "合计",
 
   // ===================== SHARED TOASTS / CONFIRMS =====================
   "Updated successfully": "更新成功",
+  "Changes discarded": "已放弃更改",
   "Added successfully": "添加成功",
   "Created successfully": "创建成功",
   "Saved": "已保存"
@@ -1021,6 +1037,7 @@ window.I18N.extend({
   "Checkout customer emails": "结账顾客邮件",
   "Final order confirmation": "最终订单确认",
   "Sent once after payment and every Upsell or Downsell decision are complete.": "付款成功且所有 Upsell / Downsell 决策完成后，仅发送一次。",
+  "Sent once after a Hosted Checkout becomes abandoned. The checkout is marked abandoned about 10 minutes after an email is left.": "Hosted Checkout 记为弃单后仅发送一次。买家留下邮箱约 10 分钟后才会记为弃单。",
   "One From identity and reply-to address for this store’s transactional email.": "此店铺全部事务邮件共用一个发件身份和回复地址。",
   "Complete the sender identity fields": "请填写完整的发件身份信息",
   "Sender identity saved": "发件身份已保存",
@@ -1137,5 +1154,6 @@ window.I18N.addRules([
   { re: /^DNS records created for (.+)$/, zh: function (m) { return '已为 ' + m[1] + ' 生成 DNS 记录'; } },
   { re: /^Test preview recorded for (.+)$/, zh: function (m) { return '已为 ' + m[1] + ' 记录测试预览'; } },
   { re: /^All (\d+) shops$/, zh: function (m) { return '全部 ' + m[1] + ' 家店铺'; } },
-  { re: /^All (\d+) shops · Last used (.+)$/, zh: function (m) { return '全部 ' + m[1] + ' 家店铺 · 上次使用 ' + (m[2] === '2 hours ago' ? '2 小时前' : m[2] === 'Never used' ? '从未使用' : m[2]); } }
+  { re: /^A checkout is marked abandoned about (\d+) minutes after an email is left\. The reminder email is sent (\d+) hours? after that\.$/, zh: function (m) { return '买家留下邮箱约 ' + m[1] + ' 分钟后，这笔结账记为弃单。挽回邮件在此后 ' + m[2] + ' 小时发送。'; } },
+  { re: /^Hi (.+), you added items to your shopping cart and haven't completed your purchase\. You can complete it now while they're still available\.$/, zh: function (m) { return '你好 ' + m[1] + '，你把商品加进了购物车，但还没有完成购买。这些商品现在仍可结算。'; } }
 ]);

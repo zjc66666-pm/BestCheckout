@@ -582,6 +582,7 @@
     'Saved checkout page draft': '已保存结账页面草稿',
     'The draft remains private until you publish it.': '草稿会保持私密，直到你发布它。',
     'Abandoned checkouts': '未完成结账',
+    'Recovered': '已挽回',
     'Abandoned checkout': '未完成结账',
     'Recover unpaid Hosted Checkout orders that never reached Shopify.': '挽回尚未回写到 Shopify 的未付 Hosted Checkout 订单。',
     'These are unpaid Hosted Checkout orders that sat idle for 60 minutes. They are not written to Shopify. Paid orders stay in Orders. Recovery emails need marketing consent.': '这些是空闲超过 60 分钟的未付 Hosted Checkout 订单，不会回写到 Shopify。已付款订单仍在订单列表。挽回邮件需要营销同意。',

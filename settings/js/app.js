@@ -5425,6 +5425,7 @@
   let notifSub = null;
   let notifDevice = 'desktop';
   let notifEditorMode = 'preview';
+  let nfBaseline = null;
   let nfInsertTarget = 'nf-template';
   let nfInsertSelection = { id: null, start: null, end: null };
 
@@ -5581,10 +5582,12 @@
     }).join('');
     const totalRow = (label, val) => '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:13.5px;color:#6b7480"><span>' + label + '</span><span>' + val + '</span></div>';
     const nfUnbreakMoney = (value) => String(value || '').replace(/\s+/g, '\u00a0');
-    const shopifyProductDiscount = (label, amount) => '<div class="nf-email-product-discount"><img src="../settings/assets/shopify-discount-tag.png" alt="" aria-hidden="true"><span>' + esc(label) + (amount ? ' (' + esc(nfUnbreakMoney(amount)) + ')' : '') + '</span></div>';
-    const shopifyItemsRows = (items) => items.map((it) => {
-      const discounts = it.discounts || (it.discountCode ? [{ label: it.discountCode, amount: it.discountAmount }] : []);
-      const subscription = it.subscription
+    const nfDiscountTag = '<svg aria-hidden="true" fill="none" width="13" height="13" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z"/><circle cx="7.5" cy="7.5" r="1.3"/></svg>';
+    const shopifyProductDiscount = (label, amount) => '<div class="nf-email-product-discount">' + nfDiscountTag + '<span>' + esc(label) + (amount ? ' (' + esc(nfUnbreakMoney(amount)) + ')' : '') + '</span></div>';
+    const shopifyItemsRows = (items, opts) => items.map((it) => {
+      const showPrice = !(opts && opts.hidePrice);
+      const discounts = showPrice ? (it.discounts || (it.discountCode ? [{ label: it.discountCode, amount: it.discountAmount }] : [])) : [];
+      const subscription = it.subscription && !(opts && opts.hideSubscription)
         ? '<div class="nf-email-subscription"><span>Subscription</span><b>·</b><span>' + esc(it.subscription.cadence) + '</span></div>'
         : '';
       const componentRows = (it.children || []).map((child) =>
@@ -5600,11 +5603,11 @@
           '<div class="nf-email-product-head"><div class="nf-email-product-title">' + (it.kind === 'bundle' ? '<span class="nf-email-bundle-badge i18n-skip">Bundle</span>' : '') + esc(it.name) + '&nbsp;&times;&nbsp;' + it.qty + '</div>' + variant + '</div>' +
           (details ? '<div class="nf-email-product-details">' + details + '</div>' : '') +
         '</div>' +
-        '<div class="nf-email-product-price">' + (it.originalPrice ? '<del>' + esc(it.originalPrice) + '</del>' : '') + '<span>' + esc(it.price) + '</span></div>' +
+        (showPrice ? '<div class="nf-email-product-price">' + (it.originalPrice ? '<del>' + esc(it.originalPrice) + '</del>' : '') + '<span>' + esc(it.price) + '</span></div>' : '') +
       '</div>';
     }).join('');
     const shopifyTotalRow = (label, val, strong) => '<div class="nf-email-total-row' + (strong ? ' is-strong' : '') + '"><span>' + label + '</span><span>' + val + '</span></div>';
-    const shopifyDiscountCode = (code, amount) => '<div class="nf-email-discount-code"><img src="../settings/assets/shopify-discount-tag.png" alt="" aria-hidden="true"><span>' + esc(code) + (amount ? ' (' + esc(nfUnbreakMoney(amount)) + ')' : '') + '</span></div>';
+    const shopifyDiscountCode = (code, amount) => '<div class="nf-email-discount-code">' + nfDiscountTag + '<span>' + esc(code) + (amount ? ' (' + esc(nfUnbreakMoney(amount)) + ')' : '') + '</span></div>';
     const shopifyShippingRows = () => {
       const freeShipping = NF_SAMPLE['order.shipping_discount_code'];
       const shippingValue = freeShipping
@@ -5639,7 +5642,7 @@
       '</div></section>';
     if (tag === 'block.cta_button')
       return '<div class="nf-email-actions">' +
-        '<a href="' + (nfPreviewEvent === 'abandoned_checkout' ? esc(NF_SAMPLE['checkout.recovery_url']) : '#') + '" class="nf-email-button" style="background:' + color + '">' + (nfPreviewEvent === 'abandoned_checkout' ? 'Complete your checkout' : 'View your order') + '</a>' +
+        '<a href="' + (nfPreviewEvent === 'abandoned_checkout' ? esc(NF_SAMPLE['checkout.recovery_url']) : '#') + '" class="nf-email-button" style="background:' + color + '">' + (nfPreviewEvent === 'abandoned_checkout' ? 'Items in your cart' : 'View your order') + '</a>' +
         '<span class="nf-email-action-or">or</span><a href="#" class="nf-email-store-link" style="color:' + color + '">Visit our store</a></div>';
     if (tag === 'block.tracking')
       return panel('Tracking number · ' + NF_SAMPLE['shipment.carrier'],
@@ -5657,6 +5660,9 @@
         '<div class="nf-email-refund-payments"><div class="nf-email-refund-payment-row"><div><span>Visa</span><small>ending in 4242</small></div><strong>' + NF_SAMPLE['order.total'] + '</strong></div>' +
           shopifyRefundTransactions() + '</div>' +
       '</div></section>';
+    if (tag === 'block.order_summary' && nfPreviewEvent === 'abandoned_checkout')
+      return '<section class="nf-email-section nf-email-summary is-abandoned"><div class="nf-email-section-inner">' +
+        '<h3>Complete your purchase</h3><div class="nf-email-product-list">' + shopifyItemsRows(NF_ITEMS, { hidePrice: true, hideSubscription: true }) + '</div></div></section>';
     if (tag === 'block.order_summary')
       return '<section class="nf-email-section nf-email-summary"><div class="nf-email-section-inner">' +
         '<h3>Order summary</h3><div class="nf-email-product-list">' + shopifyItemsRows(NF_ITEMS) + '</div>' +
@@ -5692,11 +5698,11 @@
     const color = b.primaryColor || '#0066e6';
     const mobile = st.device === 'mobile';
     const width = mobile ? 360 : 600;
-    const unsub = st.eventCode === 'abandoned_checkout' ? '<div class="nf-email-unsub" style="margin-top:10px"><a href="#" style="color:' + color + '">Unsubscribe from marketing emails</a></div>' : '';
+    const orderNumber = st.eventCode === 'abandoned_checkout' ? '' : '<div class="nf-email-order-number">Order #' + esc(NF_SAMPLE['order.number']) + '</div>';
     return '<div class="email-card' + (mobile ? ' is-mobile' : '') + (st.eventCode === 'checkout_refunded' ? ' is-refund' : '') + '" style="width:' + width + 'px">' +
-      '<div class="nf-email-header"><div class="nf-email-inner"><a href="#" class="nf-email-shop-name">' + esc(b.storeName || 'Your store') + '</a><div class="nf-email-order-number">Order #' + esc(NF_SAMPLE['order.number']) + '</div></div></div>' +
+      '<div class="nf-email-header"><div class="nf-email-inner"><a href="#" class="nf-email-shop-name">' + esc(b.storeName || 'Your store') + '</a>' + orderNumber + '</div></div>' +
       '<div class="nf-email-body">' + nfExpand(st.body, b) + '</div>' +
-      '<div class="nf-email-footer"><div class="nf-email-inner">If you have any questions, reply to this email or contact us at <a href="mailto:' + esc(nfReplyToAddress()) + '" style="color:' + color + '">' + esc(nfReplyToAddress()) + '</a>' + unsub + '</div></div>' +
+      '<div class="nf-email-footer"><div class="nf-email-inner">If you have any questions, reply to this email or contact us at <a href="mailto:' + esc(nfReplyToAddress()) + '" style="color:' + color + '">' + esc(nfReplyToAddress()) + '</a></div></div>' +
     '</div>';
   }
 
@@ -5707,6 +5713,7 @@
       device: notifDevice,
       fromName: D.notifications.sender.profile.fromName,
       fromEmail: nfSenderAddress(),
+      eventCode: ev.code,
       subject: g('nf-subject') || ev.config.subject,
       preheader: g('nf-preheader') || ev.config.preheader,
       body: nfSanitizeTemplate(ev, g('nf-template') || ev.config.template || nfTemplateSource(ev, ev.config.headline, ev.config.copy)),
@@ -5765,7 +5772,7 @@
         return '<div class="nf-row" data-edit="' + ev.code + '">' +
           '<span class="nf-ico">' + I.globe + '</span>' +
           '<div class="nf-main"><div class="nf-name">' + esc(ev.name) + '</div>' +
-            '<div class="nf-desc">' + esc(ev.desc) + '</div></div>' +
+            '<div class="nf-desc">' + esc(nfEventDesc(ev)) + '</div></div>' +
           '<div class="nf-right">' + nfStatusPill(c) + nfSwitch(c.enabled, ev.code) + '<span class="nf-chev">' + I.chevR + '</span></div>' +
         '</div>';
       }).join('');
@@ -5795,6 +5802,7 @@
       const c = f.ev.config;
       if (!c.enabled && !nfActiveDomain()) return toast('Verify a sender domain before enabling email notifications.');
       c.enabled = !c.enabled;
+      if (f.ev.delivery) f.ev.delivery.autoSend = c.enabled;
       toast(c.enabled ? f.ev.name + ' turned on' : f.ev.name + ' turned off');
       renderNotifList();
     });
@@ -5996,7 +6004,101 @@
     });
   }
 
+  function nfAbandonedTimingCopy(ev) {
+    const minutes = (D.order && D.order.abandonThresholdMinutes) || 10;
+    const hours = Number((ev && ev.delivery && ev.delivery.sendAfterHours) || 10);
+    const unit = hours === 1 ? 'hour' : 'hours';
+    return 'A checkout is marked abandoned about ' + minutes + ' minutes after an email is left. The reminder email is sent ' + hours + ' ' + unit + ' after that.';
+  }
+
+  function nfEventDesc(ev) {
+    return ev && ev.code === 'abandoned_checkout' ? nfAbandonedTimingCopy(ev) : (ev && ev.desc) || '';
+  }
+
+  function nfAbandonedDeliveryCard(ev) {
+    const d = ev.delivery || { autoSend: true, audience: 'anyone', sendAfterHours: 10 };
+    const radio = (name, value, checked, label) =>
+      '<label style="display:flex;align-items:flex-start;gap:8px;margin:8px 0;font-size:13.5px;color:var(--ink);cursor:pointer"><input type="radio" name="' + name + '" value="' + value + '"' + (checked ? ' checked' : '') + ' style="margin-top:2px" /><span>' + label + '</span></label>';
+    const hours = [
+      [1, '1 hour'],
+      [6, '6 hours'],
+      [10, '10 hours (recommended)'],
+      [24, '24 hours'],
+    ];
+    return '<section class="panel card-pad" style="margin-bottom:16px">' +
+      '<div style="font-size:13px;font-weight:650;color:var(--ink)">Send after</div>' +
+      hours.map((pair) => radio('ac-delay', String(pair[0]), Number(d.sendAfterHours) === pair[0], pair[1])).join('') +
+      '<div class="muted" id="nf-ac-timing" style="font-size:12.5px;line-height:1.5;margin-top:8px">' + esc(nfAbandonedTimingCopy(ev)) + '</div>' +
+    '</section>';
+  }
+
+  function nfWireAbandonedDelivery(ev) {
+    if (ev.code !== 'abandoned_checkout') return;
+    const d = ev.delivery || (ev.delivery = { autoSend: true, audience: 'anyone', sendAfterHours: 10 });
+    root.querySelectorAll('[name="ac-delay"]').forEach((el) => { el.onchange = () => {
+      d.sendAfterHours = Number(el.value);
+      const hint = root.querySelector('#nf-ac-timing');
+      if (hint) {
+        hint.textContent = nfAbandonedTimingCopy(ev);
+        if (window.I18N && window.I18N.apply) window.I18N.apply(hint);
+      }
+      nfSyncEditorDirty(ev);
+    }; });
+  }
+
+  function nfSnap(ev) {
+    const c = ev.config || {};
+    const d = ev.delivery;
+    return {
+      code: ev.code,
+      subject: c.subject || '',
+      template: c.template || '',
+      preheader: c.preheader || '',
+      headline: c.headline || '',
+      copy: c.copy || '',
+      delivery: d ? { autoSend: !!d.autoSend, audience: d.audience || 'anyone', sendAfterHours: Number(d.sendAfterHours || 10) } : null,
+    };
+  }
+
+  function nfSnapEqual(a, b) {
+    if (!a || !b) return false;
+    return a.subject === b.subject && a.template === b.template && a.preheader === b.preheader
+      && a.headline === b.headline && a.copy === b.copy
+      && JSON.stringify(a.delivery) === JSON.stringify(b.delivery);
+  }
+
+  function nfApplySnap(ev, snap) {
+    const c = ev.config;
+    c.subject = snap.subject;
+    c.template = snap.template;
+    c.preheader = snap.preheader;
+    c.headline = snap.headline;
+    c.copy = snap.copy;
+    if (snap.delivery && ev.delivery) Object.assign(ev.delivery, snap.delivery);
+  }
+
+  function nfRememberBaseline(ev) {
+    if (!nfBaseline || nfBaseline.code !== ev.code) nfBaseline = nfSnap(ev);
+  }
+
+  function nfEditorDirty(ev) {
+    return !!(nfBaseline && nfBaseline.code === ev.code && !nfSnapEqual(nfSnap(ev), nfBaseline));
+  }
+
+  function nfSyncEditorDirty(ev) {
+    if (window.UI && window.UI.setUnsavedBar) window.UI.setUnsavedBar(root, nfEditorDirty(ev));
+  }
+
+  function nfRevertBaseline() {
+    if (!nfBaseline) return;
+    const found = nfFindEvent(nfBaseline.code);
+    if (found && !nfSnapEqual(nfSnap(found.ev), nfBaseline)) nfApplySnap(found.ev, nfBaseline);
+    nfBaseline = null;
+    if (window.UI && window.UI.setUnsavedBar) window.UI.setUnsavedBar(document, false);
+  }
+
   function renderNotifEditor(ev) {
+    nfRememberBaseline(ev);
     const c = ev.config;
     const isCode = notifEditorMode === 'code';
     const source = nfSanitizeTemplate(ev, c.template || nfTemplateSource(ev, c.headline, c.copy));
@@ -6018,8 +6120,11 @@
       variablePanel +
       '</section>';
 
-    paint('<style>' + NOTIF_STYLES + '</style><div class="nf-shop-shell">' +
+    const deliveryCard = (!isCode && ev.code === 'abandoned_checkout') ? nfAbandonedDeliveryCard(ev) : '';
+    const unsaved = window.UI && window.UI.unsavedBar ? window.UI.unsavedBar({ show: false, saveLabel: 'Update', saveAct: 'nf-update', discardAct: 'nf-discard' }) : '';
+    paint(unsaved + '<style>' + NOTIF_STYLES + '</style><div class="nf-shop-shell">' +
       '<div class="nf-shop-head"><div class="flex items-center gap-3"><button class="back-btn" data-back title="Back">' + I.chevL + '</button><div class="nf-crumb">' + crumbs + '</div></div><div class="flex items-center gap-2">' + actions + '</div></div>' +
+      deliveryCard +
       (isCode ? code : preview) + '</div>', false);
 
     if (!isCode) { nfUpdatePreview(ev); setTimeout(nfFit, 0); }
@@ -6029,11 +6134,25 @@
         location.hash = nfEditorPath(ev.code, 'preview');
         return;
       }
+      if (nfEditorDirty(ev)) { toast('You have unsaved changes'); return; }
       location.hash = '#/settings/notifications';
     };
+    root.querySelector('[data-act="nf-discard"]')?.addEventListener('click', () => {
+      if (nfBaseline) nfApplySnap(ev, nfBaseline);
+      renderNotifEditor(ev);
+      toast('Changes discarded');
+    });
+    root.querySelector('[data-act="nf-update"]')?.addEventListener('click', () => {
+      nfSaveFromForm(ev);
+      nfBaseline = nfSnap(ev);
+      nfSyncEditorDirty(ev);
+      toast('Updated successfully');
+    });
+    nfSyncEditorDirty(ev);
     root.querySelector('[data-code]')?.addEventListener('click', () => { location.hash = nfEditorPath(ev.code, 'code'); });
     root.querySelector('[data-preview]')?.addEventListener('click', () => { nfSaveFromForm(ev); location.hash = nfEditorPath(ev.code, 'preview'); });
     root.querySelector('[data-test]')?.addEventListener('click', () => openNotifTestModal(ev));
+    nfWireAbandonedDelivery(ev);
     root.querySelectorAll('[data-dev]').forEach((bd) => bd.onclick = () => { notifDevice = bd.getAttribute('data-dev'); root.querySelectorAll('[data-dev]').forEach((x) => x.classList.toggle('on', x === bd)); nfUpdatePreview(ev); });
     ['nf-subject', 'nf-template'].forEach((id) => {
       const el = root.querySelector('#' + id);
@@ -6044,7 +6163,7 @@
         const end = typeof el.selectionEnd === 'number' ? el.selectionEnd : start;
         nfInsertSelection = { id, start, end };
       };
-      el.addEventListener('input', () => { rememberTarget(); nfSaveFromForm(ev); });
+      el.addEventListener('input', () => { rememberTarget(); nfSaveFromForm(ev); nfSyncEditorDirty(ev); });
       ['focus', 'click', 'keyup', 'select'].forEach((eventName) => el.addEventListener(eventName, rememberTarget));
     });
     root.querySelectorAll('[data-insert-token]').forEach((button) => button.onclick = () => {
@@ -6287,9 +6406,10 @@
   .email-card .nf-email-subscription b { color: #aaa; font-size: 12px; }
   .email-card .nf-email-product-discounts { margin-top: 4px; }
   .email-card .nf-email-product-discount { display: flex; align-items: flex-start; gap: 5px; margin-top: 3px; color: #777; font-size: 14px; line-height: 1.35; }
-  .email-card .nf-email-product-discount img { display: block; width: 16px; height: 16px; flex: none; margin-top: 2px; }
+  .email-card .nf-email-product-discount svg { display: block; width: 13px; height: 13px; flex: none; margin-top: 3px; }
   .email-card .nf-email-product-discount span { min-width: 0; overflow-wrap: break-word; word-break: normal; }
   .email-card .nf-email-bundle-component { display: flex; align-items: flex-start; gap: 9px; margin: 10px 0 0; padding: 10px 0 0 10px; border-top: 1px solid #f0f0f0; }
+  .email-card .nf-email-summary.is-abandoned .nf-email-bundle-component { border-top: 0; padding-top: 0; }
   .email-card .nf-email-bundle-component-image { width: 36px; height: 36px; flex: none; box-sizing: border-box; border: 1px solid #e4e4e4; border-radius: 3px; background: #fafafa; }
   .email-card .nf-email-bundle-component-copy { min-width: 0; flex: 1; }
   .email-card .nf-email-bundle-component-name { display: block; }
@@ -6307,7 +6427,7 @@
   .email-card .nf-email-total-row.is-strong > span:last-child { color: #555; font-size: 20px; font-weight: 600; }
   .email-card .nf-email-total-paid .nf-email-total-row.is-strong > span:last-child { font-size: 16px; }
   .email-card .nf-email-discount-code { display: flex; align-items: center; gap: 6px; padding: 4px 0 6px 6px; color: #777; font-size: 14px; line-height: 1.35; }
-  .email-card .nf-email-discount-code img { display: block; width: 18px; height: 18px; flex: none; }
+  .email-card .nf-email-discount-code svg { display: block; width: 13px; height: 13px; flex: none; }
   .email-card .nf-email-total-row > span:last-child { display: inline-flex; align-items: baseline; justify-content: flex-end; gap: 10px; }
   .email-card .nf-email-total-row .nf-email-shipping-original { color: #777; font-weight: 400; text-decoration: line-through; }
   .email-card .nf-email-total-row strong { color: #555; font-weight: 600; }
@@ -7167,7 +7287,9 @@
     rateProfile = (key === 'shipping-rates' && sub != null && sub !== '')
       ? (sub === 'new' ? 'new' : Number(decodeURIComponent(sub))) : null;
     domainStep = (key === 'domains' && sub) ? sub : null;
-    notifSub = (key === 'notifications' && sub != null && sub !== '') ? decodeURIComponent(sub) : null;
+    const nextNotif = (key === 'notifications' && sub != null && sub !== '') ? decodeURIComponent(sub) : null;
+    if (nfBaseline && nextNotif !== nfBaseline.code) nfRevertBaseline();
+    notifSub = nextNotif;
     notifEditorMode = key === 'notifications' && notifSub && parts[2] === 'edit' ? 'code' : 'preview';
     ROUTES[key]();
     if (key !== 'subscriptions') wireDirty();

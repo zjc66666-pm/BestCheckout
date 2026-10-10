@@ -11,7 +11,7 @@
   --line: var(--ctl);
   --ok: #008051; --ok-bg: #e0f2ec; --ok-border: #cce6dd;
   --warn: #ffc453; --err: #D33612;
-  --sidebar-w: 200px;
+  --sidebar-w: 220px;
   --header-h: 60px;
   --radius: 8px;
   --float-shadow: 0 6px 16px 0 rgb(0 0 0 / 8%), 0 3px 6px -4px rgb(0 0 0 / 12%), 0 9px 28px 8px rgb(0 0 0 / 5%);
@@ -43,7 +43,7 @@ body { font-size: 14px; line-height: 1.5; color: var(--ink); }
 .nav-item.active .nav-badge { color: var(--brand); }
 .nav-group { margin-top: 4px; }
 .nav-subs { display: flex; flex-direction: column; gap: 4px; padding: 8px 0 10px; }
-.nav-sub { display: flex; align-items: center; gap: 10px; padding: 7px 10px 7px 38px; border-radius: var(--radius); color: var(--ink-body); font-size: 13.5px; cursor: pointer; }
+.nav-sub { display: flex; align-items: center; gap: 10px; padding: 7px 10px 7px 38px; border-radius: var(--radius); color: var(--ink-body); font-size: 13.5px; cursor: pointer; white-space: nowrap; }
 .nav-sub:hover { background: var(--panel); }
 .nav-sub.active { background: #e6f0ff; color: var(--brand); font-weight: 600; }
 .nav-caret { margin-left: auto; transition: transform .15s; color: var(--ink-muted); }
@@ -141,6 +141,7 @@ input[list]::-webkit-calendar-picker-indicator { display: none !important; }
 .pill .dot { width: 8px; height: 8px; border-radius: 50%; }
 .pill-blue { background: #dbeafe; } .pill-blue .dot { background: #2563eb; }
 .pill-orange { background: #ffedd5; } .pill-orange .dot { background: #f97316; }
+.pill-yellow { background: #fef3c7; color: #92400e; } .pill-yellow .dot { background: #d97706; }
 .pill-green { background: var(--ok-bg); } .pill-green .dot { background: var(--ok); }
 .pill-red { background: #fee2e2; } .pill-red .dot { background: #ef4444; }
 .pill-gray { background: #f3f4f6; } .pill-gray .dot { background: #6b7280; }
@@ -198,6 +199,9 @@ input[list]::-webkit-calendar-picker-indicator { display: none !important; }
 .filter-input { height: 34px; padding: 0 32px 0 12px; border: 1px solid var(--ctl); border-radius: var(--radius); font-size: 13px; line-height: 32px; color: var(--ink); width: 280px; background: #fff; box-sizing: border-box; }
 .filter-input:focus { outline: none; border-color: var(--brand); }
 .filter-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.filter-bar .filter-input { height: 34px; line-height: 34px; padding-top: 0; padding-bottom: 0; }
+.filter-bar .ui-select { height: 34px; }
+.filter-bar .ui-select .ui-select-label { transform: none; height: 32px; line-height: 32px; display: flex; align-items: center; }
 .filter-bar .btn { height: 34px; padding-top: 1px; }
 .filter-ico { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--ink-muted); display: inline-flex; align-items: center; pointer-events: none; }
 /* search clear button (shown only when the input has text, via :placeholder-shown) */
