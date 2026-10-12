@@ -20,13 +20,19 @@
   };
   const h = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
 
-  const toast = (msg) => {
+  const toast = (msg, type) => {
+    const level = type || (/failed|error|失败|could not/i.test(String(msg)) ? 'error' : 'success');
+    const tone = level === 'error' ? '#ff4d4f' : level === 'warning' ? '#faad14' : '#52c41a';
+    const glyph = level === 'error' ? '×' : level === 'warning' ? '!' : '✓';
+    document.querySelectorAll('.ac-message').forEach((message) => message.remove());
     const t = document.createElement('div');
-    t.textContent = msg;
-    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#242833;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;z-index:90;box-shadow:var(--float-shadow)';
+    t.className = 'ac-message ' + level;
+    t.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);display:inline-flex;align-items:center;gap:8px;max-width:min(560px,calc(100vw - 48px));padding:9px 16px;background:#fff;color:rgba(0,0,0,.88);border-radius:8px;font-size:14px;line-height:1.45;z-index:300;box-shadow:0 6px 16px rgb(0 0 0 / 8%),0 3px 6px -4px rgb(0 0 0 / 12%),0 9px 28px 8px rgb(0 0 0 / 5%)';
+    t.innerHTML = '<span aria-hidden="true" style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:' + tone + ';color:#fff;font-size:12px;font-weight:700;line-height:1;flex:none">' + glyph + '</span><span></span>';
+    t.lastElementChild.textContent = msg;
     document.body.appendChild(t);
     if (window.I18N) window.I18N.apply(t);
-    setTimeout(() => t.remove(), 1900);
+    setTimeout(() => t.remove(), 2000);
   };
 
   const STATUS = {
@@ -144,8 +150,8 @@
     root.innerHTML =
       '<div class="mb-4"><h1 class="page-title">Abandoned checkouts</h1>' +
         '<p class="orders-page-subtitle" style="margin-top:6px;white-space:nowrap">' + (D.product === 'bestcheckout'
-          ? 'Abandoned after an email or phone is left and the checkout stays unpaid for ' + D.settings.abandonThresholdMinutes + ' minutes. Not written to Shopify.'
-          : 'Abandoned after an email or phone is left and the checkout stays unpaid for ' + D.settings.abandonThresholdMinutes + ' minutes.') + '</p></div>' +
+          ? 'Abandoned after an email is left and the checkout stays unpaid for ' + D.settings.abandonThresholdMinutes + ' minutes. Not written to Shopify.'
+          : 'Abandoned after an email is left and the checkout stays unpaid for ' + D.settings.abandonThresholdMinutes + ' minutes.') + '</p></div>' +
       '<div class="panel">' +
         '<div class="card-pad">' +
           '<div class="filter-bar">' +
@@ -315,6 +321,13 @@
     '</div>';
   }
 
+  function catalogBadge(item) {
+    const status = item.catalog_status;
+    if (status !== 'unlisted' && status !== 'deleted') return '';
+    const label = status === 'unlisted' ? 'Unlisted' : 'Deleted';
+    return '<span style="display:inline-flex;align-items:center;font-size:11px;font-weight:600;color:#8a5a00;background:#fff4de;border-radius:3px;padding:2px 6px;flex:none">' + label + '</span>';
+  }
+
   function checkoutItemRow(item) {
     const discounts = item.discounts || [];
     const paid = linePaid(item);
@@ -333,7 +346,7 @@
       '<div class="flex items-center gap-3" style="min-width:0">' +
         '<img src="' + letterThumb(item) + '" alt="" style="width:40px;height:40px;border-radius:6px;flex:none" />' +
         '<div style="min-width:0">' +
-          '<div style="font-weight:500;font-size:13.5px;color:var(--ink);line-height:1.35">' + esc(item.title) + '</div>' +
+          '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-weight:500;font-size:13.5px;color:var(--ink);line-height:1.35">' + esc(item.title) + catalogBadge(item) + '</div>' +
           (variant ? '<div class="muted" style="font-size:12px">' + esc(variant) + '</div>' : '') +
           disc +
         '</div>' +
@@ -406,7 +419,7 @@
             (item.gift
               ? '<span style="display:inline-flex;align-items:center;font-size:10.5px;font-weight:600;color:#16794a;background:#e8f7ee;border-radius:3px;padding:3px 6px">Free</span>'
               : '<span style="display:inline-flex;align-items:center;font-size:10.5px;font-weight:600;color:#9a6400;background:#fff4de;border-radius:3px;padding:3px 6px">Included</span>') +
-            '<span style="font-weight:500;font-size:13px;color:var(--ink)">' + esc(item.title) + '</span></div>' +
+            '<span style="font-weight:500;font-size:13px;color:var(--ink)">' + esc(item.title) + '</span>' + catalogBadge(item) + '</div>' +
             '<div class="muted" style="font-size:12px;margin-top:3px">' + esc(String(item.variant || item.sku || '').replace(/\s*,\s*/g, ' / ')) + '</div></div>' +
         '</div>' +
         '<div class="muted" style="font-size:13px;text-align:right;padding-top:4px;white-space:nowrap">x ' + (item.qty || 1) + '</div>' +
@@ -486,6 +499,12 @@
     '</div>';
   }
 
+  function stampNow() {
+    const d = new Date();
+    const p = (n) => String(n).padStart(2, '0');
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
   function renderDetail(id) {
     const row = byId(id);
     if (!row) {
@@ -496,6 +515,7 @@
     const recovered = row.abandon_status === 'recovered';
     const sent = emailKey(row) === 'sent';
     const scheduled = emailKey(row) === 'scheduled';
+    const canceled = row.recovery_email_canceled || null;
     const email = (row.customer.email || '').trim();
     const phone = (row.customer.phone || '').trim();
     const recoveryHref = row.recovery_url ? new URL(row.recovery_url, location.href).href : '';
@@ -510,6 +530,7 @@
             '<span class="subtle" style="font-size:13px">' + esc(ev.text || ev.label || '--') + '</span>' +
             '<span class="muted" style="font-size:12px;white-space:nowrap">' + esc(ev.time || '--') + '</span>' +
           '</div>' +
+          (ev.actor ? '<div class="muted" style="font-size:12px;margin-top:2px">' + esc(ev.actor) + '</div>' : '') +
         '</div>' +
       '</div>'
     ).join('');
@@ -526,6 +547,15 @@
         '<div>A reminder email will be sent to the customer at ' + esc(row.recovery_email_scheduled_at || '') + '.</div>' +
         (recoveryHref ? '<div style="margin-top:6px;word-break:break-all"><a href="' + esc(recoveryHref) + '" target="_blank" rel="noreferrer" style="color:inherit;text-decoration:underline">' + esc(publicRecoveryUrl(row)) + '</a></div>' : '') +
         '<button class="btn btn-default" data-cancel-email style="margin-top:10px">Cancel email</button>'));
+    } else if (canceled) {
+      banners.push(detailBanner('info', 'Cart recovery email canceled',
+        esc(canceled.by) + ' canceled this email on ' + esc(canceled.at) + '. It will not be sent.'));
+    } else if (row.not_sent_reason === 'email_off') {
+      banners.push(detailBanner('info', 'Cart recovery email not sent',
+        'The abandoned checkout email is turned off.'));
+    } else if (row.not_sent_reason === 'unavailable') {
+      banners.push(detailBanner('info', 'Cart recovery email not sent',
+        'The items in this checkout are no longer available.'));
     } else if (recovered) {
       banners.push(detailBanner('info', 'Cart recovery email not sent',
         '<div>A checkout was completed before the email was sent.</div>'));
@@ -598,7 +628,10 @@
     if (copyEmail) copyEmail.onclick = () => { copyText(email, 'Email copied'); };
     const cancelEmail = root.querySelector('[data-cancel-email]');
     if (cancelEmail) cancelEmail.onclick = () => {
+      const at = stampNow();
       row.recovery_email_scheduled_at = null;
+      row.recovery_email_canceled = { at: at, by: 'Mia Chen' };
+      row.timeline = [{ time: at, text: 'Recovery email canceled', actor: 'Mia Chen' }].concat(row.timeline || []);
       toast('Recovery email canceled');
       renderDetail(row.id);
     };

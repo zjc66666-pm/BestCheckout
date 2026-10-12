@@ -47,7 +47,20 @@
   }
 
   // ---- toast ----
-  const toast = (msg) => { const t = document.createElement('div'); t.textContent = msg; t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#242833;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;z-index:90;box-shadow:var(--float-shadow)'; document.body.appendChild(t); if (window.I18N) window.I18N.apply(t); setTimeout(() => t.remove(), 1900); };
+  const toast = (msg, type) => {
+    const level = type || (/failed|error|失败|could not/i.test(String(msg)) ? 'error' : 'success');
+    const tone = level === 'error' ? '#ff4d4f' : level === 'warning' ? '#faad14' : '#52c41a';
+    const glyph = level === 'error' ? '×' : level === 'warning' ? '!' : '✓';
+    document.querySelectorAll('.ac-message').forEach((message) => message.remove());
+    const t = document.createElement('div');
+    t.className = 'ac-message ' + level;
+    t.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);display:inline-flex;align-items:center;gap:8px;max-width:min(560px,calc(100vw - 48px));padding:9px 16px;background:#fff;color:rgba(0,0,0,.88);border-radius:8px;font-size:14px;line-height:1.45;z-index:300;box-shadow:0 6px 16px rgb(0 0 0 / 8%),0 3px 6px -4px rgb(0 0 0 / 12%),0 9px 28px 8px rgb(0 0 0 / 5%)';
+    t.innerHTML = '<span aria-hidden="true" style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:' + tone + ';color:#fff;font-size:12px;font-weight:700;line-height:1;flex:none">' + glyph + '</span><span></span>';
+    t.lastElementChild.textContent = msg;
+    document.body.appendChild(t);
+    if (window.I18N) window.I18N.apply(t);
+    setTimeout(() => t.remove(), 2000);
+  };
 
   const pill = (map, key) => {
     const m = map[key] || { text: key, cls: 'pill-gray' };

@@ -379,8 +379,8 @@
       : id === 'online-store' ? '20260924-v23-33'
       : id === 'bestcheckout' ? '20260907-pp-sub2'
       : id === 'bundles' ? '20260924-1p1b'
-      : id === 'orders' ? '20260905-ord-ct1'
-      : id === 'abandoned-checkouts' ? '20261010-ac-contact' : V;
+      : id === 'orders' ? '20261012-ac-toast'
+      : id === 'abandoned-checkouts' ? '20261012-ac-no-phone' : V;
     chain = chain.then(function () {
       if (id === 'online-store' && !window.POST_PURCHASE_ORDER_MOCK)
         return loadScript('assets/post-purchase-order-mock.js?v=' + moduleV);
