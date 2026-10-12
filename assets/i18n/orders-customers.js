@@ -60,6 +60,7 @@ window.I18N.extend({
   "1 order": "1 笔订单",
   "No shipping address": "无收货地址",
   "Note saved": "备注已保存",
+  "Note updated": "备注已更新",
   "Email copied": "邮箱已复制",
   "Could not copy": "无法复制",
   "Ready to send": "可发送",
@@ -268,6 +269,24 @@ window.I18N.extend({
   "Shopify sync retried": "已重新发起 Shopify 同步",
   "Order is in Shopify": "订单已进入 Shopify",
   "Order is in Shopify · #SHP-89137": "订单已进入 Shopify · #SHP-89137",
+  "Hosted Checkout started.": "已进入结账。",
+  "Contact captured.": "已记录联系方式。",
+  "Payment succeeded": "支付成功",
+  "Payment failed": "支付失败",
+  "Buyer tried to pay. Result: Out of stock. Payment was not started.": "买家尝试支付。结果：缺货。未发起支付。",
+  "Buyer started payment. Result: Payment failed. Payment method: Card. The payment service returned: The card was declined. Do not honor.": "买家发起支付。结果：支付失败。付款方式：Card。支付机构返回：银行卡被拒绝。不予承兑。",
+  "Buyer started payment. Result: Payment succeeded. Payment method: Shop Pay. The payment service returned: Approved.": "买家发起支付。结果：支付成功。付款方式：Shop Pay。支付机构返回：已批准。",
+  "Buyer started payment. Result: Payment succeeded. Payment method: PayPal. The payment service returned: Approved.": "买家发起支付。结果：支付成功。付款方式：PayPal。支付机构返回：已批准。",
+  "The card was declined.": "银行卡被拒绝。",
+  "Contact captured. Customer marked subscribed to marketing.": "已记录联系方式。客户已订阅营销邮件。",
+  "Marked abandoned.": "已记为弃单。",
+  "Marked abandoned after the email was left and the checkout stayed unpaid for about 10 minutes.": "留下邮箱后，结账约 10 分钟仍未付款，记为弃单。",
+  "Recovery email was not sent. The items in this checkout are no longer available.": "挽回邮件未发送。商品都已不可购买。",
+  "Recovery email was not scheduled. The abandoned checkout email is turned off.": "挽回邮件未排期。Abandon Checkout 邮件未开启。",
+  "Abandoned checkout reminder sent.": "已发送弃单挽回邮件。",
+  "Buyer entered shipping and left.": "买家填写收货信息后离开。",
+  "Buyer reached payment and left. No Shopify order was created.": "买家到达支付步骤后离开。未创建 Shopify 订单。",
+  "Buyer paid through the recovery link. Shopify order write-back started.": "买家通过恢复链接完成支付。Shopify 订单回写已开始。",
 
   // ---- notes card ----
   "No notes": "暂无备注",
@@ -457,7 +476,17 @@ window.I18N.addRules([
       return '· 来自 ' + m[1] + ' · 第 ' + m[2] + ' 期' + (m[3] ? ' · 下次扣款 ' + m[3] : '');
   } },
   // customer header source line: "YYYY-MM-DD HH:MM from SOURCE" (date-anchored to stay narrow)
-  { re: /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}) from (.+)$/, zh: function (m) { return m[1] + ' · 来自 ' + m[2]; } }
+  { re: /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}) from (.+)$/, zh: function (m) { return m[1] + ' · 来自 ' + m[2]; } },
+  { re: /^Checkout started\. Unpaid order (\S+) created\.$/, zh: function (m) { return '已进入结账。未付订单 ' + m[1] + ' 已创建。'; } },
+  { re: /^Hosted Checkout started\. Unpaid order (\S+) created\.$/, zh: function (m) { return '已进入结账。未付订单 ' + m[1] + ' 已创建。'; } },
+  { re: /^Payment method: (.+)$/, zh: function (m) { return '付款方式：' + m[1]; } },
+  { re: /^Buyer paid\. (\S+) entered Orders\. This row stays and is marked Recovered\.$/, zh: function (m) { return '买家已付款。' + m[1] + ' 已进入订单。这一行保留并标为已挽回。'; } },
+  { re: /^Buyer paid before the recovery email was sent\. (\S+) entered Orders\. This row stays and is marked Recovered\.$/, zh: function (m) { return '挽回邮件发出前，买家已付款。' + m[1] + ' 已进入订单。这一行保留并标为已挽回。'; } },
+  { re: /^Hosted Checkout started from Shopify cart handoff\. Unpaid order (\S+) created\.$/, zh: function (m) { return '已从 Shopify 购物车交接进入结账。未付订单 ' + m[1] + ' 已创建。'; } },
+  { re: /^Hosted Checkout started\. Unpaid order (\S+) reused for this cart\.$/, zh: function (m) { return '已进入结账。未付订单 ' + m[1] + ' 已复用于当前购物车。'; } },
+  { re: /^Recovery email scheduled for (.+)\.$/, zh: function (m) { return '挽回邮件已排期，发送时间 ' + m[1] + '。'; } },
+  { re: /^Abandoned checkout reminder sent to (\S+)\.$/, zh: function (m) { return '已向 ' + m[1] + ' 发送弃单挽回邮件。'; } },
+  { re: /^Buyer paid from the checkout page before the recovery email was sent\. (\S+) entered Orders\. This row stays and is marked Recovered\.$/, zh: function (m) { return '挽回邮件发出前，买家已在结账页完成支付。' + m[1] + ' 已进入订单。这一行保留并标为已挽回。'; } }
   // note: char counter "N/5000" is digits-only -> no rule. Filter pills ("Total range: $X – $Y",
   // "Email subscription: ...", etc.) are interpolated data; their static labels are translated via
   // the dictionary chips above, and the value half stays as data — no extra rule added.

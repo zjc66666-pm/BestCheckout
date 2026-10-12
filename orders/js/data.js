@@ -40,6 +40,27 @@
   // order_status drives the OrderStatusCell pill + derived fulfillment. order_type:
   // 0 = standard shipping order, 1/2 = pickup/verify order (drives Verify action).
   const ORDERS = [
+    {
+      order_id: 6061, order_sn: 'EN1061', create_time: '2026-08-19 10:40', order_type: 0,
+      user: { nickname: 'Jordan Lee', uid: 91022 },
+      shipping: { name: 'Jordan Lee', first_name: 'Jordan', last_name: 'Lee', detail: '18 Baker Street', detail2: '', city: 'London', province: '', post_code: 'W1U 6TJ', country: 'United Kingdom', phone_code: '44', phone: '', email: 'jordan@example.com' },
+      total: 182.35, order_status: 'to_ship', payment_status: 'paid', payment_method: 'PayPal', pay_time: '2026-08-19 10:40', delivery_time: null,
+      source: 'BestCheckout', shopify_writeback_status: 'synced', shopify_order_id: '#SHP-91022', shopify_writeback_detail: 'Written back to Shopify after the abandoned checkout was paid.',
+    },
+    {
+      order_id: 6060, order_sn: 'EN1060', create_time: '2026-07-02 14:18', order_type: 0,
+      user: { nickname: 'Jordan Lee', uid: 91022 },
+      shipping: { name: 'Jordan Lee', first_name: 'Jordan', last_name: 'Lee', detail: '18 Baker Street', detail2: '', city: 'London', province: '', post_code: 'W1U 6TJ', country: 'United Kingdom', phone_code: '44', phone: '', email: 'jordan@example.com' },
+      total: 48.00, order_status: 'to_ship', payment_status: 'paid', payment_method: 'Card', pay_time: '2026-07-02 14:19', delivery_time: '2026-07-03 09:00',
+      source: 'BestCheckout', shopify_writeback_status: 'synced', shopify_order_id: '#SHP-91021', shopify_writeback_detail: 'Written back to Shopify.',
+    },
+    {
+      order_id: 6062, order_sn: 'EN1062', create_time: '2026-08-22 18:11', order_type: 0,
+      user: { nickname: 'Avery Chen', uid: 91039 },
+      shipping: { name: 'Avery Chen', first_name: 'Avery', last_name: 'Chen', detail: '410 Pine Street', detail2: '', city: 'Seattle', province: 'WA', post_code: '98101', country: 'United States', phone_code: '1', phone: '206 555 0114', email: 'avery@example.com' },
+      total: 182.35, order_status: 'to_ship', payment_status: 'paid', payment_method: 'Shop Pay', pay_time: '2026-08-22 18:11', delivery_time: null,
+      source: 'BestCheckout', shopify_writeback_status: 'synced', shopify_order_id: '#SHP-91039', shopify_writeback_detail: 'Written back to Shopify after the abandoned checkout was paid.',
+    },
     // --- BestCheckout order-list density mocks (all paid; Shopify remains fulfillment owner) ---
     {
       order_id: 5056, order_sn: 'EN1048', create_time: '2026-06-21 10:42', order_type: 0,

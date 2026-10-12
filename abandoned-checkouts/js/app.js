@@ -178,6 +178,15 @@
     wireList();
   }
 
+  function customerOrderCount(email) {
+    const want = String(email || '').trim().toLowerCase();
+    if (!want) return 0;
+    return (((window.DATA_ORDERS || {}).ORDERS) || []).filter((order) => {
+      if (!order || order.source !== 'BestCheckout' || order.payment_status !== 'paid') return false;
+      return String((order.shipping || {}).email || '').trim().toLowerCase() === want;
+    }).length;
+  }
+
   function emailKey(row) {
     if (row.recovery_email_count > 0) return 'sent';
     if (row.recovery_email_scheduled_at) return 'scheduled';
@@ -527,10 +536,11 @@
         '<div class="cl-rail"><div class="cl-dot"></div>' + (i < arr.length - 1 ? '<div class="cl-line"></div>' : '') + '</div>' +
         '<div class="cl-body" style="padding-bottom:' + (i < arr.length - 1 ? '14px' : '0') + '">' +
           '<div class="flex items-center justify-between gap-3">' +
-            '<span class="subtle" style="font-size:13px">' + esc(ev.text || ev.label || '--') + '</span>' +
+            '<span class="subtle" style="font-size:13px">' + esc(ev.text || ev.label || '--') +
+              (ev.actor ? '<span class="i18n-skip"> · ' + esc(ev.actor) + '</span>' : '') +
+            '</span>' +
             '<span class="muted" style="font-size:12px;white-space:nowrap">' + esc(ev.time || '--') + '</span>' +
           '</div>' +
-          (ev.actor ? '<div class="muted" style="font-size:12px;margin-top:2px">' + esc(ev.actor) + '</div>' : '') +
         '</div>' +
       '</div>'
     ).join('');
@@ -568,8 +578,10 @@
     const shipHtml = ship
       ? '<div style="font-size:13px;line-height:1.55">' + [ship.name, ship.line1, ship.line2, ship.country].filter(Boolean).map(esc).join('<br>') + '</div>'
       : '<div class="muted" style="font-size:13px">' + esc(row.region || 'No shipping address') + '</div>';
-    const orderLine = recovered && row.order_id
-      ? '<a href="#/orders/' + esc(row.order_id) + '" style="color:var(--brand)">1 order</a>'
+    const orderCount = customerOrderCount(email);
+    const orderLabel = orderCount === 1 ? '1 order' : orderCount + ' orders';
+    const orderLine = email
+      ? '<a href="#/orders?email=' + encodeURIComponent(email) + '" style="color:var(--brand)">' + orderLabel + '</a>'
       : '<span class="muted">No orders</span>';
     const sectionLabel = (text) => '<div class="muted" style="font-size:12px;font-weight:650;margin:14px 0 4px">' + text + '</div>';
 
@@ -674,9 +686,19 @@
       title: 'Edit note', width: 620, okText: 'Save',
       body,
       onOk: (box, close) => {
-        const value = box.querySelector('#n-note').value;
-        if (!value.trim()) { box.querySelector('#n-err').textContent = "Can't be blank"; return; }
+        const note = box.querySelector('#n-note');
+        const value = note.value;
+        if (!value.trim()) {
+          note.classList.add('has-error');
+          box.querySelector('#n-err').textContent = "Can't be blank";
+          return;
+        }
         row.note = value;
+        row.timeline = [{
+          time: stampNow(),
+          text: 'Note updated',
+          actor: 'Mia Chen'
+        }].concat(row.timeline || []);
         close();
         toast('Updated');
         renderDetail(row.id);
@@ -684,7 +706,11 @@
     });
     const ta = ctrl.m.querySelector('#n-note');
     const cnt = ctrl.m.querySelector('#n-count');
-    ta.oninput = () => { cnt.textContent = ta.value.length + '/' + MAX; ctrl.m.querySelector('#n-err').textContent = ''; };
+    ta.oninput = () => {
+      cnt.textContent = ta.value.length + '/' + MAX;
+      ta.classList.remove('has-error');
+      ctrl.m.querySelector('#n-err').textContent = '';
+    };
   }
 
   function route(rest) {

@@ -1255,24 +1255,45 @@
       title: 'Edit note', width: 620, okText: 'Save',
       body,
       onOk: (m, close) => {
-        const v = m.querySelector('#n-note').value;
-        if (!v.trim()) { m.querySelector('#n-err').textContent = "Can't be blank"; return; }
+        const note = m.querySelector('#n-note');
+        const v = note.value;
+        if (!v.trim()) {
+          note.classList.add('has-error');
+          m.querySelector('#n-err').textContent = "Can't be blank";
+          return;
+        }
         o.note = v;
         close(); toast('Updated'); renderDetail(o.order_id);
       },
     });
     const ta = ctrl.m.querySelector('#n-note');
     const cnt = ctrl.m.querySelector('#n-count');
-    ta.oninput = () => { cnt.textContent = ta.value.length + '/' + MAX; ctrl.m.querySelector('#n-err').textContent = ''; };
+    ta.oninput = () => {
+      cnt.textContent = ta.value.length + '/' + MAX;
+      ta.classList.remove('has-error');
+      ctrl.m.querySelector('#n-err').textContent = '';
+    };
   }
 
   // ================= ROUTER (SPA: registered with the shell router) =================
   function goDetail(id) { location.hash = '#/orders/' + id; }
 
+  function applyEmailSearchFromHash() {
+    const query = (location.hash || '').split('?')[1] || '';
+    if (!query) return;
+    const email = (new URLSearchParams(query).get('email') || '').trim();
+    if (!email) return;
+    LST.tab = 'paid';
+    LST.kwType = 'email';
+    LST.kw = email;
+    LST.kwApplied = email;
+    LST.page = 1;
+  }
+
   function route(rest) {
     closePops();
     if (rest) { renderDetail(decodeURIComponent(rest)); if (root && root.parentElement) root.parentElement.scrollTop = 0; }
-    else { renderList(); }
+    else { applyEmailSearchFromHash(); renderList(); }
   }
 
   window.VIEWS = window.VIEWS || {};
