@@ -1,6 +1,6 @@
 /* BestCheckout Admin · Bundles — quantity-break offers on a Shopify parent product.
-   Active Bundle replaces that product's Shopify purchase area. Subscriptions stay
-   in Subscriptions and are not configured here. */
+   One product has one Bundle (Activated or Deactivated). Active Bundle replaces
+   that product's Shopify purchase area. Subscriptions stay in Subscriptions. */
 window.DATA_BUNDLES = {
   templates: [
     { value: 'volume', label: 'Quantity break', desc: 'Same product, quantity tiers, optional gifts.' },
@@ -21,18 +21,6 @@ window.DATA_BUNDLES = {
       ],
     },
     {
-      id: 'BND-02', name: 'Coffee Lovers 3-Pack', parentProduct: 'Signature Blend Coffee', parentProductId: '8211044229232', parentSku: 'COF-500',
-      template: 'volume', status: 'draft', tierCount: 3, orders: 0, createdAt: '2026-06-01',
-      brandColor: '#8a5a2b',
-      header: { text: 'Stock up while the offer lasts', align: 'center', line: false, thickness: 2 },
-      defaultTier: 1,
-      tiers: [
-        { qty: 1, title: '1 bag', subtitle: '', price: 24.00, compareAt: 30, badge: '', tag: '', gifts: [] },
-        { qty: 2, title: '2 bags', subtitle: '', price: 42.00, compareAt: 60, badge: '', tag: '', gifts: [] },
-        { qty: 3, title: '3 bags', subtitle: '', price: 58.00, compareAt: 90, badge: 'Best Value', tag: '', gifts: [{ product: 'Cold Brew Concentrate', qty: 1, displayName: 'FREE Cold Brew' }] },
-      ],
-    },
-    {
       id: 'BND-07', name: 'Coffee Office Pack', parentProduct: 'Signature Blend Coffee', parentProductId: '8211044229232', parentSku: 'COF-500',
       template: 'volume', status: 'active', tierCount: 3, orders: 42, createdAt: '2026-06-17',
       brandColor: '#3f6b34',
@@ -42,17 +30,6 @@ window.DATA_BUNDLES = {
         { qty: 1, title: 'Single', subtitle: '1 bag', price: 24.00, compareAt: 30, badge: '', tag: '', gifts: [] },
         { qty: 3, title: 'Office 3-Pack', subtitle: 'Most offices start here', price: 62.00, compareAt: 90, badge: 'Most Popular', tag: 'Save 31%', gifts: [] },
         { qty: 6, title: 'Office 6-Pack', subtitle: '', price: 114.00, compareAt: 180, badge: 'Best Value', tag: '', gifts: [{ product: 'Shaker Bottle', qty: 1, displayName: 'FREE Shaker' }] },
-      ],
-    },
-    {
-      id: 'BND-06', name: 'Focus Gum Trial Bundle', parentProduct: 'Neurix Focus & Energy Gum', parentProductId: '8392014826808', parentSku: 'GUM-12',
-      template: 'volume', status: 'draft', tierCount: 2, orders: 0, createdAt: '2026-06-16',
-      brandColor: '#8a5a2b',
-      header: { text: '', align: 'center', line: false, thickness: 2 },
-      defaultTier: 0,
-      tiers: [
-        { qty: 1, title: 'Trial', subtitle: '', price: 29.99, compareAt: 34.99, badge: '', tag: '', gifts: [] },
-        { qty: 2, title: 'Buy 2', subtitle: '', price: 49.30, compareAt: 69.98, badge: '', tag: '', gifts: [] },
       ],
     },
     {
@@ -68,17 +45,6 @@ window.DATA_BUNDLES = {
       ],
     },
     {
-      id: 'BND-04', name: 'Collagen Starter', parentProduct: 'Collagen Peptides 30-Day', parentProductId: '8401122092032', parentSku: 'COL-30',
-      template: 'volume', status: 'draft', tierCount: 2, orders: 0, createdAt: '2026-07-03',
-      brandColor: '#8a5a2b',
-      header: { text: '', align: 'center', line: false, thickness: 2 },
-      defaultTier: 0,
-      tiers: [
-        { qty: 1, title: 'Starter', subtitle: '', price: 39, compareAt: 44, badge: '', tag: '', gifts: [] },
-        { qty: 2, title: 'Starter + 1', subtitle: '', price: 68, compareAt: 88, badge: '', tag: '', gifts: [] },
-      ],
-    },
-    {
       id: 'BND-08', name: 'Protein Stack', parentProduct: 'Protein Powder 2lb', parentProductId: '8441881600000', parentSku: 'PRO-2LB',
       template: 'volume', status: 'active', tierCount: 4, orders: 51, createdAt: '2026-07-18',
       brandColor: '#3f6b34',
@@ -89,16 +55,6 @@ window.DATA_BUNDLES = {
         { qty: 2, title: '2 tubs', subtitle: '', price: 86, compareAt: 112, badge: 'Most Popular', tag: 'Save 23%', gifts: [] },
         { qty: 3, title: '3 tubs', subtitle: '', price: 120, compareAt: 168, badge: '', tag: '', gifts: [{ product: 'Shaker Bottle', qty: 1, displayName: 'FREE Shaker' }] },
         { qty: 6, title: '6 tubs', subtitle: 'Team stock-up', price: 216, compareAt: 336, badge: 'Best Value', tag: 'Save 36%', gifts: [{ product: 'Shaker Bottle', qty: 2, displayName: 'FREE Shaker x2' }] },
-      ],
-    },
-    {
-      id: 'BND-09', name: 'Protein Sample', parentProduct: 'Protein Powder 2lb', parentProductId: '8441881600000', parentSku: 'PRO-2LB',
-      template: 'volume', status: 'draft', tierCount: 1, orders: 0, createdAt: '2026-07-19',
-      brandColor: '#8a5a2b',
-      header: { text: '', align: 'center', line: false, thickness: 2 },
-      defaultTier: 0,
-      tiers: [
-        { qty: 1, title: '1 tub', subtitle: '', price: 48, compareAt: '', badge: '', tag: '', gifts: [] },
       ],
     },
     {

@@ -378,7 +378,7 @@
     var moduleV = id === 'settings' ? '20261010-ac-noline'
       : id === 'online-store' ? '20260924-v23-33'
       : id === 'bestcheckout' ? '20260907-pp-sub2'
-      : id === 'bundles' ? '20260924-1p1b'
+      : id === 'bundles' ? '20261013-pdp1'
       : id === 'orders' ? '20261012-ac-email-orders'
       : id === 'abandoned-checkouts' ? '20261012-ac-email-orders' : V;
     chain = chain.then(function () {

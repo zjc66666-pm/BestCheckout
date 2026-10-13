@@ -70,7 +70,7 @@ window.DATA_SUBS = {
       trialDays: 0, minCycles: 0, gateway: 'airwallex', subscribers: 18, createdAt: '2026-06-16' },
     // Deactivated (draft) bundle plans — one Volume, one A+B Set — so both bundle types appear in the Deactivated tab.
     { id: 'PL-1009', name: 'Coffee Multipack — Subscribe & Save', status: 'draft', productId: 50501, itemType: 'bundle',
-      product: 'Signature Blend Coffee', bundleId: 'BND-02', bundleTemplate: 'volume', tierIndex: 0,
+      product: 'Signature Blend Coffee', bundleId: 'BND-07', bundleTemplate: 'volume', tierIndex: 0,
       cycle: { every: 1, unit: 'month' }, price: 29.74, compareAt: 34.99, discountType: 'percent', discountValue: 15, currency: 'USD',
       trialDays: 0, minCycles: 0, gateway: 'airwallex', subscribers: 0, createdAt: '2026-06-17' },
     { id: 'PL-1010', name: 'Yoga Outfit — Subscribe & Save', status: 'draft', productId: 50412, itemType: 'bundle',

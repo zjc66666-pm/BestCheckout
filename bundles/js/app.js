@@ -1,6 +1,7 @@
 /* BestCheckout Admin · Bundles — list + editor.
-   Quantity-break offer on a Shopify parent product. Active Bundle replaces
-   that product's purchase area. Subscriptions stay in Subscriptions. */
+   Quantity-break offer on a Shopify parent product. One product has one Bundle
+   (Activated or Deactivated). Active Bundle replaces that product's purchase
+   area. Subscriptions stay in Subscriptions. */
 (function () {
   const D = window.DATA_BUNDLES;
   let root;
@@ -15,6 +16,7 @@
     trash: svg('<path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>', 16),
     eye: svg('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>', 18),
     layers: svg('<path d="m12 2 9 5-9 5-9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/>', 22),
+    ext: svg('<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>', 13),
   };
   const STYLES =
     '.bn-sw{position:relative;display:inline-block;width:34px;height:18px;border-radius:9999px;background:var(--ctl);cursor:pointer;transition:background .15s;flex:none}' +
@@ -27,6 +29,8 @@
     '.bn-tbl .bn-clip{overflow:hidden;text-overflow:ellipsis}' +
     '.bn-tbl .bn-tiers{white-space:normal;line-height:1.55}' +
     '.bn-tbl .bn-tiers>div{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
+    '.bn-pdp-link{flex:none;display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:500;color:var(--brand);text-decoration:none;white-space:nowrap}' +
+    '.bn-pdp-link:hover{text-decoration:underline}' +
     '.bn-pdp{border:1px solid var(--hair);border-radius:12px;padding:14px 14px 16px;background:#fff}' +
     '.bn-pdp-head{font-size:16px;font-weight:700;margin:0 0 14px}' +
     '.bn-pdp-card{position:relative;border:1.5px solid var(--hair);border-radius:10px;padding:11px 12px;margin-bottom:8px;cursor:pointer;background:#fff}' +
@@ -52,12 +56,19 @@
     const m = STATUS[status] || STATUS.draft;
     return '<span class="pill ' + m.cls + '">' + esc(m.label) + '</span>';
   };
-  const toast = (msg) => {
+  const toast = (msg, type) => {
+    const level = type || (/failed|error|失败|could not/i.test(String(msg)) ? 'error' : 'success');
+    const tone = level === 'error' ? '#ff4d4f' : level === 'warning' ? '#faad14' : '#52c41a';
+    const glyph = level === 'error' ? '×' : level === 'warning' ? '!' : '✓';
+    document.querySelectorAll('.ac-message').forEach((message) => message.remove());
     const t = document.createElement('div');
-    t.textContent = msg;
-    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#242833;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,.18)';
+    t.className = 'ac-message ' + level;
+    t.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);display:inline-flex;align-items:center;gap:8px;max-width:min(560px,calc(100vw - 48px));padding:9px 16px;background:#fff;color:rgba(0,0,0,.88);border-radius:8px;font-size:14px;line-height:1.45;z-index:300;box-shadow:0 6px 16px rgb(0 0 0 / 8%),0 3px 6px -4px rgb(0 0 0 / 12%),0 9px 28px 8px rgb(0 0 0 / 5%)';
+    t.innerHTML = '<span aria-hidden="true" style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:' + tone + ';color:#fff;font-size:12px;font-weight:700;line-height:1;flex:none">' + glyph + '</span><span></span>';
+    t.lastElementChild.textContent = msg;
     document.body.appendChild(t);
-    setTimeout(() => t.remove(), 2200);
+    if (window.I18N) window.I18N.apply(t);
+    setTimeout(() => t.remove(), 2000);
   };
   const card = (title, inner, right) =>
     '<div class="panel card-pad mb-4"><div class="flex items-center justify-between mb-3"><div class="card-title">' + title + '</div>' + (right || '') + '</div>' + inner + '</div>';
@@ -131,31 +142,69 @@
 
   const byId = (id) => D.bundles.find((b) => String(b.id) === String(id));
   const parentName = (b) => String((b && b.parentProduct) || '').trim();
-  function activeSiblingOf(bundle, nextStatus) {
-    const parent = parentName(bundle);
-    if (nextStatus !== 'active' || !parent) return null;
-    const id = bundle && bundle.id != null ? String(bundle.id) : '';
-    return D.bundles.find((b) => String(b.id) !== id && parentName(b) === parent && b.status === 'active') || null;
+  function productHandle(name) {
+    return String(name || '').toLowerCase()
+      .replace(/['’]/g, '')
+      .replace(/&/g, 'and')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
   }
-  function deactivateActiveSiblings(bundle) {
-    const parent = parentName(bundle);
-    if (!parent) return;
-    const id = bundle && bundle.id != null ? String(bundle.id) : '';
-    D.bundles.forEach((b) => { if (String(b.id) !== id && parentName(b) === parent && b.status === 'active') b.status = 'draft'; });
+  function storefrontProductUrl(name) {
+    const handle = productHandle(name);
+    if (!handle) return '';
+    const conn = (window.DATA_SETTINGS && window.DATA_SETTINGS.shopifyConnection) || {};
+    const host = String(conn.primaryDomain || 'lavenderlabs.co').replace(/^https?:\/\//i, '').replace(/\/$/, '');
+    return 'https://' + host + '/products/' + encodeURIComponent(handle);
   }
-  function setBundleStatus(bundle, nextStatus) {
-    if (!bundle) return;
-    if (nextStatus === 'active') deactivateActiveSiblings(bundle);
-    bundle.status = nextStatus;
+  function parentMatches(bundle, name, productId) {
+    const n = String(name || '').trim().toLowerCase();
+    const id = String(productId || '').replace(/\D/g, '');
+    const bn = parentName(bundle).toLowerCase();
+    const bid = String((bundle && bundle.parentProductId) || '').replace(/\D/g, '');
+    if (id && bid && id === bid) return true;
+    if (n && bn && n === bn) return true;
+    return false;
   }
-  function confirmReplaceActive(bundle, onOk) {
-    const conflict = activeSiblingOf(bundle, 'active');
-    if (!conflict) { onOk(); return; }
+  function bundleForParent(name, productId, exceptId) {
+    const except = exceptId != null && exceptId !== '' ? String(exceptId) : '';
+    return D.bundles.find((b) => {
+      if (except && String(b.id) === except) return false;
+      return parentMatches(b, name, productId);
+    }) || null;
+  }
+  function existingBundleCopy(conflict) {
+    const product = parentName(conflict) || 'This product';
+    const name = (conflict && (conflict.name || conflict.id)) || 'a bundle';
+    return product + ' already has ' + name + '. Edit that bundle instead of creating another.';
+  }
+  function showExistingBundleDialog(conflict) {
+    if (!conflict || !window.UI || !window.UI.confirm) return;
     window.UI.confirm({
-      title: 'Replace the current active Bundle?',
-      content: parentName(bundle) + ' already has an active Bundle: ' + (conflict.name || conflict.id) + '. Activating ' + (bundle.name || 'this Bundle') + ' will take over that product page instead.',
-      okText: 'Replace and activate',
-      onOk: onOk,
+      title: 'A bundle already exists for this product',
+      content: existingBundleCopy(conflict),
+      okText: 'Edit bundle',
+      cancelText: 'Cancel',
+      onOk: () => { location.hash = '#/bundles/edit/' + encodeURIComponent(conflict.id); },
+    });
+  }
+  function applyPickedParent(picked) {
+    if (!picked) return;
+    EDIT.parentProduct = picked.name;
+    EDIT.parentProductId = picked.id ? String(picked.id) : '';
+    EDIT.parentSku = picked.sku || '';
+    EDIT.parentImage = picked.image || productImage(picked.name);
+    const unit = Number(picked.price);
+    (EDIT.tiers || []).forEach((t) => {
+      const fm = (t.components || []).find((c) => c.role === 'main');
+      if (fm) {
+        fm.product = picked.name;
+        fm.variants = picked.variants;
+        fm.image = EDIT.parentImage;
+      }
+      if (!isNaN(unit) && unit >= 0) {
+        const qty = Number(t.qty) || 1;
+        t.price = Math.round(unit * qty * 100) / 100;
+      }
     });
   }
   const clone = (o) => JSON.parse(JSON.stringify(o));
@@ -217,13 +266,16 @@
       'Bundle name': '套装名称',
       'Bundle ID': '套装 ID',
       'Shopify product': 'Shopify 商品',
+      'View product page': '查看商品页',
+      'Opens this product on your Shopify store.': '在 Shopify 店铺打开该商品页。',
       'When this Bundle is active, BestCheckout replaces the purchase area on this product page. Add to cart goes to BestCheckout with the selected pack.': '启用后，BestCheckout 会替换该商品页的购买区。加购会带着选中的档位进入 BestCheckout。',
       'Checkout applies this Bundle when the cart contains this product.': '购物车包含该商品时，结账会使用这个套装。',
       'Status': '状态',
       'Active': '已启用',
       'Deactivated': '已停用',
       'This bundle appears on this product\'s page.': '该套装显示在此商品的页面上。',
-      'One parent product can have only one active Bundle. Draft/deactivated Bundles can be kept.': '每个父商品只能启用一个套装。停用的套装可以保留。',
+      'Each product can have only one Bundle. Activated or Deactivated both occupy that product.': '每个商品只能有一条套装。已启用和已停用都占用该商品。',
+      'Each Shopify product can have only one Bundle — Activated or Deactivated both occupy that product.': '每个 Shopify 商品只能有一条套装——已启用和已停用都占用该商品。',
       'Brand color': '品牌色',
       'Bundle configuration': '套装配置',
       'Alignment': '对齐',
@@ -265,6 +317,9 @@
       'Save bundle': '保存套装',
       'Enter a bundle name.': '请输入套装名称。',
       'Select a Shopify product.': '请选择一个 Shopify 商品。',
+      'This product already has a bundle. Edit that bundle instead.': '该商品已有套装。请去编辑已有套装，不要再新建。',
+      'A bundle already exists for this product': '该商品已有套装',
+      'Edit that bundle instead of creating another.': '请去编辑已有套装，不要再新建。',
       'Enter a quantity of at least 1.': '请输入不小于 1 的数量。',
       'Each tier needs a different quantity.': '每一档的数量不能重复。',
       'Enter a price.': '请输入售价。',
@@ -283,8 +338,7 @@
       'Search SKU': '搜索 SKU',
       'Search bundle ID': '搜索套装 ID',
       'Bundle': '套装',
-      'Only one Bundle can be active for each product': '每个商品只能启用一个套装',
-      'Replace the current active Bundle?': '要替换当前已启用的套装吗？',
+      'Each product can have only one Bundle': '每个商品只能有一条套装',
       'Bundle saved and active': '套装已保存并启用',
       'Bundle saved': '套装已保存',
       'Add Subscribe & Save?': '要加订阅省吗？',
@@ -400,7 +454,7 @@
     root.innerHTML =
       '<style>' + STYLES + '</style>' +
       '<div class="flex items-center justify-between mb-4" style="gap:12px"><div><h1 class="page-title">Bundles</h1>' +
-        '<div class="muted" style="font-size:13px;margin-top:3px;line-height:1.5;max-width:880px">When a Bundle is active, BestCheckout replaces the purchase area on that Shopify product page. After you add a Bundle here, you don\'t need another bundle app such as Kaching or Rapi.</div></div>' +
+        '<div class="muted" style="font-size:13px;margin-top:3px;line-height:1.5;max-width:880px">When a Bundle is active, BestCheckout replaces the purchase area on that Shopify product page. Each Shopify product can have only one Bundle — Activated or Deactivated both occupy that product. After you add a Bundle here, you don\'t need another bundle app such as Kaching or Rapi.</div></div>' +
         '<a class="btn btn-primary" href="#/bundles/new">Add bundle</a></div>' +
       '<div class="panel">' +
         '<div class="card-pad" style="padding-bottom:8px"><div class="filter-bar">' +
@@ -729,6 +783,7 @@
     const nameErr = ERRORS.name || '';
     const productErr = ERRORS.parentProduct || '';
     const tiersErr = ERRORS.tiers || '';
+    const pdpUrl = storefrontProductUrl(EDIT.parentProduct);
     root.innerHTML =
       '<style>' + STYLES + '</style>' +
       (window.UI && window.UI.unsavedBar ? window.UI.unsavedBar({ show: false }) : '') +
@@ -744,8 +799,14 @@
         card('Shopify product',
           '<div class="pick-box' + (productErr ? ' has-error' : '') + '" style="display:flex;align-items:center;gap:12px;border:1px solid var(--hair);border-radius:8px;padding:12px">' +
             imgBox(compImg({ image: EDIT.parentImage, product: EDIT.parentProduct }), 40) +
-            '<div style="flex:1;min-width:0"><div style="font-size:13.5px;color:var(--ink);font-weight:500">' + (esc(EDIT.parentProduct) || '<span class="muted">No product selected</span>') + '</div>' +
-            '<div class="muted" style="font-size:12px">This bundle appears on this product\'s page.</div></div>' +
+            '<div style="flex:1;min-width:0">' +
+              '<div class="flex items-center" style="gap:8px;min-width:0">' +
+                '<div style="font-size:13.5px;color:var(--ink);font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (esc(EDIT.parentProduct) || '<span class="muted">No product selected</span>') + '</div>' +
+                (pdpUrl
+                  ? '<a class="bn-pdp-link" href="' + esc(pdpUrl) + '" target="_blank" rel="noopener noreferrer" title="Opens this product on your Shopify store.">View product page' + I.ext + '</a>'
+                  : '') +
+              '</div>' +
+              '<div class="muted" style="font-size:12px">This bundle appears on this product\'s page. Each product can have only one Bundle. Activated or Deactivated both occupy that product.</div></div>' +
             '<button class="btn btn-default" data-act="pick-parent">' + ((EDIT.parentProduct || '').trim() ? 'Change' : 'Add product') + '</button></div>' + fieldErr(productErr)) +
         card('Display settings & template',
           '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">' +
@@ -819,6 +880,9 @@
     ERRORS = {};
     if (!String(EDIT.name || '').trim()) ERRORS.name = 'Enter a bundle name.';
     if (!String(EDIT.parentProduct || '').trim()) ERRORS.parentProduct = 'Select a Shopify product.';
+    else if (bundleForParent(EDIT.parentProduct, EDIT.parentProductId, EDIT_ID)) {
+      ERRORS.parentProduct = 'This product already has a bundle. Edit that bundle instead.';
+    }
     if (!(EDIT.tiers || []).length) ERRORS.tiers = 'Add at least one tier.';
     const seen = {};
     (EDIT.tiers || []).forEach((tier, ti) => {
@@ -949,20 +1013,22 @@
   }
   function saveBundle() {
     readEditor();
-    if (!validate()) { paintEditor(); scrollToFirstError(); return; }
+    if (!validate()) {
+      const conflict = bundleForParent(EDIT.parentProduct, EDIT.parentProductId, EDIT_ID);
+      paintEditor();
+      if (conflict && String(EDIT.parentProduct || '').trim()) showExistingBundleDialog(conflict);
+      else scrollToFirstError();
+      return;
+    }
     const isCreate = !(EDIT_ID && byId(EDIT_ID));
     const becomingActive = EDIT.status === 'active';
     const wasActive = !!(EDIT_ID && byId(EDIT_ID) && byId(EDIT_ID).status === 'active');
-    const apply = () => {
-      persist(EDIT.status);
-      EDIT_ORIGIN = snapshot();
-      toast(EDIT.status === 'active' ? 'Bundle saved and active' : 'Bundle saved');
-      const hasPlan = plansForParent(EDIT.parentProduct, EDIT.parentProductId).length > 0;
-      if (!hasPlan && (isCreate || (becomingActive && !wasActive))) offerSubscribeAfterSave();
-      else location.hash = '#/bundles';
-    };
-    if (EDIT.status === 'active') confirmReplaceActive({ id: EDIT_ID, name: EDIT.name, parentProduct: EDIT.parentProduct, status: EDIT.status }, apply);
-    else apply();
+    persist(EDIT.status);
+    EDIT_ORIGIN = snapshot();
+    toast(EDIT.status === 'active' ? 'Bundle saved and active' : 'Bundle saved');
+    const hasPlan = plansForParent(EDIT.parentProduct, EDIT.parentProductId).length > 0;
+    if (!hasPlan && (isCreate || (becomingActive && !wasActive))) offerSubscribeAfterSave();
+    else location.hash = '#/bundles';
   }
 
   function wireEditor() {
@@ -1134,25 +1200,13 @@
         showBundleTag: false,
         selected: EDIT.parentProduct ? [EDIT.parentProduct] : [],
         onConfirm: (picked) => {
-          if (picked[0]) {
-            EDIT.parentProduct = picked[0].name;
-            EDIT.parentProductId = picked[0].id ? String(picked[0].id) : '';
-            EDIT.parentSku = picked[0].sku || '';
-            EDIT.parentImage = picked[0].image || productImage(picked[0].name);
-            const unit = Number(picked[0].price);
-            (EDIT.tiers || []).forEach((t) => {
-              const fm = (t.components || []).find((c) => c.role === 'main');
-              if (fm) {
-                fm.product = picked[0].name;
-                fm.variants = picked[0].variants;
-                fm.image = EDIT.parentImage;
-              }
-              if (!isNaN(unit) && unit >= 0) {
-                const qty = Number(t.qty) || 1;
-                t.price = Math.round(unit * qty * 100) / 100;
-              }
-            });
+          if (!picked[0]) return;
+          const conflict = bundleForParent(picked[0].name, picked[0].id, EDIT_ID);
+          if (conflict) {
+            showExistingBundleDialog(conflict);
+            return;
           }
+          applyPickedParent(picked[0]);
           if (EDIT.parentProduct) delete ERRORS.parentProduct;
           paintEditor();
           syncUnsaved();
