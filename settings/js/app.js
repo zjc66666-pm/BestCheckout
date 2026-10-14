@@ -328,6 +328,8 @@
       'Source': '来源',
       'Plan name': '订阅名称',
       'Shopify product': 'Shopify 商品',
+      'View product page': '查看商品页',
+      'Opens this product on your Shopify store.': '在 Shopify 店铺打开该商品页。',
       'Plan details': '订阅详情',
       'Shown as the subscription line in checkout.': '只用于后台列表，不会出现在结账行。',
       'Used in the BestCheckout list only. Checkout shows Delivery every {interval}, not this name.': '只用于 BestCheckout 后台列表。结账行按周期拼接，例如 Delivery every 1 month，不会显示这个名称。',
@@ -1177,6 +1179,8 @@
     '.bn-ribbon{position:absolute;top:-8px;right:12px;z-index:2;background:var(--ribbon,#8a5a2b);color:#fff;font-size:10px;font-weight:700;line-height:1.2;letter-spacing:.02em;padding:4px 10px;border-radius:999px;white-space:nowrap;pointer-events:none}' +
     '.bn-act{display:inline-grid;place-items:center;width:30px;height:30px;border:0;border-radius:7px;background:transparent;color:var(--ink-muted);cursor:pointer}' +
     '.bn-act:hover{background:var(--panel);color:var(--ink)}' +
+    '.bn-pdp-link{flex:none;display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:500;color:var(--brand);text-decoration:none;white-space:nowrap}' +
+    '.bn-pdp-link:hover{text-decoration:underline}' +
     '.sub-editor{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:24px;align-items:start;max-width:1220px;margin:0 auto}' +
     '.pl-discbox.has-error{border-color:var(--err)!important}' +
     '.pl-bill{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}' +
@@ -1584,6 +1588,20 @@
     '</div>';
   }
   function planProductName(p) { return String((p && p.product) || '').trim(); }
+  function productHandle(name) {
+    return String(name || '').toLowerCase()
+      .replace(/['’]/g, '')
+      .replace(/&/g, 'and')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+  function storefrontProductUrl(name) {
+    const handle = productHandle(name);
+    if (!handle) return '';
+    const conn = (D && D.shopifyConnection) || {};
+    const host = String(conn.primaryDomain || 'lavenderlabs.co').replace(/^https?:\/\//i, '').replace(/\/$/, '');
+    return 'https://' + host + '/products/' + encodeURIComponent(handle);
+  }
   function activePlanSiblingOf(plan) {
     const product = planProductName(plan);
     const pid = String((plan && plan.productId) || '').replace(/\D/g, '');
@@ -2497,10 +2515,17 @@
       const every = Number(p.interval && p.interval.every) || 1;
       return '<option value="' + u + '"' + ((p.interval && p.interval.unit) === u ? ' selected' : '') + '>' + u + (every === 1 ? '' : 's') + '</option>';
     }).join('');
+    const pdpUrl = storefrontProductUrl(p.product);
     const itemRow = (p.product)
       ? '<div style="display:flex;align-items:center;gap:12px;border:1px solid var(--hair);border-radius:8px;padding:12px">' +
           '<span class="sub-ck-img" style="width:40px;height:40px">' + (p.product ? '<img src="' + esc(imgAt(subProductImage(p.product, p.image), 160)) + '" alt="" />' : '') + '</span>' +
-          '<div style="flex:1;min-width:0"><div style="font-size:13.5px;color:var(--ink);font-weight:500">' + esc(isBun ? ((bun && bun.name) || p.product) : p.product) + '</div>' +
+          '<div style="flex:1;min-width:0">' +
+            '<div class="flex items-center" style="gap:8px;min-width:0">' +
+              '<div style="font-size:13.5px;color:var(--ink);font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(isBun ? ((bun && bun.name) || p.product) : p.product) + '</div>' +
+              (pdpUrl
+                ? '<a class="bn-pdp-link" href="' + esc(pdpUrl) + '" target="_blank" rel="noopener noreferrer" title="Opens this product on your Shopify store.">View product page' + I.external + '</a>'
+                : '') +
+            '</div>' +
             (isBun
               ? '<div style="font-size:12px;margin-top:3px"><span class="pill pill-blue" style="font-size:10px">Sold as a bundle</span></div>'
               : '') + '</div>' +

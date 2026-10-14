@@ -375,7 +375,7 @@
     chain = chain.then(function () {
       if ((id === 'customers' || id === 'abandoned-checkouts') && !window.DATA_ORDERS) return loadScript('orders/js/data.js?v=20261012-ac-email-orders');
     });
-    var moduleV = id === 'settings' ? '20261010-ac-noline'
+    var moduleV = id === 'settings' ? '20261014-subpdp1'
       : id === 'online-store' ? '20260924-v23-33'
       : id === 'bestcheckout' ? '20260907-pp-sub2'
       : id === 'bundles' ? '20261013-pdp1'
