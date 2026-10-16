@@ -282,6 +282,7 @@ window.I18N.extend({
   "Marked abandoned.": "已记为弃单。",
   "Marked abandoned after the email was left and the checkout stayed unpaid for about 10 minutes.": "留下邮箱后，结账约 10 分钟仍未付款，记为弃单。",
   "Recovery email was not sent. The items in this checkout are no longer available.": "挽回邮件未发送。商品都已不可购买。",
+  "Recovery email failed to send.": "挽回邮件发送失败。",
   "Recovery email was not scheduled. The abandoned checkout email is turned off.": "挽回邮件未排期。Abandon Checkout 邮件未开启。",
   "Abandoned checkout reminder sent.": "已发送弃单挽回邮件。",
   "Buyer entered shipping and left.": "买家填写收货信息后离开。",

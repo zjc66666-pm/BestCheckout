@@ -205,6 +205,16 @@
     return { text: 'Not recovered', cls: 'pill-orange' };
   }
 
+  function paidOrders(row) {
+    return Array.isArray(row.paid_orders) ? row.paid_orders : [];
+  }
+
+  function recoveryCell(row) {
+    const count = paidOrders(row).length;
+    const extra = count > 1 ? '<span class="muted" style="font-size:12px;margin-left:8px">' + count + ' orders</span>' : '';
+    return '<span style="display:inline-flex;align-items:center">' + statusPill(recoveryStatus(row)) + extra + '</span>';
+  }
+
   function statusPill(status) {
     return '<span class="pill ' + status.cls + '"><span class="dot"></span>' + esc(status.text) + '</span>';
   }
@@ -216,7 +226,7 @@
       '<td>' + esc(row.customer.name || 'Guest') + '</td>' +
       '<td>' + statusPill(emailStatus(row)) + '</td>' +
       '<td>' + esc(row.region || '--') + '</td>' +
-      '<td>' + statusPill(recoveryStatus(row)) + '</td>' +
+      '<td>' + recoveryCell(row) + '</td>' +
       '<td style="font-weight:600">' + money(row.total) + '</td>' +
       '<td style="text-align:center"><button class="back-btn" data-view="' + esc(row.id) + '" title="Detail" style="width:30px;height:30px">' + I.eye + '</button></td>' +
     '</tr>';
@@ -545,7 +555,13 @@
       '</div>'
     ).join('');
     const banners = [];
-    if (recovered && row.order_id) {
+    if (recovered && paidOrders(row).length > 1) {
+      const lines = paidOrders(row).map((order) =>
+        '<div style="margin-top:6px"><a href="#/orders/' + esc(order.order_id) + '" data-order style="color:inherit;font-weight:650;text-decoration:underline">' + esc(order.order_sn) + '</a>' +
+        '<span> · ' + esc(order.customer) + ' · ' + esc(order.paid_at) + ' · ' + money(order.total) + '</span></div>'
+      ).join('');
+      banners.push(detailBanner('ok', 'Abandoned checkout recovered', lines));
+    } else if (recovered && row.order_id) {
       banners.push(detailBanner('ok', 'Abandoned checkout recovered', '<a href="#/orders/' + esc(row.order_id) + '" data-order style="color:inherit;font-weight:650;text-decoration:underline">You can view the order</a>'));
     }
     if (sent && recoveryHref) {
@@ -566,6 +582,9 @@
     } else if (row.not_sent_reason === 'unavailable') {
       banners.push(detailBanner('info', 'Cart recovery email not sent',
         'The items in this checkout are no longer available.'));
+    } else if (row.not_sent_reason === 'send_failed') {
+      banners.push(detailBanner('info', 'Cart recovery email not sent',
+        'Recovery email failed to send.'));
     } else if (recovered) {
       banners.push(detailBanner('info', 'Cart recovery email not sent',
         '<div>A checkout was completed before the email was sent.</div>'));

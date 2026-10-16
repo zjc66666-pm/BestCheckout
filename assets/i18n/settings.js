@@ -1154,6 +1154,7 @@ window.I18N.addRules([
   { re: /^DNS records created for (.+)$/, zh: function (m) { return '已为 ' + m[1] + ' 生成 DNS 记录'; } },
   { re: /^Test preview recorded for (.+)$/, zh: function (m) { return '已为 ' + m[1] + ' 记录测试预览'; } },
   { re: /^All (\d+) shops$/, zh: function (m) { return '全部 ' + m[1] + ' 家店铺'; } },
+  { re: /^All (\d+) shops · Last used (.+)$/, zh: function (m) { return '全部 ' + m[1] + ' 家店铺 · 上次使用 ' + (m[2] === '2 hours ago' ? '2 小时前' : m[2] === 'Never used' ? '从未使用' : m[2]); } },
   { re: /^A checkout is marked abandoned about (\d+) minutes after an email is left\. The reminder email is sent (\d+) hours? after that\.$/, zh: function (m) { return '买家留下邮箱约 ' + m[1] + ' 分钟后，这笔结账记为弃单。挽回邮件在此后 ' + m[2] + ' 小时发送。'; } },
   { re: /^Hi (.+), you added items to your shopping cart and haven't completed your purchase\. You can complete it now while they're still available\.$/, zh: function (m) { return '你好 ' + m[1] + '，你把商品加进了购物车，但还没有完成购买。这些商品现在仍可结算。'; } }
 ]);

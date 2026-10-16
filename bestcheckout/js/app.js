@@ -52,7 +52,7 @@
   function ensurePageBuilder() { if (window.BC_PB) return Promise.resolve(); if (_pbP) return _pbP; _pbP = new Promise(function (res) { var sc = document.createElement('script'); sc.src = PB_BASE + 'pagebuilder.js?v=' + Date.now(); sc.onload = res; sc.onerror = res; document.body.appendChild(sc); }); return _pbP; }
 
   // "Checkout design" = a one-click TEMPLATE GALLERY (this is what the 二级菜单 lands on).
-  // Each card applies a preset (CHECKOUT_TEMPLATES in online-store/data.js) into the SHARED theme
+  // Each card opens the shared Theme Editor for that page type.
   // builder via ?tpl=<id>; exiting the builder returns here, so this gallery is the home for
   // checkout work. Card metadata is local (presentational) — only the tpl id links to the seeds.
   // ===== Template model — 1.0 exposes BestCheckout page types; the model is generic (page type →

@@ -41,6 +41,20 @@
   // 0 = standard shipping order, 1/2 = pickup/verify order (drives Verify action).
   const ORDERS = [
     {
+      order_id: 6064, order_sn: 'EN1064', create_time: '2026-08-30 19:05', order_type: 0,
+      user: { nickname: 'Miles Ortega', uid: 91056 },
+      shipping: { name: 'Miles Ortega', first_name: 'Miles', last_name: 'Ortega', detail: '88 King Street', detail2: '', city: 'San Francisco', province: 'CA', post_code: '94107', country: 'United States', phone_code: '1', phone: '415 555 0177', email: 'miles@example.com' },
+      total: 30.99, order_status: 'to_ship', payment_status: 'paid', payment_method: 'PayPal', pay_time: '2026-08-30 19:05', delivery_time: null,
+      source: 'BestCheckout', shopify_writeback_status: 'synced', shopify_order_id: '#SHP-91056', shopify_writeback_detail: 'Written back to Shopify after the abandoned checkout link was paid.',
+    },
+    {
+      order_id: 6063, order_sn: 'EN1063', create_time: '2026-08-30 16:20', order_type: 0,
+      user: { nickname: 'Casey Nguyen', uid: 91055 },
+      shipping: { name: 'Casey Nguyen', first_name: 'Casey', last_name: 'Nguyen', detail: '500 Howard Street', detail2: '', city: 'San Francisco', province: 'CA', post_code: '94105', country: 'United States', phone_code: '1', phone: '415 555 0192', email: 'casey@example.com' },
+      total: 30.99, order_status: 'to_ship', payment_status: 'paid', payment_method: 'Card', pay_time: '2026-08-30 16:20', delivery_time: null,
+      source: 'BestCheckout', shopify_writeback_status: 'synced', shopify_order_id: '#SHP-91055', shopify_writeback_detail: 'Written back to Shopify after the abandoned checkout was paid.',
+    },
+    {
       order_id: 6061, order_sn: 'EN1061', create_time: '2026-08-19 10:40', order_type: 0,
       user: { nickname: 'Jordan Lee', uid: 91022 },
       shipping: { name: 'Jordan Lee', first_name: 'Jordan', last_name: 'Lee', detail: '18 Baker Street', detail2: '', city: 'London', province: '', post_code: 'W1U 6TJ', country: 'United Kingdom', phone_code: '44', phone: '', email: 'jordan@example.com' },
