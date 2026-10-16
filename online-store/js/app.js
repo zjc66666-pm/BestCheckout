@@ -3035,6 +3035,7 @@
   // Switch page type and/or active template. Selecting a different template of the same
   // page type still re-renders (pt equals currentPage but the template changed).
   function switchPage(pt, tplId) {
+    if (!isCkType(pt) && !(D.PAGE_OPTIONS || []).some((p) => p.value === pt)) return;
     const changed = isCheckout() || (pt !== ED.currentPage) || (tplId && tplId !== curTplId());
     if (!changed) { ED.currentPage = pt; if (tplId) ED.tplSel[pt] = tplId; return; }
     confirmSwitchTemplate(() => {
@@ -3365,6 +3366,7 @@
     ED.publishedTheme = snapshot.source === 'published' ? clone(snapshot.theme) : publishedBaseline;
     ED.surface = snapshot.surface === 'checkout' ? 'checkout' : 'online-store';
     ED.currentPage = previewContext.currentPage || 'home';
+    if (!(D.PAGE_OPTIONS || []).some((p) => p.value === ED.currentPage)) ED.currentPage = 'home';
     ED.checkoutPage = isCkType(previewContext.checkoutPage) ? previewContext.checkoutPage : 'checkout';
     if (!ED.theme.templates[ED.currentPage]) ED.currentPage = Object.keys(ED.theme.templates)[0] || 'home';
     if (!ED.theme.checkout.templates[ED.checkoutPage]) ED.checkoutPage = Object.keys(ED.theme.checkout.templates)[0] || 'checkout';

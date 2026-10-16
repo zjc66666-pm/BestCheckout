@@ -46,7 +46,6 @@
   // template and are picked directly (no submenu). `noun` labels the assignment count.
   const PAGE_OPTIONS = [
     { value: 'home',        label: 'Home page' },
-    { value: 'product',     label: 'Products',        multi: true, noun: 'products' },
     { value: 'collection',  label: 'Collections',     multi: true, noun: 'collections' },
     { value: 'collections', label: 'Collections list' },
   ];
@@ -334,8 +333,9 @@
     footer: { hidden: false, kind: 'footer', settings: {} },
     // Multi-template shape: each page type holds a `list` of named templates. `id:'default'`
     // is the built-in fallback (can't be deleted). `assigned` is a mock count shown in the
-    // selector submenu ("Assigned to N products"). Single types (home / collections) simply
-    // keep a one-item list. Extra product/collection templates seed the multi-template UX.
+    // selector submenu ("Assigned to N collections"). Single types (home / collections) simply
+    // keep a one-item list. Extra collection templates seed the multi-template UX.
+    // Product (PDP) templates are omitted until that page type is finished.
     templates: {
       home: { list: [
         { id: 'default', name: 'Home page', assigned: '—', sections: [
@@ -345,23 +345,6 @@
           { id: 'sec-home-testi', kind: 'testimonial' },
           { id: 'sec-home-faq', kind: 'faq' },
           { id: 'sec-home-news', kind: 'newsletter' },
-        ] },
-      ] },
-      product: { list: [
-        { id: 'default', name: 'Default product', assigned: '100+', assignedResourceIds: ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'], sections: [
-          { kind: 'media-with-text' },
-        ] },
-        { id: 'buy-2-for-69', name: 'buy-2-for-69', basedOn: 'default', assigned: 1, assignedResourceIds: ['p1'], sections: [
-          { kind: 'media-with-text' }, { kind: 'faq' },
-        ] },
-        { id: 'dress-size-image', name: 'dress-size-image', basedOn: 'default', assigned: 24, assignedResourceIds: ['p2', 'p3', 'p4'], sections: [
-          { kind: 'media-with-text' }, { kind: 'media-grid' },
-        ] },
-        { id: 'explainer-template', name: 'explainer-template', basedOn: 'default', assigned: 0, assignedResourceIds: [], sections: [
-          { kind: 'media-with-text' }, { kind: 'feature-cards' },
-        ] },
-        { id: 'pre-order', name: 'pre-order', basedOn: 'default', assigned: 0, assignedResourceIds: [], sections: [
-          { kind: 'media-with-text' }, { kind: 'newsletter' },
         ] },
       ] },
       collection: { list: [

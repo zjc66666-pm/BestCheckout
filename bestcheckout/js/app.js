@@ -132,6 +132,8 @@
     if ((bcSavedTpls()[k] || []).filter(function (x) { return x.id === tplId; })[0]) return b + '&saved=' + encodeURIComponent(tplId);
     return (k === 'checkout' && tplId && tplId !== 'default') ? b + '&tpl=' + encodeURIComponent(tplId) : b;
   }
+  function bcAbs(hash) { return (location.href.split('#')[0] || '') + hash; }
+  function bcEditHref(k, tplId, returnTo) { return bcAbs(bcEditHash(k, tplId, returnTo)); }
   function bcDeleteTpl(k, id) { var s = bcSavedTpls(); s[k] = (s[k] || []).filter(function (x) { return x.id !== id; }); bcSavedTplsSave(s); }
   function bcTplThumb(tp, kind) {
     if (kind) {
@@ -187,7 +189,7 @@
         var created = bcDuplicateTpl(type, starter.id, name || t('Untitled page'), bcDefaultCoverId(type));
         if (!created) return;
         toast(t('Draft page created'));
-        location.hash = bcEditHash(type, created.id, '#/pages');
+        window.open(bcEditHref(type, created.id, '#/pages'), '_blank', 'noopener');
       });
     var typeSelect = modal.querySelector('#pl-create-type');
     if (typeSelect) typeSelect.onchange = function () { selectedType = typeSelect.value; };
@@ -207,7 +209,7 @@
       var stateClass = state === 'Live' ? ' is-live' : '';
       var usageText = usage === 1 ? '1 ' + t('purchase flow') : usage + ' ' + t('purchase flows');
       var hoverActions = tp.soon ? ''
-        : '<div class="pl-visual-actions"><a class="pl-visual-edit" href="' + bcEditHash(pt.key, tp.id, '#/pages') + '">' + t('Edit') + '</a><button type="button" class="pl-visual-preview" data-page-preview="' + pt.key + ':' + tp.id + '">' + t('Preview') + '</button></div>';
+        : '<div class="pl-visual-actions"><a class="pl-visual-edit" href="' + esc(bcEditHref(pt.key, tp.id, '#/pages')) + '" target="_blank" rel="noopener">' + t('Edit') + '</a><button type="button" class="pl-visual-preview" data-page-preview="' + pt.key + ':' + tp.id + '">' + t('Preview') + '</button></div>';
       var moreMenu = tp.soon
         ? '<span class="pl-coming-soon">' + t('Coming soon') + '</span>'
         : '<details class="pl-more"><summary aria-label="More page actions">•••</summary><div class="pl-more-menu"><button type="button" data-page-preview="' + pt.key + ':' + tp.id + '">' + t('Preview') + '</button><button type="button" data-page-duplicate="' + pt.key + ':' + tp.id + '">' + t('Duplicate') + '</button></div></details>';
@@ -2165,7 +2167,7 @@
         ? '<span class="fj-node-meta fj-offer-meta">' + esc(fnOfferSummary(node)) + '</span>'
         : '';
       var buttons = '<button type="button" class="btn btn-default" data-flow-template="' + esc(node.id) + '">' + t('Change page') + '</button>';
-      buttons += '<a class="btn btn-default" href="' + esc(bcEditHash(node.type, node.tpl, '#/flows/' + activeFlowId)) + '">' + t('Edit design') + '</a>';
+      buttons += '<a class="btn btn-default" href="' + esc(bcEditHref(node.type, node.tpl, '#/flows/' + activeFlowId)) + '" target="_blank" rel="noopener">' + t('Edit design') + '</a>';
       if (type === 'checkout' && index > 0) buttons += '<button type="button" class="btn btn-default fj-delete-checkout" data-flow-delete-checkout="' + esc(node.id) + '">' + t('Delete') + '</button>';
       return '<article class="fj-node fj-node-' + esc(type) + '"><div class="fj-node-head"><span class="fj-stage-icon">' + esc(nodeIcon) + '</span><div><div class="fj-node-title"><strong>' + esc(nodeName) + '</strong>' + traffic + '</div>' + meta + '</div></div><div class="fj-node-actions">' + buttons + '</div>' + (isOffer ? flowJourneyOutcomes(st, node) : '') + '</article>';
     }).join('');
@@ -2762,7 +2764,7 @@
         (has
           ? '<div class="fn-ab-win">' + t('Variant') + ' ' + lead + ' +' + up.toFixed(0) + '% · ' + (n.ab.conf || 0) + '% · <a href="#" data-win="' + n.id + '">' + t('auto-pick winner') + '</a></div>'
           : '<div class="fn-ab-win" style="color:var(--ink-muted)">' + t('Collecting data — no winner yet') + '</div>') +
-        '<div class="fn-ab-foot"><a href="' + bcEditHash(n.type, n.tpl, '#/flows/' + activeFlowId) + '">' + t('Edit A') + '</a> · <a href="' + bcEditHash(n.type, n.ab.b, '#/flows/' + activeFlowId) + '">' + t('Edit B') + '</a> · <a href="#" data-rmab="' + n.id + '">' + t('Remove A/B') + '</a></div></div>';
+        '<div class="fn-ab-foot"><a href="' + esc(bcEditHref(n.type, n.tpl, '#/flows/' + activeFlowId)) + '" target="_blank" rel="noopener">' + t('Edit A') + '</a> · <a href="' + esc(bcEditHref(n.type, n.ab.b, '#/flows/' + activeFlowId)) + '" target="_blank" rel="noopener">' + t('Edit B') + '</a> · <a href="#" data-rmab="' + n.id + '">' + t('Remove A/B') + '</a></div></div>';
     } else {
       body = '<div class="fn-tpl">' + t('Template') + ': <b>' + esc(bcTplName(n.type, n.tpl)) + '</b> · <a href="#" data-swap="' + n.id + '">' + t('Change') + '</a></div>';
     }
@@ -2771,7 +2773,7 @@
     return '<div class="fc-node t-' + n.type + '" data-id="' + n.id + '" style="left:' + pos.x + 'px;top:' + pos.y + 'px">' +
       '<div class="fc-node-bar"><span class="fc-dot"></span><span class="fc-node-type">' + t(fnLabel(n.type)) + '</span>' + deleteControl + '<span class="fc-grip">⠿</span></div>' +
       '<div class="fc-node-body">' + body +
-        '<div class="fn-acts"><a class="btn btn-default" href="' + bcEditHash(n.type, n.tpl, '#/flows/' + activeFlowId) + '">' + t('Edit') + '</a></div>' +
+        '<div class="fn-acts"><a class="btn btn-default" href="' + esc(bcEditHref(n.type, n.tpl, '#/flows/' + activeFlowId)) + '" target="_blank" rel="noopener">' + t('Edit') + '</a></div>' +
       '</div>' +
       '<span class="fc-port" title="' + t('Drag to another node to connect') + '"></span>' +
     '</div>';
@@ -2827,7 +2829,7 @@
           (has
             ? '<div class="fn-ab-win">' + t('Variant') + ' ' + lead + ' +' + up.toFixed(0) + '% · ' + (n.ab.conf || 0) + '% · <a href="#" data-win="' + n.id + '">' + t('auto-pick winner') + '</a></div>'
             : '<div class="fn-ab-win" style="color:var(--ink-muted)">' + t('Collecting data — no winner yet') + '</div>') +
-          '<div class="fn-ab-foot"><a href="' + bcEditHash(n.type, n.tpl, '#/flows/' + activeFlowId) + '">' + t('Edit A') + '</a> · <a href="' + bcEditHash(n.type, n.ab.b, '#/flows/' + activeFlowId) + '">' + t('Edit B') + '</a> · <a href="#" data-rmab="' + n.id + '">' + t('Remove A/B') + '</a></div></div>';
+          '<div class="fn-ab-foot"><a href="' + esc(bcEditHref(n.type, n.tpl, '#/flows/' + activeFlowId)) + '" target="_blank" rel="noopener">' + t('Edit A') + '</a> · <a href="' + esc(bcEditHref(n.type, n.ab.b, '#/flows/' + activeFlowId)) + '" target="_blank" rel="noopener">' + t('Edit B') + '</a> · <a href="#" data-rmab="' + n.id + '">' + t('Remove A/B') + '</a></div></div>';
       } else {
         body = '<div class="fn-tpl">' + t('Template') + ': <b>' + esc(bcTplName(n.type, n.tpl)) + '</b> · <a href="#" data-swap="' + n.id + '">' + t('Change') + '</a></div>';
       }
@@ -2836,7 +2838,7 @@
       return '<div class="fc-node t-' + n.type + '" data-id="' + n.id + '" style="left:' + pos.x + 'px;top:' + pos.y + 'px">' +
         '<div class="fc-node-bar"><span class="fc-dot"></span><span class="fc-node-type">' + t(fnLabel(n.type)) + '</span>' + deleteControl + '<span class="fc-grip">⠿</span></div>' +
         '<div class="fc-node-body">' + body +
-          '<div class="fn-acts"><a class="btn btn-default" href="' + bcEditHash(n.type, n.tpl, '#/flows/' + activeFlowId) + '">' + t('Edit') + '</a></div>' +
+          '<div class="fn-acts"><a class="btn btn-default" href="' + esc(bcEditHref(n.type, n.tpl, '#/flows/' + activeFlowId)) + '" target="_blank" rel="noopener">' + t('Edit') + '</a></div>' +
         '</div>' +
         '<span class="fc-port" title="' + t('Drag to another node to connect') + '"></span>' +
       '</div>';
@@ -3767,7 +3769,7 @@
     var tpls = bcTplList(type).filter(function (x) { return !x.soon; });
     var cur = nd.tpl || (tpls[0] && tpls[0].id);
     var opts = tpls.filter(function (x) { return x.id !== cur; }).map(function (x) { return '<option value="' + x.id + '">' + esc(x.name) + '</option>'; }).join('');
-    if (!opts) { toast(t('This page has only one template — open 装修, then “Save as template” to make variant B, and A/B-test it.')); location.hash = bcEditHash(type, cur, '#/flows/' + activeFlowId); return; }
+    if (!opts) { toast(t('This page has only one template — open 装修, then “Save as template” to make variant B, and A/B-test it.')); window.open(bcEditHref(type, cur, '#/flows/' + activeFlowId), '_blank', 'noopener'); return; }
     var m = document.createElement('div'); m.className = 'xp-modal';
     m.innerHTML = '<div class="xp-mc"><div class="xp-mh">' + t('New A/B test') + ' · ' + t(fnLabel(type)) + '</div><div class="xp-mb">' +
       '<div class="xp-f"><label>' + t('Variant A (current)') + '</label><input readonly value="' + esc(bcTplName(type, cur)) + '" style="height:38px;border:1px solid var(--line);border-radius:8px;padding:0 11px;font-size:13.5px;color:var(--ink-muted);background:var(--panel)"></div>' +

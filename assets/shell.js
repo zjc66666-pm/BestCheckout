@@ -376,8 +376,8 @@
       if ((id === 'customers' || id === 'abandoned-checkouts') && !window.DATA_ORDERS) return loadScript('orders/js/data.js?v=20261016-ac-multi-paid');
     });
     var moduleV = id === 'settings' ? '20261014-subpdp1'
-      : id === 'online-store' ? '20260924-v23-33'
-      : id === 'bestcheckout' ? '20260907-pp-sub2'
+      : id === 'online-store' ? '20261016-hide-pdp'
+      : id === 'bestcheckout' ? '20261016-edit-tab'
       : id === 'bundles' ? '20261013-pdp1'
       : id === 'orders' ? '20261016-ac-multi-paid'
       : id === 'abandoned-checkouts' ? '20261016-ac-multi-paid' : V;
