@@ -147,8 +147,10 @@
       ],
       timeline: [
         { time: '2026-08-30 19:05', text: 'Buyer paid. EN1064 entered Orders. This row stays and is marked Recovered.' },
+        { time: '2026-08-30 19:05', text: 'Buyer started payment for EN1064. Result: Payment succeeded. Payment method: PayPal. The payment service returned: Approved.' },
+        { time: '2026-08-30 18:40', text: 'Checkout started. Unpaid order EN1064 created.' },
         { time: '2026-08-30 16:20', text: 'Buyer paid. EN1063 entered Orders. This row stays and is marked Recovered.' },
-        { time: '2026-08-30 16:20', text: 'Buyer started payment. Result: Payment succeeded. Payment method: Card. The payment service returned: Approved.' },
+        { time: '2026-08-30 16:20', text: 'Buyer started payment for EN1063. Result: Payment succeeded. Payment method: Card. The payment service returned: Approved.' },
         { time: '2026-08-30 15:22', text: 'Abandoned checkout reminder sent to casey@example.com.' },
         { time: '2026-08-30 14:22', text: 'Recovery email scheduled for 2026-08-30 15:22.' },
         { time: '2026-08-30 14:22', text: 'Marked abandoned after the email was left and the checkout stayed unpaid for about 10 minutes.' },
@@ -285,7 +287,7 @@
       timeline: [
         { time: '2026-08-27 15:32', text: 'Recovery email was not scheduled. The abandoned checkout email is turned off.' },
         { time: '2026-08-27 15:32', text: 'Marked abandoned after the email was left and the checkout stayed unpaid for about 10 minutes.' },
-        { time: '2026-08-27 15:28', text: 'Buyer tried to pay. Result: Out of stock. Payment was not started.' },
+        { time: '2026-08-27 15:28', text: 'Buyer tried to pay for EN1053. Result: Out of stock. Payment was not started.' },
         { time: '2026-08-27 15:22', text: 'Contact captured.' },
         { time: '2026-08-27 15:20', text: 'Checkout started. Unpaid order EN1053 created.' },
       ],
@@ -408,7 +410,7 @@
       timeline: [
         { time: '2026-08-25 09:48', text: 'Recovery email scheduled for 2026-08-25 09:50.' },
         { time: '2026-08-25 09:48', text: 'Marked abandoned after the email was left and the checkout stayed unpaid for about 10 minutes.' },
-        { time: '2026-08-25 08:46', text: 'Buyer started payment. Result: Payment failed. Payment method: Card. The payment service returned: The card was declined. Do not honor.' },
+        { time: '2026-08-25 08:46', text: 'Buyer started payment for EN1049. Result: Payment failed. Payment method: Card. The payment service returned: The card was declined. Do not honor.' },
         { time: '2026-08-25 08:43', text: 'Contact captured.' },
         { time: '2026-08-25 08:40', text: 'Checkout started. Unpaid order EN1049 created.' },
       ],
@@ -516,7 +518,7 @@
       ...richCart('SUB-20471', 'SUB-20472', 'SUB-20473'),
       timeline: [
         { time: '2026-08-22 18:11', text: 'Buyer paid. EN1048 entered Orders. This row stays and is marked Recovered.' },
-        { time: '2026-08-22 18:11', text: 'Buyer started payment. Result: Payment succeeded. Payment method: Shop Pay. The payment service returned: Approved.' },
+        { time: '2026-08-22 18:11', text: 'Buyer started payment for EN1048. Result: Payment succeeded. Payment method: Shop Pay. The payment service returned: Approved.' },
         { time: '2026-08-22 13:28', text: 'Abandoned checkout reminder sent to avery@example.com.' },
         { time: '2026-08-22 12:28', text: 'Recovery email scheduled for 2026-08-22 13:28.' },
         { time: '2026-08-22 12:28', text: 'Marked abandoned after the email was left and the checkout stayed unpaid for about 10 minutes.' },
@@ -551,7 +553,7 @@
       ...richCart('SUB-20501', 'SUB-20502', 'SUB-20503'),
       timeline: [
         { time: '2026-08-19 10:40', text: 'Buyer paid before the recovery email was sent. EN1047 entered Orders. This row stays and is marked Recovered.' },
-        { time: '2026-08-19 10:40', text: 'Buyer started payment. Result: Payment succeeded. Payment method: PayPal. The payment service returned: Approved.' },
+        { time: '2026-08-19 10:40', text: 'Buyer started payment for EN1047. Result: Payment succeeded. Payment method: PayPal. The payment service returned: Approved.' },
         { time: '2026-08-19 10:12', text: 'Recovery email scheduled for 2026-08-19 20:12.' },
         { time: '2026-08-19 10:12', text: 'Marked abandoned after the email was left and the checkout stayed unpaid for about 10 minutes.' },
         { time: '2026-08-19 09:08', text: 'Contact captured.' },

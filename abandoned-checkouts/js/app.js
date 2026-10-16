@@ -475,7 +475,7 @@
     }
     body += line('Total', money(amounts.total), { border: true, bold: true });
     if (Number(row.total_savings || 0) > 0) body += line('TOTAL SAVINGS ' + money(row.total_savings), '', { sub: true });
-    body += line(row.abandon_status === 'recovered' ? 'Paid' : 'To be paid', money(amounts.total));
+    body += line('To be paid by customer', money(amounts.total));
     return '<div class="panel card-pad mb-4"><div class="card-title" style="margin-bottom:4px">Amount</div>' + body + '</div>';
   }
 

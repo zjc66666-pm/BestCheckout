@@ -380,7 +380,7 @@
       : id === 'bestcheckout' ? '20261016-edit-tab'
       : id === 'bundles' ? '20261013-pdp1'
       : id === 'orders' ? '20261016-ac-detail'
-      : id === 'abandoned-checkouts' ? '20261016-ac-detail' : V;
+      : id === 'abandoned-checkouts' ? '20261016-ac-logs' : V;
     chain = chain.then(function () {
       if (id === 'online-store' && !window.POST_PURCHASE_ORDER_MOCK)
         return loadScript('assets/post-purchase-order-mock.js?v=' + moduleV);

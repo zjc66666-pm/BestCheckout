@@ -478,6 +478,9 @@ window.I18N.addRules([
   } },
   // customer header source line: "YYYY-MM-DD HH:MM from SOURCE" (date-anchored to stay narrow)
   { re: /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}) from (.+)$/, zh: function (m) { return m[1] + ' · 来自 ' + m[2]; } },
+  { re: /^Buyer started payment for (\S+)\. Result: Payment succeeded\. Payment method: (.+)\. The payment service returned: Approved\.$/, zh: function (m) { return '买家发起支付，订单 ' + m[1] + '。结果：支付成功。付款方式：' + m[2] + '。支付机构返回：已批准。'; } },
+  { re: /^Buyer started payment for (\S+)\. Result: Payment failed\. Payment method: (.+)\. The payment service returned: The card was declined\. Do not honor\.$/, zh: function (m) { return '买家发起支付，订单 ' + m[1] + '。结果：支付失败。付款方式：' + m[2] + '。支付机构返回：银行卡被拒绝。不予承兑。'; } },
+  { re: /^Buyer tried to pay for (\S+)\. Result: Out of stock\. Payment was not started\.$/, zh: function (m) { return '买家尝试支付，订单 ' + m[1] + '。结果：缺货。未发起支付。'; } },
   { re: /^Checkout started\. Unpaid order (\S+) created\.$/, zh: function (m) { return '已进入结账。未付订单 ' + m[1] + ' 已创建。'; } },
   { re: /^Hosted Checkout started\. Unpaid order (\S+) created\.$/, zh: function (m) { return '已进入结账。未付订单 ' + m[1] + ' 已创建。'; } },
   { re: /^Payment method: (.+)$/, zh: function (m) { return '付款方式：' + m[1]; } },
