@@ -373,14 +373,14 @@
     // Customer detail renders canonical order snapshots. Load the shared order data
     // first so a direct #/customers entry cannot fall back to stale duplicate mocks.
     chain = chain.then(function () {
-      if ((id === 'customers' || id === 'abandoned-checkouts') && !window.DATA_ORDERS) return loadScript('orders/js/data.js?v=20261016-ac-multi-paid');
+      if ((id === 'customers' || id === 'abandoned-checkouts') && !window.DATA_ORDERS) return loadScript('orders/js/data.js?v=20261016-ac-detail');
     });
     var moduleV = id === 'settings' ? '20261014-subpdp1'
       : id === 'online-store' ? '20261016-hide-pdp'
       : id === 'bestcheckout' ? '20261016-edit-tab'
       : id === 'bundles' ? '20261013-pdp1'
-      : id === 'orders' ? '20261016-ac-multi-paid'
-      : id === 'abandoned-checkouts' ? '20261016-ac-multi-paid' : V;
+      : id === 'orders' ? '20261016-ac-detail'
+      : id === 'abandoned-checkouts' ? '20261016-ac-detail' : V;
     chain = chain.then(function () {
       if (id === 'online-store' && !window.POST_PURCHASE_ORDER_MOCK)
         return loadScript('assets/post-purchase-order-mock.js?v=' + moduleV);

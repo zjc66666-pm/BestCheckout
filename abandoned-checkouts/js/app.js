@@ -12,7 +12,8 @@
     search: svg('<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>'),
     copy: svg('<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>', 16),
     arrowLeft: svg('<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>', 18),
-    mail: svg('<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 6 10 7 10-7"/>', 16),
+    mail: svg('<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 6 10 7 10-7"/>', 15),
+    phone: svg('<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.1-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z"/>', 15),
     pencil: svg('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>', 15),
     x: svg('<path d="M18 6 6 18M6 6l12 12"/>', 16),
     tag: svg('<path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z"/><circle cx="7.5" cy="7.5" r="1.3"/>', 13),
@@ -176,15 +177,6 @@
         '<div class="flex items-center justify-between card-pad"><span class="muted" style="font-size:13px">Total ' + rows.length + ' records</span>' + pagerHtml(LST.page, pages) + '</div>' +
       '</div>';
     wireList();
-  }
-
-  function customerOrderCount(email) {
-    const want = String(email || '').trim().toLowerCase();
-    if (!want) return 0;
-    return (((window.DATA_ORDERS || {}).ORDERS) || []).filter((order) => {
-      if (!order || order.source !== 'BestCheckout' || order.payment_status !== 'paid') return false;
-      return String((order.shipping || {}).email || '').trim().toLowerCase() === want;
-    }).length;
   }
 
   function emailKey(row) {
@@ -467,7 +459,7 @@
         '<div style="' + (opts.sub ? 'font-size:12px;color:#8B8B8B' : 'font-size:13.5px;font-weight:500;color:var(--ink)') + (opts.bold ? ';font-weight:700' : '') + '">' + value + '</div>' +
       '</div>';
     };
-    const countLabel = amounts.count + (amounts.count === 1 ? ' item' : ' items');
+    const countLabel = amounts.count + ' items';
     let body = line('Subtotal <span class="muted" style="margin-left:6px">· ' + countLabel + '</span>', money(amounts.subtotal));
     if (amounts.orderDiscounts.length) {
       body += line('Order Discount', '');
@@ -483,8 +475,8 @@
     }
     body += line('Total', money(amounts.total), { border: true, bold: true });
     if (Number(row.total_savings || 0) > 0) body += line('TOTAL SAVINGS ' + money(row.total_savings), '', { sub: true });
-    body += line('To be paid', money(amounts.total));
-    return '<div style="margin-top:4px">' + body + '</div>';
+    body += line(row.abandon_status === 'recovered' ? 'Paid' : 'To be paid', money(amounts.total));
+    return '<div class="panel card-pad mb-4"><div class="card-title" style="margin-bottom:4px">Amount</div>' + body + '</div>';
   }
 
   function checkoutAmounts(row) {
@@ -500,12 +492,80 @@
     return { subtotal, discount, orderDiscounts, shipping, shipDiscounts, shipDiscountTotal, count, total };
   }
 
-  function copyText(text, okMsg) {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(function () { toast(okMsg); }).catch(function () { toast('Could not copy'); });
-    } else {
-      toast('Could not copy');
+  function descRow(label, val) {
+    return '<div style="display:flex;padding:6px 0"><div class="muted" style="width:120px;flex:none;font-size:13px">' + label + '</div>' +
+      '<div class="subtle" style="font-size:13px;min-width:0;word-break:break-word">' + (val || '--') + '</div></div>';
+  }
+
+  function addressParts(row) {
+    const ship = row.shipping_address || {};
+    const customer = row.customer || {};
+    const name = String(ship.name || customer.name || '').trim();
+    const bits = name.split(/\s+/).filter(Boolean);
+    const line2 = String(ship.line2 || '').trim();
+    const us = line2.match(/^(.*)\s+([A-Z]{2})\s+(\d{5}(?:-\d{4})?)$/);
+    const uk = line2.match(/^(.*)\s+([A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2})$/i);
+    return {
+      first: ship.first_name || bits[0] || '',
+      last: ship.last_name || bits.slice(1).join(' '),
+      address: ship.line1 || ship.detail || '',
+      apartment: ship.detail2 || (us || uk ? '' : line2),
+      city: ship.city || (us ? us[1] : uk ? uk[1] : ''),
+      state: ship.province || (us ? us[2] : ''),
+      zip: ship.post_code || (us ? us[3] : uk ? uk[2].toUpperCase() : ''),
+      country: ship.country || row.region || '',
+      phone: String(customer.phone || ship.phone || '').trim(),
+      email: String(customer.email || ship.email || '').trim(),
+    };
+  }
+
+  function shippingAddressCard(row) {
+    const ship = row.shipping_address;
+    if (!ship || !String(ship.line1 || ship.detail || '').trim()) {
+      return '<div class="panel card-pad mb-4"><div class="card-title" style="margin-bottom:4px">Shipping address</div><div class="muted" style="font-size:13px">No shipping address</div></div>';
     }
+    const a = addressParts(row);
+    const grid =
+      '<div class="grid grid-cols-2" style="gap:0 16px">' +
+        descRow('First name', esc(a.first)) + descRow('Last name', esc(a.last)) +
+        descRow('Address', esc(a.address)) + descRow('Apartment', esc(a.apartment)) +
+        descRow('City', esc(a.city)) + descRow('State', esc(a.state)) +
+        descRow('ZIP code', esc(a.zip)) + descRow('Country', esc(a.country)) +
+        descRow('Phone', esc(a.phone)) + descRow('Email', esc(a.email)) +
+      '</div>';
+    return '<div class="panel card-pad mb-4"><div class="card-title" style="margin-bottom:4px">Shipping address</div>' + grid + '</div>';
+  }
+
+  const CUSTOMER_IDS = {
+    'casey@example.com': '91055',
+    'nora@example.com': '91057',
+    'evan@example.com': '91058',
+    'priya@example.com': '91059',
+    'sam@example.com': '91060',
+    'maya@example.com': '91061',
+    'riley@example.com': '91062',
+    'avery@example.com': '91039',
+    'jordan@example.com': '91022',
+  };
+
+  function customerCard(row) {
+    const customer = row.customer || {};
+    const name = String(customer.name || '').trim() || 'Guest';
+    const email = String(customer.email || '').trim();
+    const phone = String(customer.phone || '').trim();
+    const customerId = customer.uid || CUSTOMER_IDS[email.toLowerCase()] || '';
+    const contactRows = [
+      email ? '<div class="flex items-center gap-2" style="min-width:0;color:var(--ink-muted)">' + I.mail + '<span class="subtle" style="font-size:13px;line-height:1.45;overflow-wrap:anywhere">' + esc(email) + '</span></div>' : '',
+      phone ? '<div class="flex items-center gap-2" style="min-width:0;color:var(--ink-muted)">' + I.phone + '<span class="subtle" style="font-size:13px;line-height:1.45">' + esc(phone) + '</span></div>' : '',
+    ].filter(Boolean).join('');
+    return '<div class="panel card-pad mb-4">' +
+      '<div class="card-title" style="margin-bottom:10px">Customer</div>' +
+      '<div style="min-width:0">' +
+        '<div style="font-size:14px;font-weight:600;color:var(--ink);line-height:1.4">' + esc(name) + '</div>' +
+        (contactRows ? '<div style="display:flex;flex-direction:column;gap:7px;margin-top:10px">' + contactRows + '</div>' : '') +
+      '</div>' +
+      (customerId ? '<div class="flex items-center justify-between gap-3" style="margin-top:14px;padding-top:10px;border-top:1px solid var(--hair);font-size:13px"><span class="muted">Customer ID</span><span class="subtle" style="font-variant-numeric:tabular-nums">' + esc(customerId) + '</span></div>' : '') +
+    '</div>';
   }
 
   function detailBanner(kind, title, body) {
@@ -535,8 +595,6 @@
     const sent = emailKey(row) === 'sent';
     const scheduled = emailKey(row) === 'scheduled';
     const canceled = row.recovery_email_canceled || null;
-    const email = (row.customer.email || '').trim();
-    const phone = (row.customer.phone || '').trim();
     const recoveryHref = row.recovery_url ? new URL(row.recovery_url, location.href).href : '';
     const amounts = checkoutAmounts(row);
     const items = checkoutItemsHtml(row.items || []);
@@ -589,21 +647,6 @@
       banners.push(detailBanner('info', 'Cart recovery email not sent',
         '<div>A checkout was completed before the email was sent.</div>'));
     }
-    const emailRow = email
-      ? '<span style="display:inline-flex;align-items:center;gap:4px"><a href="mailto:' + esc(email) + '" style="color:var(--brand)">' + esc(email) + '</a>' +
-        '<button class="back-btn" data-copy-email title="Copy" style="width:28px;height:28px;background:transparent">' + I.copy + '</button></span>'
-      : '<span class="muted">No email provided</span>';
-    const ship = row.shipping_address || null;
-    const shipHtml = ship
-      ? '<div style="font-size:13px;line-height:1.55">' + [ship.name, ship.line1, ship.line2, ship.country].filter(Boolean).map(esc).join('<br>') + '</div>'
-      : '<div class="muted" style="font-size:13px">' + esc(row.region || 'No shipping address') + '</div>';
-    const orderCount = customerOrderCount(email);
-    const orderLabel = orderCount === 1 ? '1 order' : orderCount + ' orders';
-    const orderLine = email
-      ? '<a href="#/orders?email=' + encodeURIComponent(email) + '" style="color:var(--brand)">' + orderLabel + '</a>'
-      : '<span class="muted">No orders</span>';
-    const sectionLabel = (text) => '<div class="muted" style="font-size:12px;font-weight:650;margin:14px 0 4px">' + text + '</div>';
-
     root.innerHTML =
       '<div class="detail-wrap">' +
         '<div class="flex items-center justify-between mb-4" style="gap:12px">' +
@@ -626,8 +669,9 @@
                 '<div class="card-title">Checkout details</div>' +
               '</div>' +
               items +
-              amountsHtml +
             '</div>' +
+            amountsHtml +
+            shippingAddressCard(row) +
             '<div class="panel card-pad mb-4">' +
               '<div class="card-title mb-3">Timeline</div>' +
               (timeline || '<div class="muted" style="font-size:13px">No data</div>') +
@@ -641,22 +685,12 @@
               '</div>' +
               '<div class="subtle" style="font-size:13px;white-space:pre-wrap">' + (row.note ? esc(row.note) : '<span class="muted">No notes</span>') + '</div>' +
             '</div>' +
-            '<div class="panel card-pad mb-4">' +
-              '<div class="card-title mb-2">Customer</div>' +
-              '<div style="font-weight:650">' + esc(row.customer.name || 'Guest') + '</div>' +
-              '<div style="font-size:13px;margin-top:4px">' + orderLine + '</div>' +
-              sectionLabel('Contact information') +
-              '<div style="font-size:13px">' + emailRow + '</div>' +
-              (phone ? '<div class="muted" style="font-size:13px;margin-top:4px">' + esc(phone) + '</div>' : '') +
-              sectionLabel('Shipping address') + shipHtml +
-            '</div>' +
+            customerCard(row) +
           '</div>' +
         '</div>' +
       '</div>';
 
     root.querySelector('[data-back]').onclick = () => { location.hash = '#/abandoned-checkouts'; };
-    const copyEmail = root.querySelector('[data-copy-email]');
-    if (copyEmail) copyEmail.onclick = () => { copyText(email, 'Email copied'); };
     const cancelEmail = root.querySelector('[data-cancel-email]');
     if (cancelEmail) cancelEmail.onclick = () => {
       const at = stampNow();

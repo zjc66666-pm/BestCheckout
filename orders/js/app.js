@@ -1023,11 +1023,16 @@
         '<div class="panel placeholder"><div><div style="font-weight:600;margin-bottom:6px">Detail not available in this prototype</div>' +
           '<div class="muted">Return to the order list and select a valid sample order.</div></div></div>' +
       '</div>';
-    const b = root.querySelector('[data-act="back"]'); if (b) b.onclick = () => { location.hash = '#/orders'; };
+    const b = root.querySelector('[data-act="back"]'); if (b) b.onclick = leaveOrderDetail;
+  }
+
+  function leaveOrderDetail() {
+    if (history.length > 1) { history.back(); return; }
+    location.hash = '#/orders';
   }
 
   function wireDetail(o) {
-    const back = root.querySelector('[data-act="back"]'); if (back) back.onclick = () => { location.hash = '#/orders'; };
+    const back = root.querySelector('[data-act="back"]'); if (back) back.onclick = leaveOrderDetail;
     const copy = root.querySelector('[data-act="copy"]'); if (copy) copy.onclick = () => { try { navigator.clipboard.writeText(o.order_sn); } catch (e) {} toast('Copied'); };
     const ref = root.querySelector('[data-act="refund"]'); if (ref) ref.onclick = () => openRefundModal(o);
     const en = root.querySelector('[data-act="edit-note"]'); if (en) en.onclick = () => openEditNoteModal(o);
