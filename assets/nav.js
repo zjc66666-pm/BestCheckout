@@ -91,7 +91,7 @@ window.ROUTE_MODULE = {
   'online-store': 'online-store',
 };
 
-window.BESTSHOPIO_HELP_CENTER_URL = 'help/';
+window.BESTSHOPIO_HELP_CENTER_URL = 'help/#guide=feature-list';
 
 window.CHANGELOG = [
   {

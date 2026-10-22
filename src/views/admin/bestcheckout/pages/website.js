@@ -451,7 +451,7 @@ function renderFunnelShowcase() {
 
 function marketingNavLinks(active) {
   const lookbook = active === 'lookbook' ? ' aria-current="page"' : '';
-  return '<a href="#/landing" data-landing-section="home">Home</a><a href="#/landing?section=funnels" data-landing-section="funnels">Funnels</a><a href="#/lookbook"' + lookbook + '>Lookbook</a><a href="#/landing?section=results" data-landing-section="results">Product</a><a href="#/landing?section=how-it-works" data-landing-section="how-it-works">How it works</a><a href="help/">Help Center</a><a href="help/#guide=connect-shopify">Connect guide</a>';
+  return '<a href="#/landing" data-landing-section="home">Home</a><a href="#/landing?section=funnels" data-landing-section="funnels">Funnels</a><a href="#/lookbook"' + lookbook + '>Lookbook</a><a href="#/landing?section=results" data-landing-section="results">Product</a><a href="#/landing?section=how-it-works" data-landing-section="how-it-works">How it works</a><a href="help/#guide=feature-list">Help Center</a><a href="help/#guide=connect-shopify">Connect guide</a>';
 }
 
 function marketingPrimaryButton(ctas, extraClass, withArrow) {
