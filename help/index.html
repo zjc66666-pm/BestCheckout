@@ -71,7 +71,7 @@
       .guide-step p,.guide-list{font-size:14px}
       .feature-table tbody th,.feature-table td{font-size:14px;line-height:1.55}
     }
-    .feature-table-wrap{margin:14px 0 4px;border:1px solid var(--hair);border-radius:9px;overflow:hidden}
+    .feature-table-wrap{margin:14px 0 4px;border:1px solid var(--hair);border-radius:9px;overflow:hidden;container-type:inline-size}
     .feature-table{width:100%;border-collapse:collapse;background:#fff}
     .feature-table th,.feature-table td{padding:11px 14px;border-bottom:1px solid var(--hair);text-align:left;vertical-align:top}
     .feature-table thead th{background:#f7f8fb;color:#526174;font-size:12px;font-weight:750;letter-spacing:.04em;text-transform:uppercase}
@@ -88,6 +88,17 @@
     .feature-table tr.feature-lookbook td{padding:14px 16px;background:#f8fbff;text-align:left}
     .feature-table tr.feature-lookbook a{color:#075fcf;font-size:14px;font-weight:650;text-decoration:none}
     .feature-table tr.feature-lookbook a:hover{text-decoration:underline}
+    @container(max-width:760px){
+      .feature-table,.feature-table tbody,.feature-table tr,.feature-table th,.feature-table td{display:block;width:100%}
+      .feature-table thead{display:none}
+      .feature-table tr{border-bottom:1px solid var(--hair)}
+      .feature-table tr:last-child,.feature-table tr:last-child th,.feature-table tr:last-child td{border-bottom:0}
+      .feature-table tbody th,.feature-table td{width:100%;border-bottom:0}
+      .feature-table tbody th{padding-bottom:2px}
+      .feature-table td{padding-top:2px}
+      .feature-table .cko,.feature-table .feature-shot,.feature-table .feature-shots,.feature-table .cko-live-fit,.feature-table img{max-width:100%}
+      .feature-table .cko{width:100%}
+    }
     .feature-shot{display:block;width:min(100%,440px);height:auto;margin-top:10px;border:1px solid #e6eaf0;border-radius:8px;background:#fff}
     .cko{width:min(100%,440px);margin-top:10px;border:1px solid #e6eaf0;border-radius:8px;background:#fff;padding:14px 16px 16px;box-sizing:border-box;color:#1f1f1f;font-size:14px;line-height:1.45}
     .cko.is-bleed{padding:0;overflow:hidden}
@@ -687,6 +698,7 @@
             ['Checkout pages','Design the Checkout, Upsell, Downsell, and Thank you pages to fit your needs. Each page includes a rich set of components you can personalize. Ready-to-use page templates are included, and you can use them as they are. You can also install MCP in an AI tool such as Claude, Codex, or Cursor and edit the pages with AI.',[].concat(
               [
                 ['group','Checkout','The page where the buyer pays. Product upsell, shipping insurance, and VIP Club can be added only here.'],
+                ['lookbook','checkout'],
                 ['sub','Features'],
                 ['Checkout form','Contact, shipping address, shipping method, payment, and order summary. Shipping methods come from the Shopify delivery profiles synced for the store.'],
                 ['Discount code','Buyers can apply a Shopify discount code. Automatic Shopify discounts stay eligible at checkout.'],
@@ -697,6 +709,7 @@
               offerContentComponents,
               [
                 ['group','Upsell','Shown after payment succeeds.'],
+                ['lookbook','upsell'],
                 ['sub','Features'],
                 ['Offer','After payment succeeds, offer one product or variant. Set a percentage or a fixed amount off. The buyer accepts or declines.'],
                 ['sub','Components']
@@ -704,6 +717,7 @@
               withoutShots(offerContentComponents),
               [
                 ['group','Downsell','Shown after the buyer declines the Upsell.'],
+                ['lookbook','downsell'],
                 ['sub','Features'],
                 ['Alternative offer','If the Upsell is declined, offer a lower-priced alternative with its own percentage or fixed discount.'],
                 ['sub','Components']
@@ -711,6 +725,7 @@
               withoutShots(offerContentComponents),
               [
                 ['group','Thank you','Shown when the path is complete. This page does not sell another product.'],
+                ['lookbook','thankyou'],
                 ['sub','Features'],
                 ['Confirm the purchase','Confirm the order, show order details, and offer continue shopping or contact.'],
                 ['sub','Components']
