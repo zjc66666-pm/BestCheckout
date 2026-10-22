@@ -542,6 +542,7 @@
     'evan@example.com': '91058',
     'priya@example.com': '91059',
     'sam@example.com': '91060',
+    'harper@example.com': '91063',
     'maya@example.com': '91061',
     'riley@example.com': '91062',
     'avery@example.com': '91039',
@@ -643,6 +644,9 @@
     } else if (row.not_sent_reason === 'send_failed') {
       banners.push(detailBanner('info', 'Cart recovery email not sent',
         'Recovery email failed to send.'));
+    } else if (row.not_sent_reason === 'newer_scheduled') {
+      banners.push(detailBanner('info', 'Cart recovery email not sent',
+        'A newer abandoned checkout for this email is already scheduled.'));
     } else if (recovered) {
       banners.push(detailBanner('info', 'Cart recovery email not sent',
         '<div>A checkout was completed before the email was sent.</div>'));

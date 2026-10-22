@@ -58,6 +58,12 @@
   try {
     var query = new URLSearchParams(location.search);
     var qsStore = query.get('store');
+    // Hash links resolve against <base href="../"> and reload the app without
+    // the query string. Remember the chosen store so that reload stays put.
+    try {
+      if (qsStore) sessionStorage.setItem('bc-demo-store', qsStore);
+      else qsStore = sessionStorage.getItem('bc-demo-store') || '';
+    } catch (err) {}
     var connectedStores = STORES.filter(function (store) { return !store.connectStatus; });
     activeStore = connectedStores.filter(function (store) { return store.name === qsStore; })[0] || null;
     if (activeStore) SITE.store = activeStore.name;
@@ -380,7 +386,7 @@
       : id === 'bestcheckout' ? '20261016-edit-tab'
       : id === 'bundles' ? '20261013-pdp1'
       : id === 'orders' ? '20261016-ac-detail'
-      : id === 'abandoned-checkouts' ? '20261016-ac-logs' : V;
+      : id === 'abandoned-checkouts' ? '20261022-ac-sent-pair' : V;
     chain = chain.then(function () {
       if (id === 'online-store' && !window.POST_PURCHASE_ORDER_MOCK)
         return loadScript('assets/post-purchase-order-mock.js?v=' + moduleV);
