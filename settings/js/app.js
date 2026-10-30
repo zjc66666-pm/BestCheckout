@@ -820,9 +820,11 @@
     const wrap = centered === 'full'
       ? bodyHtml
       : '<div class="set-page' + (centered ? ' set-narrow' : '') + '">' + bodyHtml + '</div>';
-    root.innerHTML =
-      '<style>' + STYLES + '</style>' + wrap;
-    if (window.I18N && window.I18N.apply) window.I18N.apply(root);
+    const frag = document.createElement('div');
+    frag.innerHTML = '<style>' + STYLES + '</style>' + wrap;
+    if (window.I18N && window.I18N.apply) window.I18N.apply(frag);
+    root.replaceChildren();
+    while (frag.firstChild) root.appendChild(frag.firstChild);
     // wire generic toggles (visual only)
     root.querySelectorAll('[data-toggle]').forEach((el) => el.onclick = () => el.classList.toggle('on'));
     // image upload tiles → open the OS file chooser (Store logo/ico/no-data, Checkout logo)
@@ -7269,12 +7271,27 @@
     };
   }
 
+  function renderBilling() {
+    if (!window.BestCheckoutBilling) return;
+    window.BestCheckoutBilling.render({
+      root: root,
+      rest: curRest,
+      paint: paint,
+      esc: esc,
+      toast: toast,
+      modal: modal,
+      storeName: (window.SITE && window.SITE.store) || 'Lavender Labs',
+      role: (window.SITE && window.SITE.role) || 'Owner'
+    });
+  }
+
   const ROUTES = {
     notifications: renderNotifications,
     base: renderShopifyStore,
     subscriptions: renderSubscriptions,
     domains: renderDomains,
     payments: renderPayments,
+    billing: renderBilling,
     'advertising-analytics': renderAdvertisingAnalyticsV2,
     currency: renderCurrency,
     metafields: renderMetafields,

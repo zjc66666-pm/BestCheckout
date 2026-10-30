@@ -106,36 +106,102 @@
       var childActive = it.children.some(function (c) { return c.id === activeId; });
       var open = childActive || it.id === activeId;
       var subs = it.children.map(function (c) {
-        return '<a class="nav-sub' + (c.id === activeId ? ' active' : '') + '" href="' + c.route + '">' + c.label + '</a>';
+        return '<a class="nav-sub' + (c.id === activeId ? ' active' : '') + '" data-nav-id="' + c.id + '" href="' + c.route + '">' + navText(c.label) + '</a>';
       }).join('');
       return '<div class="nav-group">' +
-        '<a class="nav-item nav-parent' + (it.id === activeId || childActive ? ' active' : '') + '" href="' + it.route + '">' + icon + '<span>' + it.label + '</span></a>' +
+        '<a class="nav-item nav-parent' + (it.id === activeId || childActive ? ' active' : '') + '" data-nav-id="' + it.id + '" href="' + it.route + '">' + icon + '<span>' + navText(it.label) + '</span></a>' +
         '<div class="nav-subs' + (open ? '' : ' collapsed') + '">' + subs + '</div>' +
       '</div>';
     }
-    return '<a class="nav-item' + (it.id === activeId ? ' active' : '') + '" href="' + it.route + '">' + icon + '<span>' + it.label + '</span></a>';
+    return '<a class="nav-item' + (it.id === activeId ? ' active' : '') + '" data-nav-id="' + it.id + '" href="' + it.route + '">' + icon + '<span>' + navText(it.label) + '</span></a>';
   }
 
   function renderSidebar(activeId) {
     // Entries with `_group` are section dividers (nav.js buildMenu returns
     // a flat list with these sentinels). Render them as <div class="nav-group-label">.
     navEl.innerHTML = getMenu().map(function (it) {
-      if (it && it._group) return '<div class="nav-group-label">' + it._group + '</div>';
+      if (it && it._group) return '<div class="nav-group-label">' + navText(it._group) + '</div>';
       return itemHtml(it, activeId);
     }).join('');
     footEl.innerHTML = '';
   }
+  function syncSidebar(activeId) {
+    if (!navEl || !navEl.querySelector('[data-nav-id]')) {
+      renderSidebar(activeId);
+      return;
+    }
+    var byId = {};
+    getMenu().forEach(function (it) {
+      if (!it || it._group) return;
+      byId[it.id] = it;
+      if (it.children) it.children.forEach(function (c) { byId[c.id] = c; });
+    });
+    var links = navEl.querySelectorAll('[data-nav-id]');
+    for (var i = 0; i < links.length; i++) {
+      var el = links[i];
+      var id = el.getAttribute('data-nav-id');
+      var it = byId[id];
+      var childActive = !!(it && it.children && it.children.some(function (c) { return c.id === activeId; }));
+      if (el.classList.contains('nav-parent')) {
+        el.classList.toggle('active', id === activeId || childActive);
+        var subs = el.parentNode && el.parentNode.querySelector('.nav-subs');
+        if (subs) subs.classList.toggle('collapsed', !(childActive || id === activeId));
+      } else {
+        el.classList.toggle('active', id === activeId);
+      }
+    }
+  }
 
   // ---------- full-screen Settings modal (matches the live admin) ----------
   var settingsModal = null;
+  var settingsHeadEl = null;
+  var settingsHeadHandlers = {};
+  function navText(s) {
+    return (window.I18N && window.I18N.t) ? window.I18N.t(s) : s;
+  }
   function settingsNavItem(it, sub) {
     var icon = ICONS[it.icon] || '';
     if (it.children) {
       var childActive = it.children.some(function (c) { return c.id === sub; });
-      var subs = it.children.map(function (c) { return '<a class="settings-sub' + (c.id === sub ? ' active' : '') + '" href="' + c.route + '">' + c.label + '</a>'; }).join('');
-      return '<div class="settings-group"><a class="settings-nav-item' + (childActive ? ' active-parent' : '') + '" href="' + it.route + '">' + icon + '<span>' + it.label + '</span></a><div class="settings-subs">' + subs + '</div></div>';
+      var subs = it.children.map(function (c) { return '<a class="settings-sub' + (c.id === sub ? ' active' : '') + '" data-settings-id="' + c.id + '" href="' + c.route + '">' + navText(c.label) + '</a>'; }).join('');
+      return '<div class="settings-group"><a class="settings-nav-item' + (childActive ? ' active-parent' : '') + '" data-settings-id="' + it.id + '" href="' + it.route + '">' + icon + '<span>' + navText(it.label) + '</span></a><div class="settings-subs">' + subs + '</div></div>';
     }
-    return '<a class="settings-nav-item' + (it.id === sub ? ' active' : '') + '" href="' + it.route + '">' + icon + '<span>' + it.label + '</span></a>';
+    return '<a class="settings-nav-item' + (it.id === sub ? ' active' : '') + '" data-settings-id="' + it.id + '" href="' + it.route + '">' + icon + '<span>' + navText(it.label) + '</span></a>';
+  }
+  function syncSettingsNav(sub) {
+    if (!settingsModal) return;
+    var items = settingsModal.querySelectorAll('[data-settings-id]');
+    for (var i = 0; i < items.length; i++) {
+      var el = items[i];
+      var id = el.getAttribute('data-settings-id');
+      if (el.classList.contains('settings-sub')) {
+        el.classList.toggle('active', id === sub);
+        continue;
+      }
+      var it = null;
+      for (var j = 0; j < SETTINGS.length; j++) if (SETTINGS[j].id === id) { it = SETTINGS[j]; break; }
+      if (it && it.children) {
+        el.classList.toggle('active-parent', it.children.some(function (c) { return c.id === sub; }));
+        el.classList.remove('active');
+      } else {
+        el.classList.toggle('active', id === sub);
+      }
+    }
+  }
+  function renderSettingsHead(dirty) {
+    if (!settingsHeadEl) return;
+    var info = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>';
+    settingsHeadEl.classList.toggle('dirty', !!dirty);
+    if (dirty) {
+      settingsHeadEl.innerHTML =
+        '<div class="settings-head-sp"></div>' +
+        '<div class="settings-unsaved">' + info + '<span>' + navText('You have unsaved changes') + '</span></div>' +
+        '<div class="settings-unsaved-actions"><button class="btn settings-discard" data-st-discard>' + navText('Discard') + '</button><button class="btn btn-primary" data-st-update>' + navText('Update') + '</button></div>';
+      settingsHeadEl.querySelector('[data-st-discard]').onclick = function () { if (settingsHeadHandlers.onDiscard) settingsHeadHandlers.onDiscard(); };
+      settingsHeadEl.querySelector('[data-st-update]').onclick = function () { if (settingsHeadHandlers.onUpdate) settingsHeadHandlers.onUpdate(); };
+    } else {
+      settingsHeadEl.innerHTML = '<span class="settings-modal-title">' + navText('Settings') + '</span><a class="settings-modal-x" href="#/orders" title="' + navText('Close') + '">' + ICONS.x + '</a>';
+    }
   }
   function renderSettings(p) {
     var sub = p.rest.split('/')[0] || 'base';
@@ -146,30 +212,16 @@
         '<header class="settings-modal-head"></header>' +
         '<div class="settings-modal-body"><nav class="settings-nav scroll-thin"></nav><div class="settings-content scroll-thin" id="settings-content"></div></div>';
       document.body.appendChild(settingsModal);
+      settingsHeadEl = settingsModal.querySelector('.settings-modal-head');
+      renderSettingsHead(false);
+      window.SettingsChrome = { setDirty: function (dirty, h) { if (h) settingsHeadHandlers = h; renderSettingsHead(dirty); } };
+      settingsModal.querySelector('.settings-nav').innerHTML = SETTINGS.map(function (it) { return settingsNavItem(it, sub); }).join('');
+    } else {
+      syncSettingsNav(sub);
     }
-    // header bar: "Settings ✕" when clean; dark "You have unsaved changes / Discard / Update" when dirty (mirrors live admin)
-    var head = settingsModal.querySelector('.settings-modal-head');
-    var handlers = {};
-    var info = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>';
-    function renderSettingsHead(dirty) {
-      head.classList.toggle('dirty', !!dirty);
-      if (dirty) {
-        head.innerHTML =
-          '<div class="settings-head-sp"></div>' +
-          '<div class="settings-unsaved">' + info + '<span>You have unsaved changes</span></div>' +
-          '<div class="settings-unsaved-actions"><button class="btn settings-discard" data-st-discard>Discard</button><button class="btn btn-primary" data-st-update>Update</button></div>';
-        head.querySelector('[data-st-discard]').onclick = function () { if (handlers.onDiscard) handlers.onDiscard(); };
-        head.querySelector('[data-st-update]').onclick = function () { if (handlers.onUpdate) handlers.onUpdate(); };
-      } else {
-        head.innerHTML = '<span class="settings-modal-title">Settings</span><a class="settings-modal-x" href="#/orders" title="Close">' + ICONS.x + '</a>';
-      }
-    }
-    renderSettingsHead(false);
-    window.SettingsChrome = { setDirty: function (dirty, h) { if (h) handlers = h; renderSettingsHead(dirty); } };
-    settingsModal.querySelector('.settings-nav').innerHTML = SETTINGS.map(function (it) { return settingsNavItem(it, sub); }).join('');
-    if (window.I18N) window.I18N.apply(settingsModal);
     var contentEl = settingsModal.querySelector('#settings-content');
-    contentEl.innerHTML = '<div class="placeholder">Loading…</div>';
+    var ready = window.VIEWS && window.VIEWS.settings && window.VIEWS.settings.render;
+    if (!ready) contentEl.innerHTML = '<div class="placeholder">' + navText('Loading…') + '</div>';
     loadModule('settings').then(function () {
       if (!parse().settings) return;
       var v = window.VIEWS.settings;
@@ -178,7 +230,7 @@
       contentEl.scrollTop = 0;
     });
   }
-  function removeSettings() { if (settingsModal) { settingsModal.remove(); settingsModal = null; window.SettingsChrome = null; } }
+  function removeSettings() { if (settingsModal) { settingsModal.remove(); settingsModal = null; settingsHeadEl = null; settingsHeadHandlers = {}; window.SettingsChrome = null; } }
 
   var accountModal = null;
   var lastShopHash = '#/home';
@@ -381,7 +433,7 @@
     chain = chain.then(function () {
       if ((id === 'customers' || id === 'abandoned-checkouts') && !window.DATA_ORDERS) return loadScript('orders/js/data.js?v=20261016-ac-detail');
     });
-    var moduleV = id === 'settings' ? '20261014-subpdp1'
+    var moduleV = id === 'settings' ? '20261029-billnav1'
       : id === 'online-store' ? '20261016-hide-pdp'
       : id === 'bestcheckout' ? '20261016-edit-tab'
       : id === 'bundles' ? '20261013-pdp1'
@@ -399,6 +451,9 @@
       if (id === 'subscriptions' && window.DATA_SUBS) return;
       return loadScript(id + '/js/data.js?v=' + moduleV);
     }).catch(function () {}); // optional
+    chain = chain.then(function () {
+      if (id === 'settings' && !window.BestCheckoutBilling) return loadScript('settings/js/billing.js?v=20261030-billhome3');
+    });
     chain = chain.then(function () { return loadScript(id + '/js/app.js?v=' + moduleV); });    // required
     loaded[id] = chain;
     return loaded[id];
@@ -406,9 +461,10 @@
 
   function loadHomeDependencies() {
     if (homeLoaded) return homeLoaded;
+    var billingData = window.BestCheckoutBilling ? Promise.resolve() : loadScript('settings/js/billing.js?v=20261030-billhome3');
     var homeData = window.DATA_HOME ? Promise.resolve() : loadScript('home/js/data.js?v=' + V);
     var orderData = window.DATA_ORDERS ? Promise.resolve() : loadScript('orders/js/data.js?v=' + V);
-    homeLoaded = Promise.all([homeData, orderData]).catch(function () {});
+    homeLoaded = Promise.all([billingData, homeData, orderData]).catch(function () {});
     return homeLoaded;
   }
 
@@ -786,6 +842,16 @@
       button.onclick = function () { homeRange = this.getAttribute('data-home-range'); renderHome(); };
     });
   }
+  function homeBillingTaskHtml() {
+    var task = window.BestCheckoutBilling && window.BestCheckoutBilling.overviewTask
+      ? window.BestCheckoutBilling.overviewTask(SITE.store)
+      : null;
+    if (!task) return '';
+    var amount = task.amount ? ' <span class="i18n-skip">' + homeEsc(task.amount) + '</span>' : '';
+    var tail = task.tail ? ' <span>' + homeEsc(task.tail) + '</span>' : '';
+    var lead = task.html || (homeEsc(task.lead || '') + amount + tail);
+    return '<section class="home-onboarding is-billing" style="margin-top:16px"><header class="onboard-head"><div><div class="home-overline">Billing</div><h2>' + homeEsc(task.title) + '</h2><p>' + lead + '</p></div><a class="btn btn-primary" href="' + task.href + '">' + homeEsc(task.action) + '</a></header></section>';
+  }
   function renderHome() {
     if (isNewStore) { renderNewStoreHome(); return; }
     var scenario = homeScenario();
@@ -805,6 +871,7 @@
     var attention = scenario === 'unconfigured' ? '' : homeAttentionHtml(orders, flowCounts);
     root.innerHTML = '<div class="home-page"><div class="home-head"><div><h1>Good morning, ' + homeEsc(SITE.store || 'your store') + '</h1><p>Review the setup and results that affect buyers in BestCheckout.</p></div></div>' +
       checkoutLaunchGuideHtml(scenario) +
+      homeBillingTaskHtml() +
       attention +
       '<section class="home-data" id="home-data"><div class="home-section-head home-performance-head"><div><div class="home-overline">Data</div><h2>Checkout data</h2><p>' + homeEsc(period.label) + (period.empty ? '' : ' ' + homeEsc(period.comparison)) + '</p></div><div class="home-range-tabs" role="group" aria-label="Data period">' + rangeTabs + '</div></div><div class="home-kpi-grid">' + (period.metrics || []).map(function (metric) { return homeMetricHtml(metric, period.comparison); }).join('') + '</div>' +
       '<div class="home-main-grid"><section class="home-panel home-chart-panel"><div class="home-section-head"><div><h2>Checkout sales trend</h2><p><span>Completed checkout sales</span> · <span>' + homeEsc(period.label) + '</span></p></div></div>' + homeChartHtml(period) + '</section>' + homeDataInsightHtml(period) + '</div>' + homeFlowPerformanceHtml(period) + homeOfferPerformanceHtml(period) + '<section class="home-data-note"><span>i</span><div><strong>How sales are counted</strong><p>Sales are counted after payment succeeds. Paid orders are then sent to Shopify, so the result here matches the orders your team fulfills.</p></div></section></section></div>';
@@ -882,7 +949,7 @@
     if (p.first === 'analytics') { var asub = p.rest.split('/')[0]; activeId = asub ? 'analytics-' + asub : 'analytics'; }
     if (p.first === 'subscriptions') activeId = ((p.rest || '').split('/')[0] === 'contracts') ? 'subscriptions-contracts' : 'subscriptions';
     curActiveId = activeId;
-    renderSidebar(activeId);
+    syncSidebar(activeId);
     if (current && current !== moduleId && window.VIEWS[current] && window.VIEWS[current].unmount) {
       try { window.VIEWS[current].unmount(); } catch (e) {}
     }
@@ -894,7 +961,9 @@
       });
       return;
     }
-    root.innerHTML = '<div class="view-wrap"><div class="placeholder">Loading…</div></div>';
+    if (!(window.VIEWS[moduleId] && window.VIEWS[moduleId].render)) {
+      root.innerHTML = '<div class="view-wrap"><div class="placeholder">' + navText('Loading…') + '</div></div>';
+    }
     loadModule(moduleId).then(function () {
       if (parse().first !== p.first) return; // route changed while loading
       var v = window.VIEWS[moduleId];

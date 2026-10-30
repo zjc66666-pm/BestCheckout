@@ -11,7 +11,9 @@ window.STORES = [
   { name: 'Lavender Labs', url: 'lavender-labs.myshopify.com', homeState: 'unconfigured', shopifyPayments: true },
   { name: 'Aura Living', url: 'aura-living.myshopify.com', homeState: 'ready', shopifyPayments: false },
   { name: 'Northline Goods', url: 'northline-goods.myshopify.com', homeState: 'live' },
+  { name: 'Hey June', url: 'hey-june.myshopify.com', homeState: 'live' },
   { name: 'Kiln Coffee', url: 'kiln-coffee.myshopify.com', homeState: 'live', homeDataKey: 'kiln' },
+  { name: 'Folast Studio', url: 'folast-studio.myshopify.com', homeState: 'live' },
   { name: 'Northstar', url: 'northstar.myshopify.com', connectStatus: 'pending' },
   { name: 'Atelier', url: 'atelier.myshopify.com', connectStatus: 'install' },
   { name: 'Harbor', url: 'harbor.myshopify.com', connectStatus: 'expired' },
@@ -47,6 +49,7 @@ window.NAV_MENU = [
       { id: 'settings-payments', label: 'Payment services', route: '#/settings/payments' },
       { id: 'settings-advertising-analytics', label: 'Ad data', route: '#/settings/advertising-analytics' },
       { id: 'settings-notifications', label: 'Email notifications', route: '#/settings/notifications' },
+      { id: 'settings-billing', label: 'Invoices', route: '#/settings/billing' },
       { id: 'settings-roles', label: 'Roles', route: '#/settings/roles' },
       { id: 'settings-staff', label: 'Staff', route: '#/settings/staff' },
     ],
@@ -61,6 +64,7 @@ window.NAV_SETTINGS = [
   { id: 'payments', label: 'Payment services', icon: 'card', route: '#/settings/payments' },
   { id: 'advertising-analytics', label: 'Ad data', icon: 'analytics', route: '#/settings/advertising-analytics' },
   { id: 'notifications', label: 'Email notifications', icon: 'bell', route: '#/settings/notifications' },
+  { id: 'billing', label: 'Invoices', icon: 'coin', route: '#/settings/billing' },
   {
     id: 'staffperms', label: 'Staff and permissions', icon: 'userPen', route: '#/settings/roles',
     children: [
