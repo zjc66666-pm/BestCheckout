@@ -532,8 +532,8 @@
       return String(b.monthKey || b.month || '').localeCompare(String(a.monthKey || a.month || ''));
     })[0];
   }
-  function payNowHtml(owner, account) {
-    if (!owner || !unpaidInvoice(account)) return '';
+  function payNowHtml(account) {
+    if (!unpaidInvoice(account)) return '';
     if (account.last4) return '<div class="bill-actions"><button class="btn btn-primary" id="billPay">Pay now</button></div>';
     return '<div class="bill-actions"><button class="btn btn-primary" id="billPayCard">Add card and pay</button></div>';
   }
@@ -557,22 +557,21 @@
   function renderHome(api, account) {
     var esc = api.esc;
     var past = account.billingStatus === 'Past due';
-    var owner = api.role === 'Owner';
     var book = account.priceBook;
     var due = unpaidInvoice(account);
     var banner = '';
     if (account.checkoutFallback) {
       banner = '<div class="bill-banner"><div class="bill-banner-copy"><strong>New checkouts use Shopify Checkout</strong>' +
         fallbackBodyHtml(esc, account) + '</div>' +
-        payNowHtml(owner, account) + '</div>';
+        payNowHtml(account) + '</div>';
     } else if (past) {
       banner = '<div class="bill-banner"><div class="bill-banner-copy"><strong>September invoice is unpaid</strong><span>Pay within 7 days of the invoice, or new checkouts fall back to Shopify Checkout.</span> ' +
         failureLine(esc, account) +
-        '</div>' + payNowHtml(owner, account) + '</div>';
+        '</div>' + payNowHtml(account) + '</div>';
     } else if ((account.failures || []).length && due) {
       banner = '<div class="bill-banner"><div class="bill-banner-copy"><strong>Card charge failed</strong>' +
         '<span>Pay the invoice or replace the card.</span></div>' +
-        payNowHtml(owner, account) + '</div>';
+        payNowHtml(account) + '</div>';
     }
     var usedCents = account.allowanceCents == null
       ? ((account.october && account.october.volumeCents) || 0)
@@ -597,18 +596,17 @@
     var cardBody = account.last4
       ? '<div style="margin-top:10px"><span class="i18n-skip">' + esc(account.brand + ' ···· ' + account.last4) + '</span> <span class="muted">·</span> <span>Expires</span> <span class="i18n-skip">' + esc(account.exp) + '</span></div>' +
         '<div class="muted" style="font-size:12.5px;margin-top:8px;line-height:1.5">When an invoice is issued, BestCheckout charges this card. Nothing is charged while the store is inside the free allowance.</div>' +
-        (owner ? '<div class="bill-actions"><button class="btn btn-default" id="billCard">' + (due ? 'Replace card and pay' : 'Replace card') + '</button></div>' : '')
+        '<div class="bill-actions"><button class="btn btn-default" id="billCard">' + (due ? 'Replace card and pay' : 'Replace card') + '</button></div>'
       : '<div class="muted" style="font-size:13px;margin-top:8px;line-height:1.5">' + (due
         ? 'No card on file. Add a card to pay this invoice. The card is saved if the charge succeeds.'
         : 'No card on file. Add one so the invoice on the 1st can be paid automatically. The card is saved now and charged only after billing starts.') + '</div>' +
-        (owner ? '<div class="bill-actions"><button class="btn btn-primary" id="billCard">' + (due ? 'Add card and pay' : 'Add card') + '</button></div>' : '');
+        '<div class="bill-actions"><button class="btn btn-primary" id="billCard">' + (due ? 'Add card and pay' : 'Add card') + '</button></div>';
     var pay = '<div class="panel bill-tone"><div class="card-pad">' + billHead('card', 'Payment method') +
       cardBody +
-      (owner ? '' : '<div class="muted" style="font-size:12.5px;margin-top:8px">Only the store owner can pay invoices and update the card.</div>') +
       '</div></div>';
     var email = '<div class="panel bill-ab-card bill-tone">' + billHead('mail', 'Billing email') +
       '<div class="bill-email-value i18n-skip">' + esc(account.email) + '</div>' +
-      (owner ? '<div class="bill-actions"><button class="btn btn-default" id="billEmail">Edit billing email</button></div>' : '') +
+      '<div class="bill-actions"><button class="btn btn-default" id="billEmail">Edit billing email</button></div>' +
       '</div>';
     var invoices = '<div class="panel bill-section bill-rates-panel bill-invoice-panel"><div class="bill-panel-head">' + billHead('file', 'Invoices') + '</div>' +
       '<div class="bill-table-wrap"><table class="tbl"><thead><tr><th>Invoice</th><th>Month</th><th>Invoice total</th><th>Status</th><th style="text-align:center">Action</th></tr></thead><tbody id="billInvoiceRows"></tbody></table></div>' +
@@ -793,14 +791,13 @@
       api.paint(shell('<div class="bill-invoice-page">' + invoiceHead('<span class="page-title">Invoice</span>') + '<div class="muted">This invoice was not found.</div></div>'), false);
       return;
     }
-    var owner = api.role === 'Owner';
     var covered = item.coveredCents || 0;
     var billable = item.volumeCents || 0;
     var insideNote = invoiceInsideNote(item);
     var rows = item.lines.map(function (line) {
       return '<tr><td><div>' + esc(line.label) + '</div>' + invoiceLineDetail(esc, item, line) + '</td><td>' + esc(line.kind) + '</td><td class="i18n-skip">' + esc(money(line.amountCents)) + '</td></tr>';
     }).join('');
-    var pay = item.status !== 'Paid' && item.totalCents > 0 && owner
+    var pay = item.status !== 'Paid' && item.totalCents > 0
       ? (account.last4
         ? '<button class="btn btn-primary" id="billPay">Pay now</button>'
         : '<button class="btn btn-primary" id="billPayCard">Add card and pay</button>')
@@ -1242,7 +1239,6 @@
     'The monthly license, volume commission, and decline fee are charged to this card.': '月费、成交佣金和拒付费从这张卡扣取。',
     'Replace card': '更换银行卡',
     'Edit billing email': '编辑账单邮箱',
-    'Only the store owner can pay invoices and update the card.': '只有店主可以支付账单和更换银行卡。',
     'Invoices': '账单',
     'October is still open. The invoice is issued on November 1. Estimated October total': '10 月尚未结束。账单于 11 月 1 日开出。10 月预计合计',
     'Invoice': '账单',
