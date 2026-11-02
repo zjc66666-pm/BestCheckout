@@ -11,13 +11,17 @@
   ], true, 25, 20);
 
   var accounts = {
+    'Plover Studio': profile('Plover Studio', 'hello@ploverstudio.com', '', '', '', STANDARD, false, null, false, 0, 0, 0, 0, 0, 1800000, 60, 4, []),
+    'Bramble Market': profile('Bramble Market', 'hello@bramblemarket.com', 'Visa', '2614', '09/28', STANDARD, false, 2500000, false, 0, 0, 0, 0, 0, 420000, 16, 1, []),
     'Lavender Labs': profile('Lavender Labs', 'avery@lavenderlabs.com', '', '', '', STANDARD, false, 2500000, true, 30, 124000000, 4580, 620, 31, 48620000, 2190, 210, []),
     'Aura Living': profile('Aura Living', 'hello@auraliving.co', '', '', '', STANDARD, false, 2500000, false, 0, 0, 0, 0, 0, 680000, 24, 2, []),
     'Northline Goods': profile('Northline Goods', 'ops@northlinegoods.co', 'Visa', '5454', '08/28', STANDARD, false, 2500000, true, 30, 18000000, 920, 70, 31, 9200000, 410, 28, []),
     'Folast Studio': profile('Folast Studio', 'mia@folast-studio.com', 'Visa', '1881', '03/27', FOLAST, true, null, false, 0, 0, 0, 0, 0, 240000000, 7000, 1400, []),
     'Hey June': profile('Hey June', 'june@heyjune.co', '', '', '', STANDARD, false, 2500000, true, 30, 33800000, 2100, 900, 7, 4200000, 180, 22, []),
     'Kiln Coffee': profile('Kiln Coffee', 'hello@kilncoffee.co', 'Mastercard', '8888', '11/27', STANDARD, false, 2500000, true, 30, 22000000, 1100, 90, 0, 3500000, 140, 18, []),
-    'Marlow Supply': profile('Marlow Supply', 'owen@marlowsupply.com', '', '', '', STANDARD, false, 2500000, true, 30, 8600000, 410, 18, 4, 1200000, 40, 4, [])
+    'Marlow Supply': profile('Marlow Supply', 'owen@marlowsupply.com', '', '', '', STANDARD, false, 2500000, true, 30, 8600000, 410, 18, 4, 1200000, 40, 4, []),
+    'Linden Goods': profile('Linden Goods', 'billing@lindengoods.co', 'Visa', '4141', '06/28', STANDARD, false, 2500000, true, 30, 9600000, 480, 30, 31, 5400000, 240, 16, []),
+    'Maple Goods': profile('Maple Goods', 'hello@maplegoods.co', '', '', '', STANDARD, false, 2500000, true, 30, 4000000, 160, 8, 31, 800000, 30, 2, [])
   };
   accounts['Hey June'].invoices[0].status = 'Past due';
   accounts['Hey June'].invoices[0].paidAt = '';
@@ -205,7 +209,11 @@
       'Folast Studio': '71830452',
       'Hey June': '80219673',
       'Kiln Coffee': '55601822',
-      'Marlow Supply': '52840176'
+      'Marlow Supply': '52840176',
+      'Plover Studio': '64021837',
+      'Bramble Market': '27563914',
+      'Linden Goods': '35081627',
+      'Maple Goods': '38472019'
     };
     var code = shopIds[name] || 'store';
     var lines = chargeLines(priceBook, volumeCents, approvals, declines, adjustments, billableDays, daysInMonth);
@@ -610,9 +618,7 @@
       ? '<div style="margin-top:10px"><span class="i18n-skip">' + esc(account.brand + ' ···· ' + account.last4) + '</span> <span class="muted">·</span> <span>Expires</span> <span class="i18n-skip">' + esc(account.exp) + '</span></div>' +
         '<div class="muted" style="font-size:12.5px;margin-top:8px;line-height:1.5">When an invoice is issued, BestCheckout charges this card. Nothing is charged while the store is inside the free allowance.</div>' +
         '<div class="bill-actions"><button class="btn btn-default" id="billCard">' + (due ? 'Replace card and pay' : 'Replace card') + '</button></div>'
-      : '<div class="muted" style="font-size:13px;margin-top:8px;line-height:1.5">' + (due
-        ? 'No card on file. Add a card to pay this invoice. The card is saved if the charge succeeds.'
-        : 'No card on file. Add one so the invoice on the 1st can be paid automatically. The card is saved now and charged only after billing starts.') + '</div>' +
+      : '<div class="muted" style="font-size:13px;margin-top:8px;line-height:1.5">No card on file. Add one so invoices can be charged from this card. Nothing is charged while the store is inside the free allowance.</div>' +
         '<div class="bill-actions"><button class="btn btn-primary" id="billCard">' + (due ? 'Add card and pay' : 'Add card') + '</button></div>';
     var pay = '<div class="panel bill-tone"><div class="card-pad">' + billHead('card', 'Payment method') +
       cardBody +
@@ -815,13 +821,12 @@
         ? '<button class="btn btn-primary" id="billPay">Pay now</button>'
         : '<button class="btn btn-primary" id="billPayCard">Add card and pay</button>')
       : '';
-    var paid = item.paidAt ? '<span class="muted i18n-skip">' + esc(item.paidAt) + '</span>' : '';
     api.paint(shell(
       '<div class="bill-invoice-page">' +
       invoiceHead(
         '<span class="page-title i18n-skip">' + esc(item.number) + '</span>' +
         '<button type="button" class="back-btn" id="billCopy" title="Copy" style="width:30px;height:30px;background:transparent">' + ICO.copy + '</button>' +
-        pill(displayStatus(account, item)) + paid,
+        pill(displayStatus(account, item)),
         pay
       ) +
       '<div class="bill-kpi-grid">' +
@@ -1188,8 +1193,7 @@
     'No license while the month stays inside the allowance.': '整月都在免费额度内时，不收月费。',
     'Issued on November 1.': '11 月 1 日开账。',
     'Only volume outside the free allowance.': '只计算免费额度以外的成交额。',
-    'No card on file. Add one so the invoice on the 1st can be paid automatically. The card is saved now and charged only after billing starts.': '还没有银行卡。加上之后，每月 1 日的账单可以自动扣款。卡先保存，开始计费后才会扣。',
-    'No card on file. Add a card to pay this invoice. The card is saved if the charge succeeds.': '还没有银行卡。添加银行卡并支付这张账单。扣成功后会保存这张卡。',
+    'No card on file. Add one so invoices can be charged from this card. Nothing is charged while the store is inside the free allowance.': '还没有银行卡。加上之后，账单可以从这张卡扣款。免费额度内不会扣款。',
     'When an invoice is issued, BestCheckout charges this card. Nothing is charged while the store is inside the free allowance.': '开出账单后，从这张卡扣款。免费额度内不会扣款。',
     'Add card': '添加银行卡',
     'Add a card for billing': '添加账单银行卡',

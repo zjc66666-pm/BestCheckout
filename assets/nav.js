@@ -8,6 +8,8 @@ window.SITE = {
 };
 
 window.STORES = [
+  { name: 'Plover Studio', url: 'plover-studio.myshopify.com', homeState: 'live' },
+  { name: 'Bramble Market', url: 'bramble-market.myshopify.com', homeState: 'live' },
   { name: 'Lavender Labs', url: 'lavender-labs.myshopify.com', homeState: 'unconfigured', shopifyPayments: true },
   { name: 'Aura Living', url: 'aura-living.myshopify.com', homeState: 'ready', shopifyPayments: false },
   { name: 'Northline Goods', url: 'northline-goods.myshopify.com', homeState: 'live' },
@@ -15,6 +17,8 @@ window.STORES = [
   { name: 'Kiln Coffee', url: 'kiln-coffee.myshopify.com', homeState: 'live', homeDataKey: 'kiln' },
   { name: 'Marlow Supply', url: 'marlow-supply.myshopify.com', homeState: 'live' },
   { name: 'Folast Studio', url: 'folast-studio.myshopify.com', homeState: 'live' },
+  { name: 'Linden Goods', url: 'linden-goods.myshopify.com', homeState: 'live' },
+  { name: 'Maple Goods', url: 'maple-goods.myshopify.com', homeState: 'live' },
   { name: 'Northstar', url: 'northstar.myshopify.com', connectStatus: 'pending' },
   { name: 'Atelier', url: 'atelier.myshopify.com', connectStatus: 'install' },
   { name: 'Harbor', url: 'harbor.myshopify.com', connectStatus: 'expired' },

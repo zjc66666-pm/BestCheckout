@@ -830,7 +830,7 @@ window.I18N.extend({
   "The September invoice was still unpaid 7 days after it was issued.": "9 月账单开出 7 天后仍未支付。",
   "Starting on": "BestCheckout 已从",
   ", BestCheckout has not intercepted new checkouts.": "起停止拦截新的结账。",
-  "No card on file. Add a card to pay this invoice. The card is saved if the charge succeeds.": "还没有银行卡。添加银行卡并支付这张账单。扣成功后会保存这张卡。",
+  "No card on file. Add one so invoices can be charged from this card. Nothing is charged while the store is inside the free allowance.": "还没有银行卡。加上之后，账单可以从这张卡扣款。免费额度内不会扣款。",
   "Replace card and pay": "更换银行卡支付",
   "This card was declined. Replace the card and pay.": "这张卡扣款失败。请更换银行卡支付。",
   "This card was declined. Try another card.": "这张卡扣款失败。请换一张卡。",
