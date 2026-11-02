@@ -559,8 +559,15 @@
     if (account.last4) return '<div class="bill-actions"><button class="btn btn-primary" id="billPay">Pay now</button></div>';
     return '<div class="bill-actions"><button class="btn btn-primary" id="billPayCard">Add card and pay</button></div>';
   }
+  var CHARGE_FALLBACK_DAYS = 7;
   function fallbackBodyHtml() {
     return '<span>Invoices remain unpaid. Paying them turns interception back on.</span>';
+  }
+  function chargeWindowCopy(hasCard) {
+    var n = CHARGE_FALLBACK_DAYS;
+    var unit = n === 1 ? 'day' : 'days';
+    var lead = hasCard ? 'Pay the invoice or replace the card within ' : 'Add a card and pay within ';
+    return lead + n + ' ' + unit + ', or new checkouts fall back to Shopify Checkout.';
   }
   function renderHome(api, account) {
     var esc = api.esc;
@@ -575,8 +582,8 @@
     } else if (due && account.billingStatus === 'Charge failed') {
       banner = '<div class="bill-banner"><div class="bill-banner-copy">' +
         (account.last4
-          ? '<strong>Card charge failed</strong><span>Pay the invoice or replace the card.</span>'
-          : '<strong>No card on file</strong><span>Add a card and pay within 7 days, or new checkouts fall back to Shopify Checkout.</span>') +
+          ? '<strong>Card charge failed</strong><span>' + chargeWindowCopy(true) + '</span>'
+          : '<strong>No card on file</strong><span>' + chargeWindowCopy(false) + '</span>') +
         '</div>' + payNowHtml(account) + '</div>';
     }
     var usedCents = account.allowanceCents == null
@@ -1137,9 +1144,9 @@
     }
     if (due && account.billingStatus === 'Charge failed') {
       if (account.last4) {
-        return { title: 'Card charge failed', lead: 'Pay the invoice or replace the card.', amount: '', tail: '', action: overviewPayAction(account), href: '#/settings/billing' };
+        return { title: 'Card charge failed', lead: chargeWindowCopy(true), amount: '', tail: '', action: overviewPayAction(account), href: '#/settings/billing' };
       }
-      return { title: 'No card on file', lead: 'Add a card and pay within 7 days, or new checkouts fall back to Shopify Checkout.', amount: '', tail: '', action: overviewPayAction(account), href: '#/settings/billing' };
+      return { title: 'No card on file', lead: chargeWindowCopy(false), amount: '', tail: '', action: overviewPayAction(account), href: '#/settings/billing' };
     }
     if (!account.last4) {
       if (account.allowanceCents == null) {
@@ -1271,7 +1278,6 @@
     'and the charge did not go through.': '扣款失败。',
     'The invoice is still unpaid.': '这张账单仍未支付。',
     'Pay the invoice or replace the card.': '请支付账单，或更换银行卡。',
-    'Add a card and pay within 7 days, or new checkouts fall back to Shopify Checkout.': '请在 7 天内添加银行卡并支付。之后新的结账会回到 Shopify Checkout。',
     'Charge retry failed': '轮询扣款失败',
     'Status unchanged': '状态不变',
     'Stopped intercepting': '停止拦截',
@@ -1344,4 +1350,8 @@
     'The next rate, 0.325%, starts after $1,000,000.': '下一档 0.325% 从 $1,000,000 之后开始。'
   };
   if (window.I18N && window.I18N.extend) window.I18N.extend(dict);
+  if (window.I18N && window.I18N.addRules) window.I18N.addRules([
+    { re: /^Pay the invoice or replace the card within (\d+) day(?:s)?, or new checkouts fall back to Shopify Checkout\.$/, zh: function (m) { return '请在 ' + m[1] + ' 天内支付账单或更换银行卡，否则新的结账会回到 Shopify Checkout。'; } },
+    { re: /^Add a card and pay within (\d+) day(?:s)?, or new checkouts fall back to Shopify Checkout\.$/, zh: function (m) { return '请在 ' + m[1] + ' 天内添加银行卡并支付，否则新的结账会回到 Shopify Checkout。'; } }
+  ], true);
 })();

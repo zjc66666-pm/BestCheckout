@@ -311,7 +311,7 @@
     lang: lang,
     t: function (s) { if (lang !== 'zh') return s; var z = tr(s); return z == null ? s : z; },
     extend: function (obj) { if (obj) for (var k in obj) if (obj.hasOwnProperty(k)) DICT[k] = obj[k]; if (lang === 'zh' && document.body) translateTree(document.body); return this; },
-    addRules: function (arr) { if (arr && arr.length) RULES = RULES.concat(arr); if (lang === 'zh' && document.body) translateTree(document.body); return this; },
+    addRules: function (arr, prepend) { if (arr && arr.length) RULES = prepend ? arr.concat(RULES) : RULES.concat(arr); if (lang === 'zh' && document.body) translateTree(document.body); return this; },
     apply: function (root) { if (lang === 'zh') translateTree(root || document.body); },
     set: function (l) { setLang(l); location.reload(); }
   };
