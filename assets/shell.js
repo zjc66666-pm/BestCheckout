@@ -452,7 +452,7 @@
       return loadScript(id + '/js/data.js?v=' + moduleV);
     }).catch(function () {}); // optional
     chain = chain.then(function () {
-      if (id === 'settings' && !window.BestCheckoutBilling) return loadScript('settings/js/billing.js?v=20261030-samepage1');
+      if (id === 'settings' && !window.BestCheckoutBilling) return loadScript('settings/js/billing.js?v=20261102-pastdue3');
     });
     chain = chain.then(function () { return loadScript(id + '/js/app.js?v=' + moduleV); });    // required
     loaded[id] = chain;
@@ -461,7 +461,7 @@
 
   function loadHomeDependencies() {
     if (homeLoaded) return homeLoaded;
-    var billingData = window.BestCheckoutBilling ? Promise.resolve() : loadScript('settings/js/billing.js?v=20261030-samepage1');
+    var billingData = window.BestCheckoutBilling ? Promise.resolve() : loadScript('settings/js/billing.js?v=20261102-pastdue3');
     var homeData = window.DATA_HOME ? Promise.resolve() : loadScript('home/js/data.js?v=' + V);
     var orderData = window.DATA_ORDERS ? Promise.resolve() : loadScript('orders/js/data.js?v=' + V);
     homeLoaded = Promise.all([billingData, homeData, orderData]).catch(function () {});

@@ -16,7 +16,8 @@
     'Northline Goods': profile('Northline Goods', 'ops@northlinegoods.co', 'Visa', '5454', '08/28', STANDARD, false, 2500000, true, 30, 18000000, 920, 70, 31, 9200000, 410, 28, []),
     'Folast Studio': profile('Folast Studio', 'mia@folast-studio.com', 'Visa', '1881', '03/27', FOLAST, true, null, false, 0, 0, 0, 0, 0, 240000000, 7000, 1400, []),
     'Hey June': profile('Hey June', 'june@heyjune.co', '', '', '', STANDARD, false, 2500000, true, 30, 33800000, 2100, 900, 7, 4200000, 180, 22, []),
-    'Kiln Coffee': profile('Kiln Coffee', 'hello@kilncoffee.co', 'Mastercard', '8888', '11/27', STANDARD, false, 2500000, true, 30, 22000000, 1100, 90, 0, 3500000, 140, 18, [])
+    'Kiln Coffee': profile('Kiln Coffee', 'hello@kilncoffee.co', 'Mastercard', '8888', '11/27', STANDARD, false, 2500000, true, 30, 22000000, 1100, 90, 0, 3500000, 140, 18, []),
+    'Marlow Supply': profile('Marlow Supply', 'owen@marlowsupply.com', '', '', '', STANDARD, false, 2500000, true, 30, 8600000, 410, 18, 4, 1200000, 40, 4, [])
   };
   accounts['Hey June'].invoices[0].status = 'Past due';
   accounts['Hey June'].invoices[0].paidAt = '';
@@ -73,6 +74,23 @@
   accounts['Lavender Labs'].declinedCardKey = 'Visa:4242';
   accounts['Northline Goods'].declinedCardKey = 'Visa:5454';
   accounts['Kiln Coffee'].declinedCardKey = 'Mastercard:8888';
+  accounts['Marlow Supply'].billingStatus = 'Charge failed';
+  accounts['Marlow Supply'].invoices.push(invoiceFor(
+    'Marlow Supply',
+    '2026-10',
+    '2026.10',
+    STANDARD,
+    1200000,
+    40,
+    4,
+    [],
+    'Charge failed',
+    '',
+    4,
+    31,
+    2500000,
+    0
+  ));
   var invoicePage = { store: '', no: 1, size: 20 };
   var invoiceLogs = [];
   seedInvoiceLogs();
@@ -186,7 +204,8 @@
       'Northline Goods': '49102855',
       'Folast Studio': '71830452',
       'Hey June': '80219673',
-      'Kiln Coffee': '55601822'
+      'Kiln Coffee': '55601822',
+      'Marlow Supply': '52840176'
     };
     var code = shopIds[name] || 'store';
     var lines = chargeLines(priceBook, volumeCents, approvals, declines, adjustments, billableDays, daysInMonth);
@@ -245,9 +264,21 @@
     add('2026-10-01 00:05', 'BestCheckout', 'Issued invoice', norSep, norSep && norSep.totalCents, '');
     add('2026-10-27 09:10', 'BestCheckout', 'Emailed the owner', norOct, null, 'Card declined');
     add('2026-10-27 09:08', 'BestCheckout', 'Issued invoice', norOct, norOct && norOct.totalCents, '');
+    var marSep = inv('Marlow Supply', '2026-09');
+    var marOct = inv('Marlow Supply', '2026-10');
     add('2026-10-01 00:12', 'BestCheckout', 'Emailed the owner', heySep, null, 'No card on file');
     add('2026-10-01 00:05', 'BestCheckout', 'Issued invoice', heySep, heySep && heySep.totalCents, '');
+    add('2026-10-03 09:00', 'BestCheckout', 'Charge retry failed', heySep, null, 'Status unchanged');
+    add('2026-10-08 00:05', 'BestCheckout', 'Stopped intercepting', heySep, null, 'Invoice past due');
+    add('2026-10-01 09:04', 'BestCheckout', 'Emailed the owner', kilnSep, null, 'Card declined');
     add('2026-10-01 00:05', 'BestCheckout', 'Issued invoice', kilnSep, kilnSep && kilnSep.totalCents, '');
+    add('2026-10-04 09:00', 'BestCheckout', 'Charge retry failed', kilnSep, null, 'Status unchanged');
+    add('2026-10-09 00:05', 'BestCheckout', 'Stopped intercepting', kilnSep, null, 'Invoice past due');
+    add('2026-10-02 08:16', 'BestCheckout', 'Recorded payment', marSep, marSep && marSep.totalCents, '');
+    add('2026-10-01 00:05', 'BestCheckout', 'Issued invoice', marSep, marSep && marSep.totalCents, '');
+    add('2026-10-29 09:00', 'BestCheckout', 'Charge retry failed', marOct, null, 'Status unchanged');
+    add('2026-10-27 09:02', 'BestCheckout', 'Emailed the owner', marOct, null, 'No card on file');
+    add('2026-10-27 09:00', 'BestCheckout', 'Issued invoice', marOct, marOct && marOct.totalCents, '');
   }
 
   function money(cents) {
@@ -489,15 +520,6 @@
   function t(s) {
     return (window.I18N && window.I18N.t) ? window.I18N.t(s) : s;
   }
-  function dateLabel(text) {
-    var raw = String(text || '').trim();
-    var zh = window.I18N && window.I18N.lang === 'zh';
-    if (!zh) return raw;
-    var months = { Jan: 1, Feb: 2, Mar: 3, Apr: 4, May: 5, Jun: 6, Jul: 7, Aug: 8, Sep: 9, Oct: 10, Nov: 11, Dec: 12 };
-    var match = /^([A-Za-z]{3}) (\d{1,2}), (\d{4})$/.exec(raw);
-    if (!match || !months[match[1]]) return raw;
-    return match[3] + '年' + months[match[1]] + '月' + Number(match[2]) + '日';
-  }
   function fillHtml(el, html) {
     if (!el) return;
     var tag = String(el.tagName || '').toLowerCase();
@@ -537,22 +559,8 @@
     if (account.last4) return '<div class="bill-actions"><button class="btn btn-primary" id="billPay">Pay now</button></div>';
     return '<div class="bill-actions"><button class="btn btn-primary" id="billPayCard">Add card and pay</button></div>';
   }
-  function failureLine(esc, account) {
-    var dates = (account.failures || []).map(dateLabel);
-    if (!dates.length) return '';
-    var zh = window.I18N && window.I18N.lang === 'zh';
-    var joined = zh ? dates.join('、') : (dates.length === 2 ? dates[0] + ' and ' + dates[1] : dates.join(', '));
-    if (zh) {
-      return '<span>The card was declined on</span><span class="i18n-skip">' + esc(joined) + '</span><span>and the charge did not go through.</span> ';
-    }
-    return '<span>Card charges failed on</span> <span class="i18n-skip">' + esc(joined) + '</span>. ';
-  }
-  function fallbackBodyHtml(esc, account) {
-    var zh = window.I18N && window.I18N.lang === 'zh';
-    return '<span>The September invoice was still unpaid 7 days after it was issued.</span> <span>Starting on</span>' + (zh ? '' : ' ') +
-      '<span class="i18n-skip">' + esc(dateLabel(account.fallbackOn)) + '</span><span>, BestCheckout has not intercepted new checkouts.</span> ' +
-      failureLine(esc, account) +
-      '<span>Pay the invoice to turn interception back on.</span>';
+  function fallbackBodyHtml() {
+    return '<span>Invoices remain unpaid. Paying them turns interception back on.</span>';
   }
   function renderHome(api, account) {
     var esc = api.esc;
@@ -560,18 +568,16 @@
     var book = account.priceBook;
     var due = unpaidInvoice(account);
     var banner = '';
-    if (account.checkoutFallback) {
+    if (past) {
       banner = '<div class="bill-banner"><div class="bill-banner-copy"><strong>New checkouts use Shopify Checkout</strong>' +
-        fallbackBodyHtml(esc, account) + '</div>' +
+        fallbackBodyHtml() + '</div>' +
         payNowHtml(account) + '</div>';
-    } else if (past) {
-      banner = '<div class="bill-banner"><div class="bill-banner-copy"><strong>September invoice is unpaid</strong><span>Pay within 7 days of the invoice, or new checkouts fall back to Shopify Checkout.</span> ' +
-        failureLine(esc, account) +
+    } else if (due && account.billingStatus === 'Charge failed') {
+      banner = '<div class="bill-banner"><div class="bill-banner-copy">' +
+        (account.last4
+          ? '<strong>Card charge failed</strong><span>Pay the invoice or replace the card.</span>'
+          : '<strong>No card on file</strong><span>Add a card and pay within 7 days, or new checkouts fall back to Shopify Checkout.</span>') +
         '</div>' + payNowHtml(account) + '</div>';
-    } else if ((account.failures || []).length && due) {
-      banner = '<div class="bill-banner"><div class="bill-banner-copy"><strong>Card charge failed</strong>' +
-        '<span>Pay the invoice or replace the card.</span></div>' +
-        payNowHtml(account) + '</div>';
     }
     var usedCents = account.allowanceCents == null
       ? ((account.october && account.october.volumeCents) || 0)
@@ -1126,18 +1132,14 @@
     var account = accountFor(storeName || '');
     var left = allowanceLeft(account);
     var due = unpaidInvoice(account);
-    if (account.checkoutFallback) {
-      return { title: 'New checkouts use Shopify Checkout', html: fallbackBodyHtml(function (value) {
-        return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
-          return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch];
-        });
-      }, account), action: overviewPayAction(account), href: '#/settings/billing' };
-    }
     if (account.billingStatus === 'Past due') {
-      return { title: 'September invoice is unpaid', lead: 'Pay within 7 days of the invoice, or new checkouts fall back to Shopify Checkout.', amount: '', tail: '', action: overviewPayAction(account), href: '#/settings/billing' };
+      return { title: 'New checkouts use Shopify Checkout', html: fallbackBodyHtml(), action: overviewPayAction(account), href: '#/settings/billing' };
     }
-    if ((account.failures || []).length && due) {
-      return { title: 'Card charge failed', lead: 'Pay the invoice or replace the card.', amount: '', tail: '', action: overviewPayAction(account), href: '#/settings/billing' };
+    if (due && account.billingStatus === 'Charge failed') {
+      if (account.last4) {
+        return { title: 'Card charge failed', lead: 'Pay the invoice or replace the card.', amount: '', tail: '', action: overviewPayAction(account), href: '#/settings/billing' };
+      }
+      return { title: 'No card on file', lead: 'Add a card and pay within 7 days, or new checkouts fall back to Shopify Checkout.', amount: '', tail: '', action: overviewPayAction(account), href: '#/settings/billing' };
     }
     if (!account.last4) {
       if (account.allowanceCents == null) {
@@ -1164,6 +1166,7 @@
     'Starting on': 'BestCheckout 已从',
     ', BestCheckout has not intercepted new checkouts.': '起停止拦截新的结账。',
     'Pay the invoice to turn interception back on.': '付清这张账单后恢复拦截。',
+    'Invoices remain unpaid. Paying them turns interception back on.': '有账单未支付。付清后恢复拦截。',
     'Price book': '价目表',
     'Free capture left': '剩余免费收单额度',
     'Free capture allowance': '免费收单额度',
@@ -1268,6 +1271,11 @@
     'and the charge did not go through.': '扣款失败。',
     'The invoice is still unpaid.': '这张账单仍未支付。',
     'Pay the invoice or replace the card.': '请支付账单，或更换银行卡。',
+    'Add a card and pay within 7 days, or new checkouts fall back to Shopify Checkout.': '请在 7 天内添加银行卡并支付。之后新的结账会回到 Shopify Checkout。',
+    'Charge retry failed': '轮询扣款失败',
+    'Status unchanged': '状态不变',
+    'Stopped intercepting': '停止拦截',
+    'Invoice past due': '账单已逾期',
     'The invoice is still unpaid. Pay the invoice or replace the card.': '这张账单仍未支付。请支付账单，或更换银行卡。',
     'Copied': '已复制',
     'Activity': '操作日志',

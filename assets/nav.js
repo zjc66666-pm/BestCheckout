@@ -13,6 +13,7 @@ window.STORES = [
   { name: 'Northline Goods', url: 'northline-goods.myshopify.com', homeState: 'live' },
   { name: 'Hey June', url: 'hey-june.myshopify.com', homeState: 'live' },
   { name: 'Kiln Coffee', url: 'kiln-coffee.myshopify.com', homeState: 'live', homeDataKey: 'kiln' },
+  { name: 'Marlow Supply', url: 'marlow-supply.myshopify.com', homeState: 'live' },
   { name: 'Folast Studio', url: 'folast-studio.myshopify.com', homeState: 'live' },
   { name: 'Northstar', url: 'northstar.myshopify.com', connectStatus: 'pending' },
   { name: 'Atelier', url: 'atelier.myshopify.com', connectStatus: 'install' },
