@@ -69,6 +69,8 @@
     'Wholesale pricing, minimum order quantity and B2B customers.': '批发价、起订量与 B2B 客户。',
     'Referral links and commission payouts.': '推荐链接与佣金结算。',
 
+    'Contact us': '联系我们',
+
     // ---- Home hub chrome (shell.js) ----
     'BestShopio — Admin prototype': 'BestShopio —— 后台原型',
     'One living set of merchant-admin prototypes, mirroring the live admin. Pick a module, or see what changed below.': '一套持续维护的商家后台原型，对齐线上后台。选择一个模块，或查看下方的更新内容。',

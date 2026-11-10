@@ -38,7 +38,7 @@ import { renderEditor, mountEditor } from './pages/editor.js?rev=20260719-previe
 import { renderAbandonedCheckouts, renderOrders } from './pages/orders.js?rev=20260825-abandoned1';
 import { renderConnectShopify, renderForgotPasswordCode, renderInstallEmailPage, renderOauthConsent, renderPasswordResetEmailPage, renderSignIn, renderSignUp, renderSignupVerificationEmailPage } from './pages/auth.js?rev=20260910-oauth13';
 import { renderHelpCenter } from './pages/help.js?rev=20260907-install-link1';
-import { renderLookbookSite, renderMarketingSite } from './pages/website.js?rev=20261022-help-feature-list';
+import { renderLookbookSite, renderMarketingSite } from './pages/website.js?rev=20261110-contact-whatsapp';
 import {
   applyPrototypeSession,
   connectSetupRoute,

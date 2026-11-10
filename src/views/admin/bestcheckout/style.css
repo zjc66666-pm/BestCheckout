@@ -9001,6 +9001,9 @@ kbd {
 .fable-nav-links a[aria-current="page"] { color: var(--fable-text); }
 .fable-footer nav a[aria-current="page"] { color: var(--fable-text); }
 .fable-nav-actions { gap: 28px; }
+@media (max-width: 1280px) {
+  .fable-nav-links { gap: 16px; }
+}
 .fable-button {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   min-height: 48px; padding: 0 32px; border: 1px solid hsl(262 80% 76% / .55);
