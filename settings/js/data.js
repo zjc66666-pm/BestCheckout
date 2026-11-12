@@ -10,6 +10,186 @@
      shippingRates/* + settings/shippingRates.ts (profiles -> zones -> rates)
    SECURITY: no real secrets/keys. Secret-ish fields are masked ("sk_live_••••")
    or empty. App.js reads this global; nothing here is sent anywhere. */
+/* Shopify Admin CurrencyCode values a cart can present. Excludes the
+   unrecognized code, USDC, and deprecated codes. Rates are sample automatic
+   values so the column can render; EUR and JPY keep the review samples. */
+(function () {
+  var ZERO = { BIF: 1, CLP: 1, DJF: 1, GNF: 1, JPY: 1, KMF: 1, KRW: 1, MGA: 1, PYG: 1, RWF: 1, UGX: 1, VND: 1, VUV: 1, XAF: 1, XOF: 1, XPF: 1 };
+  var rows = [
+    ['AED', 'UAE Dirham', '阿联酋迪拉姆', 'د.إ', '3.67'],
+    ['AFN', 'Afghan Afghani', '阿富汗尼', '؋', '70.00'],
+    ['ALL', 'Albanian Lek', '阿尔巴尼亚列克', 'L', '93.00'],
+    ['AMD', 'Armenian Dram', '亚美尼亚德拉姆', '֏', '390.00'],
+    ['AOA', 'Angolan Kwanza', '安哥拉宽扎', 'Kz', '920.00'],
+    ['ARS', 'Argentine Peso', '阿根廷比索', 'ARS', '1050.00'],
+    ['AUD', 'Australian Dollar', '澳元', 'A$', '1.52'],
+    ['AWG', 'Aruban Florin', '阿鲁巴弗罗林', 'AWG', '1.79'],
+    ['AZN', 'Azerbaijani Manat', '阿塞拜疆马纳特', '₼', '1.70'],
+    ['BAM', 'Bosnia-Herzegovina Convertible Mark', '波黑可兑换马克', 'KM', '1.80'],
+    ['BBD', 'Barbadian Dollar', '巴巴多斯元', 'BBD', '2.00'],
+    ['BDT', 'Bangladeshi Taka', '孟加拉塔卡', '৳', '120.00'],
+    ['BGN', 'Bulgarian Lev', '保加利亚列弗', 'лв', '1.80'],
+    ['BHD', 'Bahraini Dinar', '巴林第纳尔', 'BD', '0.3760'],
+    ['BIF', 'Burundian Franc', '布隆迪法郎', 'FBu', '2900'],
+    ['BMD', 'Bermudian Dollar', '百慕大元', 'BMD', '1.00'],
+    ['BND', 'Brunei Dollar', '文莱元', 'BND', '1.34'],
+    ['BOB', 'Bolivian Boliviano', '玻利维亚诺', 'Bs', '6.90'],
+    ['BRL', 'Brazilian Real', '巴西雷亚尔', 'R$', '5.70'],
+    ['BSD', 'Bahamian Dollar', '巴哈马元', 'BSD', '1.00'],
+    ['BTN', 'Bhutanese Ngultrum', '不丹努尔特鲁姆', 'BTN', '84.00'],
+    ['BWP', 'Botswana Pula', '博茨瓦纳普拉', 'P', '13.50'],
+    ['BYN', 'Belarusian Ruble', '白俄罗斯卢布', 'Br', '3.20'],
+    ['BZD', 'Belize Dollar', '伯利兹元', 'BZD', '2.00'],
+    ['CAD', 'Canadian Dollar', '加元', 'C$', '1.36'],
+    ['CDF', 'Congolese Franc', '刚果法郎', 'FC', '2850'],
+    ['CHF', 'Swiss Franc', '瑞士法郎', 'CHF', '0.88'],
+    ['CLP', 'Chilean Peso', '智利比索', 'CLP', '950'],
+    ['CNY', 'Chinese Yuan', '人民币', '¥', '7.20'],
+    ['COP', 'Colombian Peso', '哥伦比亚比索', 'COP', '4100'],
+    ['CRC', 'Costa Rican Colon', '哥斯达黎加科朗', '₡', '510.00'],
+    ['CVE', 'Cape Verdean Escudo', '佛得角埃斯库多', 'CVE', '101.00'],
+    ['CZK', 'Czech Koruna', '捷克克朗', 'Kč', '23.00'],
+    ['DJF', 'Djiboutian Franc', '吉布提法郎', 'Fdj', '178'],
+    ['DKK', 'Danish Krone', '丹麦克朗', 'kr', '6.90'],
+    ['DOP', 'Dominican Peso', '多米尼加比索', 'DOP', '60.00'],
+    ['DZD', 'Algerian Dinar', '阿尔及利亚第纳尔', 'DZD', '134.00'],
+    ['EGP', 'Egyptian Pound', '埃及镑', 'E£', '49.00'],
+    ['ERN', 'Eritrean Nakfa', '厄立特里亚纳克法', 'Nfk', '15.00'],
+    ['ETB', 'Ethiopian Birr', '埃塞俄比亚比尔', 'Br', '125.00'],
+    ['EUR', 'Euro', '欧元', '€', '0.92'],
+    ['FJD', 'Fijian Dollar', '斐济元', 'FJD', '2.25'],
+    ['FKP', 'Falkland Islands Pound', '福克兰群岛镑', '£', '0.78'],
+    ['GBP', 'British Pound', '英镑', '£', '0.78'],
+    ['GEL', 'Georgian Lari', '格鲁吉亚拉里', '₾', '2.70'],
+    ['GHS', 'Ghanaian Cedi', '加纳塞地', 'GH₵', '15.50'],
+    ['GIP', 'Gibraltar Pound', '直布罗陀镑', '£', '0.78'],
+    ['GMD', 'Gambian Dalasi', '冈比亚达拉西', 'D', '71.00'],
+    ['GNF', 'Guinean Franc', '几内亚法郎', 'FG', '8650'],
+    ['GTQ', 'Guatemalan Quetzal', '危地马拉格查尔', 'Q', '7.70'],
+    ['GYD', 'Guyanese Dollar', '圭亚那元', 'GYD', '209.00'],
+    ['HKD', 'Hong Kong Dollar', '港元', 'HK$', '7.80'],
+    ['HNL', 'Honduran Lempira', '洪都拉斯伦皮拉', 'L', '25.00'],
+    ['HRK', 'Croatian Kuna', '克罗地亚库纳', 'kn', '6.90'],
+    ['HTG', 'Haitian Gourde', '海地古德', 'G', '131.00'],
+    ['HUF', 'Hungarian Forint', '匈牙利福林', 'Ft', '370.00'],
+    ['IDR', 'Indonesian Rupiah', '印度尼西亚盾', 'Rp', '15800'],
+    ['ILS', 'Israeli New Shekel', '以色列新谢克尔', '₪', '3.70'],
+    ['INR', 'Indian Rupee', '印度卢比', '₹', '84.00'],
+    ['IQD', 'Iraqi Dinar', '伊拉克第纳尔', 'IQD', '1310'],
+    ['IRR', 'Iranian Rial', '伊朗里亚尔', 'IRR', '42000'],
+    ['ISK', 'Icelandic Krona', '冰岛克朗', 'kr', '137.00'],
+    ['JEP', 'Jersey Pound', '泽西镑', '£', '0.78'],
+    ['JMD', 'Jamaican Dollar', '牙买加元', 'JMD', '157.00'],
+    ['JOD', 'Jordanian Dinar', '约旦第纳尔', 'JD', '0.7090'],
+    ['JPY', 'Japanese Yen', '日元', '¥', '149.20'],
+    ['KES', 'Kenyan Shilling', '肯尼亚先令', 'KSh', '129.00'],
+    ['KGS', 'Kyrgyzstani Som', '吉尔吉斯斯坦索姆', 'с', '87.00'],
+    ['KHR', 'Cambodian Riel', '柬埔寨瑞尔', '៛', '4050'],
+    ['KID', 'Kiribati Dollar', '基里巴斯元', 'KID', '1.52'],
+    ['KMF', 'Comorian Franc', '科摩罗法郎', 'CF', '450'],
+    ['KRW', 'South Korean Won', '韩元', '₩', '1380'],
+    ['KWD', 'Kuwaiti Dinar', '科威特第纳尔', 'KD', '0.3070'],
+    ['KYD', 'Cayman Islands Dollar', '开曼群岛元', 'KYD', '0.82'],
+    ['KZT', 'Kazakhstani Tenge', '哈萨克斯坦坚戈', '₸', '510.00'],
+    ['LAK', 'Lao Kip', '老挝基普', '₭', '21600'],
+    ['LBP', 'Lebanese Pound', '黎巴嫩镑', 'L£', '89500'],
+    ['LKR', 'Sri Lankan Rupee', '斯里兰卡卢比', 'Rs', '300.00'],
+    ['LRD', 'Liberian Dollar', '利比里亚元', 'LRD', '185.00'],
+    ['LSL', 'Lesotho Loti', '莱索托洛蒂', 'L', '18.00'],
+    ['LTL', 'Lithuanian Litas', '立陶宛立特', 'Lt', '3.20'],
+    ['LVL', 'Latvian Lats', '拉脱维亚拉特', 'Ls', '0.65'],
+    ['LYD', 'Libyan Dinar', '利比亚第纳尔', 'LD', '4.80'],
+    ['MAD', 'Moroccan Dirham', '摩洛哥迪拉姆', 'MAD', '10.00'],
+    ['MDL', 'Moldovan Leu', '摩尔多瓦列伊', 'L', '17.80'],
+    ['MGA', 'Malagasy Ariary', '马达加斯加阿里亚里', 'Ar', '4550'],
+    ['MKD', 'Macedonian Denar', '马其顿代纳尔', 'ден', '56.00'],
+    ['MMK', 'Myanmar Kyat', '缅甸元', 'K', '2100'],
+    ['MNT', 'Mongolian Tugrik', '蒙古图格里克', '₮', '3450'],
+    ['MOP', 'Macanese Pataca', '澳门元', 'MOP$', '8.00'],
+    ['MRU', 'Mauritanian Ouguiya', '毛里塔尼亚乌吉亚', 'UM', '39.50'],
+    ['MUR', 'Mauritian Rupee', '毛里求斯卢比', 'Rs', '46.00'],
+    ['MVR', 'Maldivian Rufiyaa', '马尔代夫拉菲亚', 'Rf', '15.40'],
+    ['MWK', 'Malawian Kwacha', '马拉维克瓦查', 'MK', '1730'],
+    ['MXN', 'Mexican Peso', '墨西哥比索', 'MX$', '20.00'],
+    ['MYR', 'Malaysian Ringgit', '马来西亚林吉特', 'RM', '4.40'],
+    ['MZN', 'Mozambican Metical', '莫桑比克梅蒂卡尔', 'MT', '64.00'],
+    ['NAD', 'Namibian Dollar', '纳米比亚元', 'N$', '18.00'],
+    ['NGN', 'Nigerian Naira', '尼日利亚奈拉', '₦', '1550'],
+    ['NIO', 'Nicaraguan Cordoba', '尼加拉瓜科多巴', 'C$', '36.70'],
+    ['NOK', 'Norwegian Krone', '挪威克朗', 'kr', '10.80'],
+    ['NPR', 'Nepalese Rupee', '尼泊尔卢比', 'Rs', '134.00'],
+    ['NZD', 'New Zealand Dollar', '新西兰元', 'NZ$', '1.66'],
+    ['OMR', 'Omani Rial', '阿曼里亚尔', 'OMR', '0.3845'],
+    ['PAB', 'Panamanian Balboa', '巴拿马巴波亚', 'B/.', '1.00'],
+    ['PEN', 'Peruvian Sol', '秘鲁索尔', 'S/', '3.70'],
+    ['PGK', 'Papua New Guinean Kina', '巴布亚新几内亚基那', 'K', '3.90'],
+    ['PHP', 'Philippine Peso', '菲律宾比索', '₱', '58.00'],
+    ['PKR', 'Pakistani Rupee', '巴基斯坦卢比', 'Rs', '278.00'],
+    ['PLN', 'Polish Zloty', '波兰兹罗提', 'zł', '4.00'],
+    ['PYG', 'Paraguayan Guarani', '巴拉圭瓜拉尼', '₲', '7600'],
+    ['QAR', 'Qatari Rial', '卡塔尔里亚尔', 'QR', '3.64'],
+    ['RON', 'Romanian Leu', '罗马尼亚列伊', 'lei', '4.50'],
+    ['RSD', 'Serbian Dinar', '塞尔维亚第纳尔', 'дин', '108.00'],
+    ['RUB', 'Russian Ruble', '俄罗斯卢布', '₽', '90.00'],
+    ['RWF', 'Rwandan Franc', '卢旺达法郎', 'FRw', '1350'],
+    ['SAR', 'Saudi Riyal', '沙特里亚尔', 'SR', '3.75'],
+    ['SBD', 'Solomon Islands Dollar', '所罗门群岛元', 'SBD', '8.40'],
+    ['SCR', 'Seychellois Rupee', '塞舌尔卢比', 'SR', '14.00'],
+    ['SDG', 'Sudanese Pound', '苏丹镑', 'SDG', '600.00'],
+    ['SEK', 'Swedish Krona', '瑞典克朗', 'kr', '10.50'],
+    ['SGD', 'Singapore Dollar', '新加坡元', 'S$', '1.34'],
+    ['SHP', 'Saint Helena Pound', '圣赫勒拿镑', '£', '0.78'],
+    ['SLL', 'Sierra Leonean Leone', '塞拉利昂利昂', 'Le', '22000'],
+    ['SOS', 'Somali Shilling', '索马里先令', 'Sh', '570.00'],
+    ['SRD', 'Surinamese Dollar', '苏里南元', 'SRD', '35.00'],
+    ['SSP', 'South Sudanese Pound', '南苏丹镑', 'SSP', '1300'],
+    ['STN', 'Sao Tome and Principe Dobra', '圣多美和普林西比多布拉', 'Db', '22.50'],
+    ['SYP', 'Syrian Pound', '叙利亚镑', 'SYP', '13000'],
+    ['SZL', 'Swazi Lilangeni', '斯威士兰里兰吉尼', 'E', '18.00'],
+    ['THB', 'Thai Baht', '泰铢', '฿', '34.00'],
+    ['TJS', 'Tajikistani Somoni', '塔吉克斯坦索莫尼', 'SM', '10.90'],
+    ['TMT', 'Turkmenistani Manat', '土库曼斯坦马纳特', 'TMT', '3.50'],
+    ['TND', 'Tunisian Dinar', '突尼斯第纳尔', 'DT', '3.10'],
+    ['TOP', 'Tongan Pa\'anga', '汤加潘加', 'T$', '2.35'],
+    ['TRY', 'Turkish Lira', '土耳其里拉', '₺', '34.00'],
+    ['TTD', 'Trinidad and Tobago Dollar', '特立尼达和多巴哥元', 'TTD', '6.80'],
+    ['TWD', 'New Taiwan Dollar', '新台币', 'NT$', '32.00'],
+    ['TZS', 'Tanzanian Shilling', '坦桑尼亚先令', 'TSh', '2650'],
+    ['UAH', 'Ukrainian Hryvnia', '乌克兰格里夫纳', '₴', '41.00'],
+    ['UGX', 'Ugandan Shilling', '乌干达先令', 'USh', '3700'],
+    ['USD', 'US Dollar', '美元', '$', '1'],
+    ['UYU', 'Uruguayan Peso', '乌拉圭比索', 'UYU', '42.00'],
+    ['UZS', 'Uzbekistani Som', '乌兹别克斯坦苏姆', 'soʻm', '12800'],
+    ['VED', 'Venezuelan Bolivar', '委内瑞拉玻利瓦尔', 'Bs', '36.50'],
+    ['VES', 'Venezuelan Bolivar Soberano', '委内瑞拉主权玻利瓦尔', 'Bs', '36.50'],
+    ['VND', 'Vietnamese Dong', '越南盾', '₫', '25000'],
+    ['VUV', 'Vanuatu Vatu', '瓦努阿图瓦图', 'VT', '118'],
+    ['WST', 'Samoan Tala', '萨摩亚塔拉', 'WS$', '2.75'],
+    ['XAF', 'Central African CFA Franc', '中非法郎', 'FCFA', '600'],
+    ['XCD', 'East Caribbean Dollar', '东加勒比元', 'EC$', '2.70'],
+    ['XCG', 'Caribbean Guilder', '加勒比盾', 'Cg', '1.79'],
+    ['XOF', 'West African CFA Franc', '西非法郎', 'F CFA', '600'],
+    ['XPF', 'CFP Franc', '太平洋法郎', 'F', '110'],
+    ['YER', 'Yemeni Rial', '也门里亚尔', 'YER', '250.00'],
+    ['ZAR', 'South African Rand', '南非兰特', 'R', '18.00'],
+    ['ZMW', 'Zambian Kwacha', '赞比亚克瓦查', 'ZK', '27.50']
+  ];
+  var zh = {};
+  window.BESTCHECKOUT_CURRENCIES = rows.map(function (r) {
+    zh[r[1]] = r[2];
+    var code = r[0];
+    var item = {
+      id: code, name: r[1], code: code, symbol: r[3], locked: code === 'USD',
+      currency_status: code === 'USD' || code === 'EUR' ? 1 : 0,
+      exchange_rate_type: 0, exchange_rate: r[4], exchange_rate_auto_value: r[4],
+      exchange_rate_round_type: code === 'EUR' ? 1 : 0,
+      exchange_rate_round: code === 'EUR' ? '0.95' : '',
+      exchange_rate_decimal: ZERO[code] ? 0 : 2
+    };
+    return item;
+  });
+  if (window.I18N && window.I18N.extend) window.I18N.extend(zh);
+})();
 window.DATA_SETTINGS = {
   // =========================================================================
   // NOTIFICATIONS — store-level sender identity + checkout transactional email.
@@ -223,30 +403,38 @@ window.DATA_SETTINGS = {
     ],
   },
 
+  // Klaviyo receives the same checkout events already sent to Meta, GA4 and GTM.
+  // Each event is its own Klaviyo metric. Shopify Placed Order stays the revenue metric.
+  klaviyo: {
+    connected: false,
+    paused: false,
+    keyMask: '',
+    sendPhone: false,
+    enabled: {
+      begin_checkout: true,
+      checkout_contact_info: true,
+      add_shipping_info: true,
+      add_payment_info: true,
+      purchase: true,
+      post_purchase_offer_view: true,
+      post_purchase_offer_accept: true,
+      post_purchase_offer_decline: true,
+    },
+    deliveries: [],
+  },
+
   // =========================================================================
-  // CURRENCY  (/country/currency/list)  — CurrencyItem shape.
-  //   Columns: Country / Currency code / Currency symbol / Status /
-  //   Exchange rate (text) / Price rounding (text) / Action.  No "Rate" column.
+  // CURRENCIES — settlement currencies, not countries.
+  //   The store currency row is locked. Other rows convert BestCheckout-owned
+  //   amounts (shipping, thresholds, protection, membership, offers, bundles,
+  //   subscriptions). Shopify cart product amounts stay in the checkout currency.
+  //   exchange_rate_type: 0 automatic, 1 manual.
+  //   exchange_rate_round_type: 0 none, 1 round up to exchange_rate_round.
   // =========================================================================
   currency: {
-    defaultCurrency: 'USD $',
-    list: [
-      // exchange_rate_type: 0 = automatic, 1 = manual (matches edit.vue)
-      // exchange_rate_round_type: 0 = do not round, 1 = round up
-      { id: 1, country_name: 'United States',  country_code: 'US', original_currency: 'USD', currency_code: 'USD', currency_symbol: '$',  currency_status: 1, exchange_rate_type: 0, exchange_rate_type_text: 'Automatic', exchange_rate: '1.0000',   exchange_rate_auto_value: '1.0000',   exchange_rate_round_type: 0, exchange_rate_round: 0, exchange_rate_round_type_text: 'Do not round prices',          exchange_rate_decimal: 2 },
-      { id: 2, country_name: 'United Kingdom', country_code: 'GB', original_currency: 'USD', currency_code: 'GBP', currency_symbol: '£',  currency_status: 1, exchange_rate_type: 0, exchange_rate_type_text: 'Automatic', exchange_rate: '0.7820',   exchange_rate_auto_value: '0.7820',   exchange_rate_round_type: 1, exchange_rate_round: 1, exchange_rate_round_type_text: 'Round up to the nearest GBP £', exchange_rate_decimal: 2 },
-      { id: 3, country_name: 'Eurozone',       country_code: 'EU', original_currency: 'USD', currency_code: 'EUR', currency_symbol: '€',  currency_status: 1, exchange_rate_type: 1, exchange_rate_type_text: 'Manual',    exchange_rate: '0.9200',   exchange_rate_auto_value: '0.9180',   exchange_rate_round_type: 1, exchange_rate_round: 1, exchange_rate_round_type_text: 'Round up to the nearest EUR €', exchange_rate_decimal: 2 },
-      { id: 4, country_name: 'Canada',         country_code: 'CA', original_currency: 'USD', currency_code: 'CAD', currency_symbol: 'C$', currency_status: 1, exchange_rate_type: 0, exchange_rate_type_text: 'Automatic', exchange_rate: '1.3650',   exchange_rate_auto_value: '1.3650',   exchange_rate_round_type: 0, exchange_rate_round: 0, exchange_rate_round_type_text: 'Do not round prices',          exchange_rate_decimal: 2 },
-      { id: 5, country_name: 'Australia',      country_code: 'AU', original_currency: 'USD', currency_code: 'AUD', currency_symbol: 'A$', currency_status: 0, exchange_rate_type: 0, exchange_rate_type_text: 'Automatic', exchange_rate: '1.5120',   exchange_rate_auto_value: '1.5120',   exchange_rate_round_type: 0, exchange_rate_round: 0, exchange_rate_round_type_text: 'Do not round prices',          exchange_rate_decimal: 2 },
-      { id: 6, country_name: 'Japan',          country_code: 'JP', original_currency: 'USD', currency_code: 'JPY', currency_symbol: '¥',  currency_status: 1, exchange_rate_type: 1, exchange_rate_type_text: 'Manual',    exchange_rate: '157.4000', exchange_rate_auto_value: '157.1000', exchange_rate_round_type: 1, exchange_rate_round: 1, exchange_rate_round_type_text: 'Round up to the nearest JPY ¥', exchange_rate_decimal: 0 },
-      { id: 7, country_name: 'Singapore',      country_code: 'SG', original_currency: 'USD', currency_code: 'SGD', currency_symbol: 'S$', currency_status: 0, exchange_rate_type: 0, exchange_rate_type_text: 'Automatic', exchange_rate: '1.3480',   exchange_rate_auto_value: '1.3480',   exchange_rate_round_type: 0, exchange_rate_round: 0, exchange_rate_round_type_text: 'Do not round prices',          exchange_rate_decimal: 2 },
-    ],
-    // search bar (SearchForm.vue): field selector + keyword + Status + Exchange rate
-    searchFieldOptions: [
-      { label: 'Country',         value: 'country_name' },
-      { label: 'Currency code',   value: 'currency_code' },
-      { label: 'Currency symbol', value: 'currency_symbol' },
-    ],
+    defaultCode: 'USD',
+    defaultSymbol: '$',
+    list: window.BESTCHECKOUT_CURRENCIES,
   },
 
   // =========================================================================

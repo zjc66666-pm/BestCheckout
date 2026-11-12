@@ -31,6 +31,7 @@
     pin: s('<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/>'),
     search: s('<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>'),
     bell: s('<path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>'),
+    klaviyo: s('<path d="M6 3v18"/><path d="M6 4h8.2a4.2 4.2 0 0 1 0 8.4H6"/><path d="M11 12.4 18 21"/>'),
     help: s('<circle cx="12" cy="12" r="9"/><path d="M9.5 9.2a2.65 2.65 0 1 1 4.36 2.03c-.98.8-1.86 1.34-1.86 2.77"/><path d="M12 17.35h.01"/>'),
     chat: s('<path d="M5 6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v7A2.5 2.5 0 0 1 16.5 16H12l-4 3.5V16H7.5A2.5 2.5 0 0 1 5 13.5z"/>'),
     spark: s('<path d="M12 3v3M12 18v3M3 12h3M18 12h3M6.2 6.2l2.1 2.1M15.7 15.7l2.1 2.1M17.8 6.2l-2.1 2.1M8.3 15.7l-2.1 2.1"/><circle cx="12" cy="12" r="3"/>'),
@@ -434,7 +435,7 @@
     chain = chain.then(function () {
       if ((id === 'customers' || id === 'abandoned-checkouts') && !window.DATA_ORDERS) return loadScript('orders/js/data.js?v=20261016-ac-detail');
     });
-    var moduleV = id === 'settings' ? '20261105-paycaps44'
+    var moduleV = id === 'settings' ? '20261112-ccy-kw1'
       : id === 'online-store' ? '20261016-hide-pdp'
       : id === 'bestcheckout' ? '20261016-edit-tab'
       : id === 'bundles' ? '20261013-pdp1'

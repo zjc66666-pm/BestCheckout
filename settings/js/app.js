@@ -3741,90 +3741,301 @@
   //   Channel architecture.
 
   // ===========================================================================
-  // TAB 3 — CURRENCY  ("Currency", full width)
-  //   index.vue: description "Default currency: USD $" + search bar + table.
-  //   edit.vue rendered as a modal here (rate/symbol/status), exchange_rate_type
-  //   0 = automatic, 1 = manual; price rounding "Round up to the nearest …".
+  // CURRENCIES — settlement currencies for checkout amounts BestCheckout owns.
+  //   Store currency is read-only. Other currencies can be switched on or off
+  //   and edited for rate, rounding, and decimal places.
   // ===========================================================================
+  function currencyRateText(r) {
+    const base = D.currency.defaultCode;
+    const value = r.exchange_rate_type === 1 ? r.exchange_rate : r.exchange_rate_auto_value;
+    return '1 ' + base + ' = ' + value + ' ' + r.code;
+  }
+
+  function currencyRoundText(r) {
+    if (r.locked) return '<span class="muted">—</span>';
+    if (r.exchange_rate_round_type === 1) return 'Round up to <span class="i18n-skip">' + esc(r.exchange_rate_round) + '</span>';
+    if (Number(r.exchange_rate_decimal) === 0) return '0 decimal places';
+    if (Number(r.exchange_rate_decimal) === 1) return '1 decimal place';
+    return '2 decimal places';
+  }
+
+  const ccyPager = { page: 1, size: 20, kwType: 'name', kw: '', kwApplied: '', kwTypeApplied: 'name', status: '', rate: '' };
+  const CCY_KW_FIELDS = [
+    { value: 'name', label: 'Name or code' },
+    { value: 'symbol', label: 'Symbol' },
+  ];
+  // Shopify names these market regions first (local-currencies help), and uses
+  // Japan as the single-country market example. Store default stays ahead of them.
+  const CCY_MAIN = ['GBP', 'EUR', 'CAD', 'AUD', 'NZD', 'JPY'];
+
+  function currencyFieldMatch(r, type, q) {
+    const needle = String(q || '').trim().toLowerCase();
+    if (!needle) return true;
+    if (type === 'symbol') return String(r.symbol || '').toLowerCase().indexOf(needle) >= 0;
+    const zh = (window.I18N && window.I18N.t) ? window.I18N.t(r.name) : r.name;
+    return r.code.toLowerCase().indexOf(needle) >= 0
+      || r.name.toLowerCase().indexOf(needle) >= 0
+      || String(zh || '').toLowerCase().indexOf(needle) >= 0;
+  }
+
+  function currencyVisible(r) {
+    if (!currencyFieldMatch(r, ccyPager.kwTypeApplied, ccyPager.kwApplied)) return false;
+    if (ccyPager.status === 'on' && r.currency_status !== 1) return false;
+    if (ccyPager.status === 'off' && r.currency_status === 1) return false;
+    if (ccyPager.rate === 'auto' && (r.locked || r.exchange_rate_type !== 0)) return false;
+    if (ccyPager.rate === 'manual' && (r.locked || r.exchange_rate_type !== 1)) return false;
+    return true;
+  }
+
   function renderCurrency() {
     const c = D.currency;
-    const rows = c.list.map((r) =>
-      '<tr data-cid="' + r.id + '">' +
-        '<td><div class="flex items-center gap-2"><span class="ccy-flag">' + esc(r.country_code) + '</span>' +
-          '<span class="subtle" style="font-weight:500">' + esc(r.country_name) + '</span></div></td>' +
-        '<td>' + esc(r.currency_code) + '</td>' +
-        '<td>' + esc(r.currency_symbol) + '</td>' +
-        '<td>' + toggle(r.currency_status === 1, r.currency_code + ' status') + '</td>' +
-        '<td>' + esc(r.exchange_rate_type_text) + '</td>' +
-        '<td class="muted">' + esc(r.exchange_rate_round_type_text) + '</td>' +
-        '<td style="text-align:right"><button class="lnk" data-edit-ccy="' + r.id + '">Edit</button></td>' +
-      '</tr>').join('');
+    const ccyRank = (r) => {
+      if (r.locked) return -1;
+      const i = CCY_MAIN.indexOf(r.code);
+      return i === -1 ? CCY_MAIN.length : i;
+    };
+    const ordered = c.list.filter(currencyVisible).sort((a, b) => {
+      const ra = ccyRank(a);
+      const rb = ccyRank(b);
+      if (ra !== rb) return ra - rb;
+      return a.code < b.code ? -1 : a.code > b.code ? 1 : 0;
+    });
+    const total = ordered.length;
+    const pages = Math.max(1, Math.ceil(total / ccyPager.size));
+    if (ccyPager.page > pages) ccyPager.page = pages;
+    const pageRows = ordered.slice((ccyPager.page - 1) * ccyPager.size, ccyPager.page * ccyPager.size);
+    const rows = pageRows.map((r) => {
+      const status = r.locked
+        ? '<span class="set-switch on" aria-disabled="true" style="opacity:.55;cursor:default"><span class="set-knob"></span></span>'
+        : toggle(r.currency_status === 1, r.code + ' status').replace('data-toggle=', 'data-ccy-toggle="' + esc(r.id) + '" data-toggle=');
+      const rate = r.locked
+        ? '<span class="muted">—</span>'
+        : '<div>' + (r.exchange_rate_type === 1 ? 'Manual' : 'Automatic') + '</div><div class="muted i18n-skip" style="font-size:12px;margin-top:2px">' + esc(currencyRateText(r)) + '</div>';
+      const name = '<div class="subtle" style="font-weight:500">' + esc(r.name) + '</div>' +
+        '<div class="muted i18n-skip" style="font-size:12px;margin-top:2px">' + esc(r.code) + (r.locked ? '' : '') + '</div>' +
+        (r.locked ? '<div class="muted" style="font-size:12px;margin-top:2px">Store default</div>' : '');
+      return '<tr>' +
+        '<td>' + name + '</td>' +
+        '<td class="i18n-skip">' + esc(r.symbol) + '</td>' +
+        '<td>' + status + '</td>' +
+        '<td>' + rate + '</td>' +
+        '<td>' + currencyRoundText(r) + '</td>' +
+        '<td style="text-align:right"><button class="lnk" type="button" data-edit-ccy="' + esc(r.id) + '">Edit</button></td>' +
+      '</tr>';
+    }).join('');
 
-    const fieldOpts = c.searchFieldOptions.map((o) => '<option value="' + o.value + '">' + esc(o.label) + '</option>').join('');
-
+    const pagerItem = (label, page, opts) => {
+      opts = opts || {};
+      return '<span class="pg-item' + (opts.active ? ' active' : '') + (opts.disabled ? ' disabled' : '') + '"' +
+        (opts.disabled ? '' : ' data-ccy-page="' + page + '"') + '>' + label + '</span>';
+    };
+    let pagerNums = '';
+    for (let p = 1; p <= pages; p++) pagerNums += pagerItem(String(p), p, { active: p === ccyPager.page });
+    const pager = '<div class="pg">' + pagerItem('‹', ccyPager.page - 1, { disabled: ccyPager.page <= 1 }) + pagerNums +
+      pagerItem('›', ccyPager.page + 1, { disabled: ccyPager.page >= pages }) +
+      '<select class="pg-size" id="ccy-pgsize">' + [20, 50, 100].map((s) => '<option value="' + s + '"' + (s === ccyPager.size ? ' selected' : '') + '>' + s + ' / page</option>').join('') + '</select></div>';
+    const ccyOpt = (value, label, current) => '<option value="' + value + '"' + (current === value ? ' selected' : '') + '>' + label + '</option>';
+    const kwOpts = CCY_KW_FIELDS.map((o) => '<option value="' + o.value + '"' + (o.value === ccyPager.kwType ? ' selected' : '') + '>' + o.label + '</option>').join('');
+    const kwLabel = (CCY_KW_FIELDS.find((o) => o.value === ccyPager.kwTypeApplied) || CCY_KW_FIELDS[0]).label;
+    const kwTags = ccyPager.kwApplied
+      ? '<div class="flex gap-2 mt-3" id="filter-tags"><span class="field-pill" data-ccy-clear-kw><span>' + kwLabel + '</span>: <span class="i18n-skip">' + esc(ccyPager.kwApplied) + '</span> <span class="x"></span></span></div>'
+      : '';
     const table =
-      '<div class="panel">' +
-        '<div class="card-pad" style="background:#f7f8fb;border-bottom:1px solid var(--hair);border-radius:10px 10px 0 0;padding:12px 16px">' +
-          '<div class="flex items-center gap-2 flex-wrap">' +
-            '<select class="filter-select" style="width:160px">' + fieldOpts + '</select>' +
-            '<input class="filter-input" placeholder="Please enter keywords to search" style="padding-left:12px;width:268px" />' +
-            '<select class="filter-select" style="width:160px"><option>Status</option><option>On</option><option>Off</option></select>' +
-            '<select class="filter-select" style="width:160px"><option>Exchange rate</option><option>Automatic</option><option>Manual</option></select>' +
-          '</div>' +
-        '</div>' +
-        '<div style="overflow-x:auto"><table class="tbl" style="min-width:900px">' +
-          '<thead><tr><th>Country</th><th>Currency code</th><th>Currency symbol</th><th>Status</th><th>Exchange rate</th><th>Price rounding</th><th style="text-align:right">Action</th></tr></thead>' +
-          '<tbody>' + rows + '</tbody>' +
-        '</table></div>' +
-      '</div>';
+      '<div class="panel ccy-card"><div class="card-pad"><div class="filter-bar">' +
+        '<div class="flex items-center" style="min-width:428px">' +
+          '<select class="filter-select" id="ccy-kw-type" style="width:160px;border-top-right-radius:0;border-bottom-right-radius:0">' + kwOpts + '</select>' +
+          '<div style="position:relative;flex:1">' +
+            '<input class="filter-input" id="ccy-kw" placeholder="Search" value="' + esc(ccyPager.kw) + '" style="width:100%;padding-left:12px;padding-right:52px;border-top-left-radius:0;border-bottom-left-radius:0;margin-left:-1px" />' +
+            '<span class="kw-clear" data-ccy-kw-clear title="Clear">&times;</span>' +
+            '<span class="filter-ico">' + svg('<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>', 14) + '</span></div></div>' +
+        '<select class="filter-select" id="ccy-status" data-ui-fit data-ui-match-width aria-label="Status">' +
+          ccyOpt('', 'All status', ccyPager.status) + ccyOpt('on', 'Turned on', ccyPager.status) + ccyOpt('off', 'Turned off', ccyPager.status) + '</select>' +
+        '<select class="filter-select" id="ccy-rate" data-ui-fit data-ui-match-width aria-label="Exchange rate">' +
+          ccyOpt('', 'All rates', ccyPager.rate) + ccyOpt('auto', 'Automatic', ccyPager.rate) + ccyOpt('manual', 'Manual', ccyPager.rate) + '</select>' +
+      '</div>' + kwTags + '</div>' +
+        '<div class="ccy-scroll"><table class="tbl">' +
+        '<thead><tr><th>Currency</th><th>Symbol</th><th>Status</th><th>Exchange rate</th><th>Price rounding</th><th style="text-align:right">Edit</th></tr></thead>' +
+        '<tbody>' + (rows || '<tr><td colspan="6" style="text-align:center;padding:40px" class="muted">No matching currencies</td></tr>') + '</tbody></table></div>' +
+        '<div class="flex items-center justify-between card-pad"><span class="muted" style="font-size:13px">Total ' + total + ' records</span>' + pager + '</div></div>';
 
     paint(
-      pageHead('Currency', 'Default currency: ' + c.defaultCurrency) +
+      '<div class="ccy-head mb-4"><div class="ccy-head-main"><div class="page-title" style="font-size:20px">Currencies</div>' +
+        '<div class="muted" style="font-size:13px;margin-top:2px"><span>Default currency</span>: <span class="i18n-skip">' + esc(c.defaultCode + ' ' + c.defaultSymbol) + '</span></div></div>' +
+        '<div class="ccy-note"><span class="ccy-note-mark i18n-skip" aria-hidden="true">✓</span><div class="ccy-note-body">' +
+          '<div class="ccy-note-rule">If the currency the customer selects equals the store default currency, no exchange rate conversion is needed.</div>' +
+          '<div class="ccy-note-rule"><div>If the currency the customer selects is not the store default currency:</div>' +
+            '<div class="ccy-note-sub">(1) If BestCheckout has not enabled the currency the customer selects, the customer enters Shopify Checkout.</div>' +
+            '<div class="ccy-note-sub">(2) If BestCheckout has enabled the currency the customer selects, amounts are calculated with the configured exchange rate.</div>' +
+          '</div></div></div></div>' +
       table,
       false
     );
 
-    root.querySelectorAll('[data-edit-ccy]').forEach((b2) => b2.onclick = (e) => { e.stopPropagation(); openCurrencyEdit(Number(b2.getAttribute('data-edit-ccy'))); });
-    root.querySelectorAll('#root tr[data-cid]').forEach((tr) => tr.onclick = () => openCurrencyEdit(Number(tr.getAttribute('data-cid'))));
+    root.querySelectorAll('[data-ccy-toggle]').forEach((el) => {
+      el.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const row = c.list.find((x) => x.id === el.getAttribute('data-ccy-toggle'));
+        if (!row || row.locked) return;
+        row.currency_status = row.currency_status === 1 ? 0 : 1;
+        renderCurrency();
+      };
+    });
+    root.querySelectorAll('[data-edit-ccy]').forEach((b2) => b2.onclick = (e) => {
+      e.stopPropagation();
+      openCurrencyEdit(b2.getAttribute('data-edit-ccy'));
+    });
+    root.querySelectorAll('[data-ccy-page]').forEach((el) => el.onclick = () => {
+      ccyPager.page = Number(el.getAttribute('data-ccy-page'));
+      renderCurrency();
+      if (root && root.parentElement) root.parentElement.scrollTop = 0;
+    });
+    const pgSize = root.querySelector('#ccy-pgsize');
+    if (pgSize) pgSize.onchange = () => {
+      ccyPager.size = Number(pgSize.value) || 20;
+      ccyPager.page = 1;
+      renderCurrency();
+    };
+    const kwType = root.querySelector('#ccy-kw-type');
+    const kwInput = root.querySelector('#ccy-kw');
+    if (kwType) kwType.onchange = () => { ccyPager.kwType = kwType.value; };
+    if (kwInput) {
+      let composing = false;
+      kwInput.addEventListener('compositionstart', () => { composing = true; });
+      kwInput.addEventListener('compositionend', () => { composing = false; ccyPager.kw = kwInput.value; });
+      kwInput.oninput = () => { if (!composing) ccyPager.kw = kwInput.value; };
+      const commitKw = () => {
+        if (composing) return;
+        const next = (kwInput.value || '').trim();
+        ccyPager.kw = kwInput.value;
+        if (next === ccyPager.kwApplied && ccyPager.kwType === ccyPager.kwTypeApplied) return;
+        ccyPager.kwApplied = next;
+        ccyPager.kwTypeApplied = ccyPager.kwType;
+        ccyPager.page = 1;
+        renderCurrency();
+      };
+      kwInput.onkeydown = (e) => { if (e.key === 'Enter' && !composing) { e.preventDefault(); commitKw(); } };
+      kwInput.onblur = commitKw;
+    }
+    const kwClear = root.querySelector('[data-ccy-kw-clear]');
+    if (kwClear) {
+      kwClear.onmousedown = (e) => { e.preventDefault(); };
+      kwClear.onclick = () => { ccyPager.kw = ''; ccyPager.kwApplied = ''; ccyPager.page = 1; renderCurrency(); };
+    }
+    const kwTag = root.querySelector('[data-ccy-clear-kw]');
+    if (kwTag) kwTag.onclick = () => { ccyPager.kw = ''; ccyPager.kwApplied = ''; ccyPager.page = 1; renderCurrency(); };
+    const statusSel = root.querySelector('#ccy-status');
+    if (statusSel) statusSel.onchange = () => {
+      ccyPager.status = statusSel.value;
+      ccyPager.page = 1;
+      renderCurrency();
+    };
+    const rateSel = root.querySelector('#ccy-rate');
+    if (rateSel) rateSel.onchange = () => {
+      ccyPager.rate = rateSel.value;
+      ccyPager.page = 1;
+      renderCurrency();
+    };
   }
 
   function openCurrencyEdit(id) {
     const r = D.currency.list.find((x) => x.id === id);
     if (!r) return;
+    if (r.locked) {
+      const ref = modal({
+        title: r.name,
+        width: 560,
+        okText: 'Close',
+        hideCancel: true,
+        body: block('<div class="ccy-meta"><div><div class="ccy-meta-k">Currency code</div><div class="ccy-meta-v i18n-skip">' + esc(r.code) + '</div></div>' +
+          '<div><div class="ccy-meta-k">Currency symbol</div><div class="ccy-meta-v i18n-skip">' + esc(r.symbol) + '</div></div></div>') +
+          '<p class="muted" style="font-size:13px;line-height:1.6;margin:14px 0 0">This currency is the store default. Its rate and rounding cannot be changed. Checkout amounts in this currency are not converted.</p>',
+        onOk: (_m, close) => close(),
+      });
+      if (window.I18N && window.I18N.apply) window.I18N.apply(ref.m);
+      return;
+    }
     const auto = r.exchange_rate_type === 0;
-    const radio = (on, label, sub) =>
-      '<label class="set-radio2' + (on ? ' on' : '') + '"><span class="proc-radio">' + (on ? '<span class="proc-dot"></span>' : '') + '</span>' +
-      '<span><span class="subtle" style="font-weight:500">' + esc(label) + '</span>' + (sub ? '<div class="muted" style="font-size:12px;margin-top:2px">' + esc(sub) + '</div>' : '') + '</span></label>';
     const round = r.exchange_rate_round_type === 1;
+    const radio = (on, attrs, label, sub) =>
+      '<label class="set-radio2' + (on ? ' on' : '') + '" ' + attrs + '><span class="proc-radio">' + (on ? '<span class="proc-dot"></span>' : '') + '</span>' +
+      '<span><span class="subtle" style="font-weight:500">' + label + '</span>' + (sub ? '<div class="muted" style="font-size:12px;margin-top:2px">' + sub + '</div>' : '') + '</span></label>';
+    const roundValue = r.exchange_rate_round_type === 1 ? r.exchange_rate_round : '';
     const body =
-      block('<div class="flex gap-8 text-sm"><div><span class="muted">Currency code:</span> <span class="subtle" style="font-weight:500">' + esc(r.currency_code) + '</span></div>' +
-            '<div><span class="muted">Currency symbol:</span> <span class="subtle" style="font-weight:500">' + esc(r.currency_symbol) + '</span></div></div>') +
-      // Exchange rate
-      '<div style="border:1px solid var(--hair);border-radius:10px;padding:14px 16px;margin-top:16px">' +
-        '<div class="card-title" style="font-size:15px;margin-bottom:10px">Exchange rate</div>' +
-        '<div class="flex flex-col gap-2">' +
-          radio(auto, 'Using automatic exchange rates', 'The price of an item will change automatically based on the market rate and includes a 0% conversion fee. 1 ' + r.original_currency + ' = ' + r.exchange_rate_auto_value + ' ' + r.currency_code + '.') +
-          radio(!auto, 'Use manual exchange rates', 'Customized exchange rates, no conversion fees.') +
-        '</div>' +
-        '<div class="mt-2 flex items-center gap-2" style="' + (auto ? 'opacity:.5' : '') + '"><span class="muted text-sm">1 ' + esc(r.original_currency) + ' =</span>' +
-          '<div class="set-addon"><input class="input" type="number" value="' + esc(r.exchange_rate) + '" step="0.01" min="0" style="width:160px;border-top-right-radius:0;border-bottom-right-radius:0" /><span class="set-addon-suffix">' + esc(r.currency_code) + '</span></div></div>' +
-      '</div>' +
-      // Price rounding
-      '<div style="border:1px solid var(--hair);border-radius:10px;padding:14px 16px;margin-top:16px">' +
-        '<div class="card-title" style="font-size:15px;margin-bottom:10px">Price rounding</div>' +
-        '<div class="flex flex-col gap-2">' +
-          '<label class="set-radio' + (round ? ' on' : '') + '"><span class="proc-radio">' + (round ? '<span class="proc-dot"></span>' : '') + '</span><span>Round up to the nearest ' + esc(r.currency_code) + ' ' + esc(r.currency_symbol) + '</span>' +
-            '<input class="input" type="number" value="' + (r.exchange_rate_round || 1) + '" min="1" style="width:120px;margin-left:8px"' + (round ? '' : ' disabled') + ' /></label>' +
-          '<label class="set-radio' + (round ? '' : ' on') + '"><span class="proc-radio">' + (round ? '' : '<span class="proc-dot"></span>') + '</span>Do not round prices</label>' +
-          (round ? '' : '<div class="muted" style="font-size:12px;margin-left:24px">The price will automatically be rounded to two decimal places.</div>') +
+      block('<div class="ccy-meta"><div><div class="ccy-meta-k">Currency code</div><div class="ccy-meta-v i18n-skip">' + esc(r.code) + '</div></div>' +
+            '<div><div class="ccy-meta-k">Currency symbol</div><div class="ccy-meta-v i18n-skip">' + esc(r.symbol) + '</div></div></div>') +
+      '<div class="ccy-sec">' +
+        '<div class="card-title ccy-sec-title">Exchange rate</div>' +
+        '<div class="flex flex-col gap-2" data-rate-group>' +
+          radio(auto, 'data-rate="auto"', 'Using automatic exchange rates', '1 <span class="i18n-skip">' + esc(D.currency.defaultCode) + '</span> = <span class="i18n-skip">' + esc(r.exchange_rate_auto_value) + ' ' + esc(r.code) + '</span>') +
+          '<label class="set-radio2' + (auto ? '' : ' on') + '" data-rate="manual"><span class="proc-radio">' + (auto ? '' : '<span class="proc-dot"></span>') + '</span>' +
+            '<span class="ccy-rate-copy"><span class="subtle" style="font-weight:500">Use manual exchange rates</span>' +
+            '<span class="muted" style="display:block;font-size:12px;margin-top:2px">Customized exchange rates, no conversion fees.</span></span>' +
+            '<span class="ccy-rate-line" data-manual-wrap style="' + (auto ? 'opacity:.45' : '') + '"><span class="muted i18n-skip">1 ' + esc(D.currency.defaultCode) + ' =</span>' +
+            '<span class="set-addon"><input class="input" data-manual-rate type="number" value="' + esc(r.exchange_rate) + '" step="0.01" min="0"' + (auto ? ' disabled' : '') + ' /><span class="set-addon-suffix i18n-skip">' + esc(r.code) + '</span></span></span></label>' +
         '</div>' +
       '</div>' +
-      // Price decimal
-      '<div style="border:1px solid var(--hair);border-radius:10px;padding:14px 16px;margin-top:16px">' +
-        '<div class="card-title" style="font-size:15px;margin-bottom:10px">Price decimal</div>' +
-        '<div class="flex flex-col gap-2">' + [0, 1, 2].map((d) => '<label class="set-radio' + (r.exchange_rate_decimal === d ? ' on' : '') + '"><span class="proc-radio">' + (r.exchange_rate_decimal === d ? '<span class="proc-dot"></span>' : '') + '</span>' + d + '</label>').join('') + '</div>' +
+      '<div class="ccy-sec">' +
+        '<div class="card-title ccy-sec-title">Price rounding</div>' +
+        '<div class="flex flex-col gap-2">' +
+          '<label class="set-radio ccy-line' + (round ? ' on' : '') + '" data-round="up"><span class="proc-radio">' + (round ? '<span class="proc-dot"></span>' : '') + '</span><span>Round up to</span>' +
+            '<input class="input ccy-num i18n-skip" data-round-to type="number" value="' + esc(roundValue) + '" placeholder="0.95" step="0.01" min="0"' + (round ? '' : ' disabled') + ' /></label>' +
+          '<label class="set-radio ccy-line' + (round ? '' : ' on') + '" data-round="off"><span class="proc-radio">' + (round ? '' : '<span class="proc-dot"></span>') + '</span>Do not round prices</label>' +
+        '</div>' +
+      '</div>' +
+      '<div class="ccy-sec">' +
+        '<div class="card-title ccy-sec-title">Price decimal</div>' +
+        '<div class="ccy-decimals">' + [0, 1, 2].map((d) => '<label class="set-radio' + (Number(r.exchange_rate_decimal) === d ? ' on' : '') + '" data-decimal="' + d + '"><span class="proc-radio">' + (Number(r.exchange_rate_decimal) === d ? '<span class="proc-dot"></span>' : '') + '</span><span class="i18n-skip">' + d + '</span></label>').join('') + '</div>' +
       '</div>';
-    modal({ title: r.country_name, width: 600, okText: 'Update', body, onOk: (m, close) => { close(); toast('Updated successfully'); } });
+    const ref = modal({
+      title: r.name, width: 520, okText: 'Update', body,
+      onOk: (m, close) => {
+        const manual = m.querySelector('[data-rate="manual"]').classList.contains('on');
+        const roundOn = m.querySelector('[data-round="up"]').classList.contains('on');
+        const rate = m.querySelector('[data-manual-rate]').value.trim();
+        const roundTo = m.querySelector('[data-round-to]').value.trim();
+        const decimalEl = m.querySelector('[data-decimal].on');
+        if (manual && !(Number(rate) > 0)) { toast('Enter an exchange rate.'); return; }
+        if (roundOn && !(Number(roundTo) > 0)) { toast('Enter a rounding amount.'); return; }
+        r.exchange_rate_type = manual ? 1 : 0;
+        if (manual) r.exchange_rate = rate;
+        r.exchange_rate_round_type = roundOn ? 1 : 0;
+        if (roundOn) r.exchange_rate_round = roundTo;
+        if (decimalEl) r.exchange_rate_decimal = Number(decimalEl.getAttribute('data-decimal'));
+        close();
+        toast('Updated successfully');
+        renderCurrency();
+      },
+    });
+    const manualInput = ref.m.querySelector('[data-manual-rate]');
+    const manualWrap = ref.m.querySelector('[data-manual-wrap]');
+    const roundInput = ref.m.querySelector('[data-round-to]');
+    const selectRadio = (el) => {
+      const grp = el.parentElement;
+      grp.querySelectorAll('.set-radio, .set-radio2').forEach((s) => {
+        s.classList.remove('on');
+        const d = s.querySelector('.proc-radio');
+        if (d) d.innerHTML = '';
+      });
+      el.classList.add('on');
+      const dot = el.querySelector('.proc-radio');
+      if (dot) dot.innerHTML = '<span class="proc-dot"></span>';
+    };
+    ref.m.querySelectorAll('[data-rate]').forEach((el) => {
+      el.onclick = () => {
+        selectRadio(el);
+        const manualOn = el.getAttribute('data-rate') === 'manual';
+        manualInput.disabled = !manualOn;
+        manualWrap.style.opacity = manualOn ? '' : '.5';
+      };
+    });
+    ref.m.querySelectorAll('[data-round]').forEach((el) => {
+      el.onclick = () => {
+        selectRadio(el);
+        roundInput.disabled = el.getAttribute('data-round') !== 'up';
+      };
+    });
+    if (window.I18N && window.I18N.apply) window.I18N.apply(ref.m);
   }
 
   // ===========================================================================
@@ -4395,7 +4606,7 @@
     { title: 'Bundles', children: ['Bundle list', 'Create bundle', 'Edit bundle'] },
     { title: 'Subscriptions', children: ['Subscription list', 'Create subscription', 'Edit subscription', 'Contract list', 'Contract detail', 'Cancel contract', 'Retry payment'] },
     { title: 'Orders', children: ['Order list', 'Order detail', 'Refund', 'Note'] },
-    { title: 'Settings', children: ['Shopify connection', 'Checkout domain', 'Payment services', 'Ad data', 'Email notifications', 'Roles', 'Staff'] },
+    { title: 'Settings', children: ['Shopify connection', 'Checkout domain', 'Payment services', 'Ad data', 'Klaviyo', 'Email notifications', 'Roles', 'Staff'] },
   ];
   const ALL_LEAVES = PERM_TREE.reduce((a, p) => a.concat(p.children), []);
   let rolesData = [
@@ -7524,12 +7735,289 @@
     });
   }
 
+  // ===========================================================================
+  // KLAVIYO — same checkout events already sent to Meta, GA4 and GTM
+  // ===========================================================================
+  const KLAVIYO_EVENTS = [
+    { group: 'Checkout', id: 'begin_checkout', label: 'Checkout started', metric: 'BestCheckout Checkout Started',
+      when: 'Once per checkout, the first time a valid email is captured.',
+      props: 'CheckoutURL, $value, Items, Item Count, Currency, Funnel, Discount codes' },
+    { group: 'Checkout', id: 'checkout_contact_info', label: 'Contact information', metric: 'BestCheckout Contact Submitted',
+      when: 'The email passes validation on the checkout page.',
+      props: '$value, Items, Item Count, Currency, Checkout type' },
+    { group: 'Checkout', id: 'add_shipping_info', label: 'Shipping information', metric: 'BestCheckout Shipping Submitted',
+      when: 'A shipping method is selected.',
+      props: 'Shipping method, Shipping price, Country, $value' },
+    { group: 'Checkout', id: 'add_payment_info', label: 'Payment information', metric: 'BestCheckout Payment Submitted',
+      when: 'A payment method is selected, before the charge.',
+      props: 'Payment method, $value, Items, Currency' },
+    { group: 'After payment', id: 'purchase', label: 'Completed purchase', metric: 'BestCheckout Purchase Completed',
+      when: 'Payment succeeds. Sent once per order. purchase_stage is checkout, upsell, or downsell.',
+      props: '$value, Order ID, purchase_stage, Items, Currency, Funnel' },
+    { group: 'After payment', id: 'post_purchase_offer_view', label: 'Post-purchase offer', metric: 'BestCheckout Offer Viewed',
+      when: 'An upsell or downsell offer is shown. Once per offer step.',
+      props: 'Offer name, Offer type, Product, Price' },
+    { group: 'After payment', id: 'post_purchase_offer_accept', label: 'Post-purchase offer accepted', metric: 'BestCheckout Offer Accepted',
+      when: 'The buyer accepts the offer and the add-on purchase succeeds.',
+      props: 'Offer name, Offer type, Product, Price, Order ID' },
+    { group: 'After payment', id: 'post_purchase_offer_decline', label: 'Post-purchase offer declined', metric: 'BestCheckout Offer Declined',
+      when: 'The buyer declines the offer and moves to the next step.',
+      props: 'Offer name, Offer type, Product, Price' },
+  ];
+  if (window.I18N && window.I18N.extend) {
+    window.I18N.extend({
+      'Send checkout events to Klaviyo. Shopify keeps Placed Order for revenue.': '把结账事件发到 Klaviyo。收入仍以 Shopify 的 Placed Order 为准。',
+      'Paste a private API key to send checkout, purchase, and post-purchase offer events.': '粘贴 Private API Key 后，结账、购买和购后优惠事件会发到 Klaviyo。',
+      'BestCheckout email notifications stay separate.': 'BestCheckout 的邮件通知仍然单独发送。',
+      'These are the checkout events BestCheckout already sends to Meta, GA4, and GTM. Klaviyo receives each one under its own metric name.': '这些是 BestCheckout 已经发给 Meta、GA4 和 GTM 的结账事件。Klaviyo 会按各自的指标名接收。',
+      'Events start sending after Klaviyo is connected.': '连接 Klaviyo 之后才会开始发送。',
+      'Sending is paused. Shopper events wait here until you turn sending back on. Test events can still be sent.': '发送已暂停。买家事件会留在这里，直到重新打开发送。测试事件仍可发送。',
+      'After payment': '付款之后',
+      'Klaviyo metric': 'Klaviyo 指标',
+      'Once per checkout, the first time a valid email is captured.': '每次结账只发一次，在第一次拿到有效邮箱时发送。',
+      'The email passes validation on the checkout page.': '结账页邮箱校验通过时发送。',
+      'A shipping method is selected.': '选择配送方式时发送。',
+      'A payment method is selected, before the charge.': '选择支付方式、扣款之前发送。',
+      'Payment succeeds. Sent once per order. purchase_stage is checkout, upsell, or downsell.': '支付成功后发送，每笔订单一次。purchase_stage 为 checkout、upsell 或 downsell。',
+      'An upsell or downsell offer is shown. Once per offer step.': '展示加售或降级售优惠时发送，每个优惠步骤一次。',
+      'The buyer accepts the offer and the add-on purchase succeeds.': '买家接受优惠且追加购买成功时发送。',
+      'The buyer declines the offer and moves to the next step.': '买家拒绝优惠并进入下一步时发送。',
+      'Post-purchase offer accepted': '接受购后优惠',
+      'Post-purchase offer declined': '拒绝购后优惠',
+      'Send events': '发送事件',
+      'Send phone number': '发送手机号',
+      'Off until checkout has collected SMS consent. Numbers are sent with the country code.': '结账页收集到短信同意之前保持关闭。号码会带上国家码。',
+      'Private API key': 'Private API Key',
+      'Connect Klaviyo': '连接 Klaviyo',
+      'In Klaviyo, open Settings, then API keys, and create a private key with Events and Profiles write access.': '在 Klaviyo 打开 Settings，再打开 API keys，创建一个具备 Events 和 Profiles 写权限的 Private API Key。',
+      'Enter a private API key.': '请输入 Private API Key。',
+      'Private API keys start with pk_.': 'Private API Key 以 pk_ 开头。',
+      'Enter the full private API key.': '请输入完整的 Private API Key。',
+      'Klaviyo connected': 'Klaviyo 已连接',
+      'Disconnect Klaviyo?': '断开 Klaviyo？',
+      'BestCheckout stops sending new checkout events. Flows already in Klaviyo stay as they are.': 'BestCheckout 会停止发送新的结账事件。Klaviyo 里已经建好的 Flow 保持不变。',
+      'Klaviyo disconnected': 'Klaviyo 已断开',
+      'Turn on an event before sending a test.': '请先打开一个事件，再发送测试。',
+      'Send a test event': '发送测试事件',
+      'Klaviyo lists a metric only after it receives that event once.': 'Klaviyo 要先收到一次事件，这条指标才会出现在 Flow 里。',
+      'Email': '邮箱',
+      'Klaviyo drops example.com and test.com addresses. Use a real inbox.': 'Klaviyo 会丢弃 example.com 和 test.com 邮箱。请使用真实邮箱。',
+      'Enter an email address.': '请输入邮箱。',
+      'Enter a valid email address.': '请输入有效的邮箱地址。',
+      'Test event sent': '测试事件已发送',
+      'Event accepted': '已接收',
+      'No events sent in this session.': '这次还没有发送事件。',
+      'Recent events': '最近发送',
+      'Abandoned checkout flow': '弃单 Flow',
+      'In Klaviyo, open Flows, choose Create flow, then Create from scratch.': '在 Klaviyo 打开 Flows，选择 Create flow，再选择 Create from scratch。',
+      'Set the trigger to Metric, then choose BestCheckout Checkout Started.': '触发器选 Metric，再选择 BestCheckout Checkout Started。',
+      'Add a flow filter: BestCheckout Purchase Completed is zero times since starting this flow.': '添加 Flow 过滤器：自进入 Flow 以来，BestCheckout Purchase Completed 为 0 次。',
+      'If the store also uses Shopify Placed Order, add the same filter for that metric.': '如果店铺也在用 Shopify 的 Placed Order，同样加上这条指标的过滤器。',
+      'In the email, set the button link to {{ event.CheckoutURL }}.': '在邮件里，把按钮链接设为 {{ event.CheckoutURL }}。',
+      'Other flows you can start from these events': '还可以用这些事件另建 Flow',
+      'BestCheckout Payment Submitted: the buyer reached payment and has not purchased.': 'BestCheckout Payment Submitted：买家已经选择支付方式，但还没有购买。',
+      'BestCheckout Offer Declined: follow up after an upsell or downsell is declined.': 'BestCheckout Offer Declined：加售或降级售被拒绝后跟进。',
+      'BestCheckout Purchase Completed: post-purchase. Filter purchase_stage to checkout, upsell, or downsell.': 'BestCheckout Purchase Completed：购买之后。用 purchase_stage 过滤 checkout、upsell 或 downsell。',
+      'Sending paused': '发送已暂停',
+      'Connected': '已连接',
+    });
+  }
+
+  function klaviyoState() {
+    if (!D.klaviyo) {
+      D.klaviyo = { connected: false, paused: false, keyMask: '', sendPhone: false, enabled: {}, deliveries: [] };
+    }
+    D.klaviyo.enabled = D.klaviyo.enabled || {};
+    KLAVIYO_EVENTS.forEach((ev) => {
+      if (typeof D.klaviyo.enabled[ev.id] !== 'boolean') D.klaviyo.enabled[ev.id] = true;
+    });
+    D.klaviyo.deliveries = D.klaviyo.deliveries || [];
+    return D.klaviyo;
+  }
+  function maskKlaviyoEmail(email) {
+    const parts = String(email || '').split('@');
+    if (parts.length !== 2 || !parts[0]) return email;
+    return parts[0].slice(0, 1) + '***@' + parts[1];
+  }
+  function klaviyoWhen(at) {
+    try {
+      return new Date(at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function renderKlaviyo() {
+    const k = klaviyoState();
+    const scroll = root ? root.scrollTop : 0;
+    const status = !k.connected
+      ? '<span class="pill pill-gray"><span class="dot"></span>Not connected</span>'
+      : k.paused
+        ? '<span class="pill pill-orange"><span class="dot"></span>Sending paused</span>'
+        : '<span class="pill pill-green"><span class="dot"></span>Connected</span>';
+    const actions = k.connected
+      ? '<button type="button" class="kv-send" data-kv-pause><span>Send events</span><span class="set-switch' + (k.paused ? '' : ' on') + '"><span class="set-knob"></span></span></button>' +
+        '<button type="button" class="btn btn-default" data-kv-disconnect>Disconnect</button>'
+      : '<button type="button" class="btn btn-primary" data-kv-connect>Connect</button>';
+    const intro = k.connected
+      ? '<span>Private API key</span> ' + esc(k.keyMask)
+      : esc('Paste a private API key to send checkout, purchase, and post-purchase offer events.');
+    const phone = k.connected
+      ? '<div class="kv-phone"><button type="button" class="kv-send" data-kv-phone aria-label="Send phone number"><span class="set-switch' + (k.sendPhone ? ' on' : '') + '"><span class="set-knob"></span></span></button><div><div class="kv-name">Send phone number</div><div class="kv-when">Off until checkout has collected SMS consent. Numbers are sent with the country code.</div></div></div>'
+      : '';
+    let lastGroup = '';
+    const rows = KLAVIYO_EVENTS.map((ev) => {
+      const on = k.enabled[ev.id] !== false;
+      const head = ev.group !== lastGroup
+        ? (lastGroup = ev.group, '<div class="kv-group">' + esc(ev.group) + '</div>')
+        : '';
+      const test = k.connected && on
+        ? '<button type="button" class="btn btn-default" data-kv-test="' + esc(ev.id) + '">Send test event</button>'
+        : '';
+      return head +
+        '<div class="kv-row' + (on ? '' : ' off') + '">' +
+          '<button type="button" class="kv-send" data-kv-event="' + esc(ev.id) + '" aria-label="' + esc(ev.label) + '"><span class="set-switch' + (on ? ' on' : '') + '"><span class="set-knob"></span></span></button>' +
+          '<div class="kv-main"><div class="kv-name">' + esc(ev.label) + '</div>' +
+            '<div class="kv-metric">' + esc(ev.metric) + '</div>' +
+            '<div class="kv-when">' + esc(ev.when) + '</div>' +
+            '<div class="kv-props">' + esc(ev.props) + '</div></div>' +
+          test +
+        '</div>';
+    }).join('');
+    const banner = !k.connected
+      ? '<div class="kv-note">Events start sending after Klaviyo is connected.</div>'
+      : k.paused
+        ? '<div class="kv-note">Sending is paused. Shopper events wait here until you turn sending back on. Test events can still be sent.</div>'
+        : '';
+    const logRows = k.deliveries.length
+      ? k.deliveries.map((row) =>
+          '<tr><td>' + esc(klaviyoWhen(row.at)) + '</td><td>' + esc(row.metric) + '</td><td>' + esc(maskKlaviyoEmail(row.email)) + '</td><td><span class="pill pill-green"><span class="dot"></span>Event accepted</span></td></tr>'
+        ).join('')
+      : '<tr><td colspan="4" class="kv-empty">No events sent in this session.</td></tr>';
+    paint(
+      pageHead('Klaviyo', 'Send checkout events to Klaviyo. Shopify keeps Placed Order for revenue.') +
+      '<section class="kv-card"><div class="kv-head"><span class="kv-mark" aria-hidden="true">K</span><div><h2>Klaviyo</h2><p>' + intro + '</p><p class="kv-aside">BestCheckout email notifications stay separate.</p></div><div class="kv-actions">' + status + actions + '</div></div>' + phone + '</section>' +
+      '<section class="kv-card"><div class="kv-note">These are the checkout events BestCheckout already sends to Meta, GA4, and GTM. Klaviyo receives each one under its own metric name.</div>' + banner + rows + '</section>' +
+      '<section class="kv-card"><div class="kv-name" style="margin-bottom:10px">Recent events</div><table class="kv-log"><thead><tr><th>Time</th><th>Klaviyo metric</th><th>Email</th><th>Status</th></tr></thead><tbody>' + logRows + '</tbody></table></section>' +
+      '<section class="kv-card"><div class="kv-name">Abandoned checkout flow</div><ol class="kv-steps">' +
+        '<li>In Klaviyo, open Flows, choose Create flow, then Create from scratch.</li>' +
+        '<li>Set the trigger to Metric, then choose BestCheckout Checkout Started.</li>' +
+        '<li>Add a flow filter: BestCheckout Purchase Completed is zero times since starting this flow.</li>' +
+        '<li>If the store also uses Shopify Placed Order, add the same filter for that metric.</li>' +
+        '<li>In the email, set the button link to {{ event.CheckoutURL }}.</li>' +
+      '</ol></section>' +
+      '<section class="kv-card"><div class="kv-name">Other flows you can start from these events</div><ul class="kv-steps">' +
+        '<li>BestCheckout Payment Submitted: the buyer reached payment and has not purchased.</li>' +
+        '<li>BestCheckout Offer Declined: follow up after an upsell or downsell is declined.</li>' +
+        '<li>BestCheckout Purchase Completed: post-purchase. Filter purchase_stage to checkout, upsell, or downsell.</li>' +
+      '</ul></section>'
+    );
+    if (root) root.scrollTop = scroll;
+    const on = (sel, fn) => root.querySelectorAll(sel).forEach((el) => { el.onclick = fn; });
+    on('[data-kv-connect]', () => openKlaviyoConnect());
+    on('[data-kv-disconnect]', () => disconnectKlaviyo());
+    on('[data-kv-pause]', () => { k.paused = !k.paused; renderKlaviyo(); });
+    on('[data-kv-phone]', () => { k.sendPhone = !k.sendPhone; renderKlaviyo(); });
+    on('[data-kv-event]', (e) => {
+      const id = e.currentTarget.getAttribute('data-kv-event');
+      k.enabled[id] = !k.enabled[id];
+      renderKlaviyo();
+    });
+    on('[data-kv-test]', (e) => openKlaviyoTest(e.currentTarget.getAttribute('data-kv-test')));
+  }
+
+  function openKlaviyoConnect() {
+    const ref = modal({
+      title: 'Connect Klaviyo', width: 520, okText: 'Connect',
+      body:
+        '<div class="sp-field"><label class="ctrl-label" style="text-transform:none;margin-bottom:6px;display:block">Private API key <span style="color:var(--err)">*</span></label>' +
+          '<input id="kv-key" class="input" autocomplete="off" spellcheck="false" placeholder="pk_" />' +
+          '<div class="sp-err" data-err="kv-key"></div>' +
+          '<div class="muted" style="font-size:12.5px;line-height:1.5;margin-top:8px">In Klaviyo, open Settings, then API keys, and create a private key with Events and Profiles write access.</div></div>',
+      onOk: (m, close) => {
+        const raw = m.querySelector('#kv-key').value.trim();
+        const input = m.querySelector('#kv-key');
+        input.classList.remove('has-error');
+        if (!raw) { setErr(m, 'kv-key', 'Enter a private API key.'); input.classList.add('has-error'); return; }
+        if (raw.indexOf('pk_') !== 0) { setErr(m, 'kv-key', 'Private API keys start with pk_.'); input.classList.add('has-error'); return; }
+        if (raw.length < 12) { setErr(m, 'kv-key', 'Enter the full private API key.'); input.classList.add('has-error'); return; }
+        const k = klaviyoState();
+        k.connected = true;
+        k.paused = false;
+        k.keyMask = 'pk_••••' + raw.slice(-4);
+        close();
+        toast('Klaviyo connected');
+        renderKlaviyo();
+      },
+    });
+    const input = ref.m.querySelector('#kv-key');
+    if (input) input.focus();
+  }
+
+  function disconnectKlaviyo() {
+    confirm({
+      title: 'Disconnect Klaviyo?', okText: 'Disconnect', danger: true,
+      content: 'BestCheckout stops sending new checkout events. Flows already in Klaviyo stay as they are.',
+      onOk: () => {
+        const k = klaviyoState();
+        k.connected = false;
+        k.paused = false;
+        k.keyMask = '';
+        k.sendPhone = false;
+        toast('Klaviyo disconnected');
+        renderKlaviyo();
+      },
+    });
+  }
+
+  function openKlaviyoTest(eventId) {
+    const k = klaviyoState();
+    const choices = KLAVIYO_EVENTS.filter((ev) => k.enabled[ev.id] !== false);
+    const picked = choices.find((ev) => ev.id === eventId) || choices[0];
+    if (!picked) { toast('Turn on an event before sending a test.', 'error'); return; }
+    const options = choices.map((ev) =>
+      '<option value="' + esc(ev.id) + '"' + (ev.id === picked.id ? ' selected' : '') + '>' + esc(ev.metric) + '</option>'
+    ).join('');
+    modal({
+      title: 'Send a test event', width: 520, okText: 'Send test event',
+      body:
+        '<div class="sp-field"><label class="ctrl-label" style="text-transform:none;margin-bottom:6px;display:block">Klaviyo metric</label>' +
+          '<select id="kv-test-event" class="input">' + options + '</select></div>' +
+        '<div class="sp-field"><label class="ctrl-label" style="text-transform:none;margin-bottom:6px;display:block">Email <span style="color:var(--err)">*</span></label>' +
+          '<input id="kv-test-email" class="input" type="email" autocomplete="off" placeholder="name@store.com" />' +
+          '<div class="sp-err" data-err="kv-email"></div>' +
+          '<div class="muted" style="font-size:12.5px;line-height:1.5;margin-top:8px">Klaviyo lists a metric only after it receives that event once.</div>' +
+          '<div class="muted" style="font-size:12.5px;line-height:1.5;margin-top:4px">Klaviyo drops example.com and test.com addresses. Use a real inbox.</div></div>',
+      onOk: (m, close) => {
+        const id = m.querySelector('#kv-test-event').value;
+        const email = m.querySelector('#kv-test-email').value.trim();
+        const input = m.querySelector('#kv-test-email');
+        const ev = KLAVIYO_EVENTS.find((item) => item.id === id);
+        input.classList.remove('has-error');
+        if (!email) { setErr(m, 'kv-email', 'Enter an email address.'); input.classList.add('has-error'); return; }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setErr(m, 'kv-email', 'Enter a valid email address.'); input.classList.add('has-error'); return; }
+        const domain = email.split('@')[1].toLowerCase();
+        if (domain === 'example.com' || domain === 'test.com') {
+          setErr(m, 'kv-email', 'Klaviyo drops example.com and test.com addresses. Use a real inbox.');
+          input.classList.add('has-error');
+          return;
+        }
+        klaviyoState().deliveries.unshift({ at: Date.now(), metric: ev ? ev.metric : id, email: email });
+        close();
+        toast('Test event sent');
+        renderKlaviyo();
+      },
+    });
+  }
+
   const ROUTES = {
     notifications: renderNotifications,
     base: renderShopifyStore,
     subscriptions: renderSubscriptions,
     domains: renderDomains,
     payments: renderPayments,
+    currencies: renderCurrency,
+    currency: renderCurrency,
     billing: renderBilling,
     'advertising-analytics': renderAdvertisingAnalyticsV2,
     currency: renderCurrency,
@@ -7539,6 +8027,7 @@
     roles: renderRoles,
     staff: renderStaff,
     'ai-mcp': renderAiMcp,
+    klaviyo: renderKlaviyo,
   };
 
   let curRest = '';
@@ -7584,6 +8073,31 @@
   /* All Settings pages share a focused reading width. Forms retain the
      narrower 860px measure used by the live admin. */
   .set-page { width: 1120px; max-width: 100%; margin: 0 auto; }
+  .ccy-scroll { overflow-x: auto; }
+  #ccy-kw:placeholder-shown ~ .kw-clear { display: none; }
+  .ccy-head { display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
+  .ccy-head-main { flex: none; }
+  .ccy-note { display: flex; align-items: flex-start; gap: 11px; width: 100%; max-width: none; margin: 0; padding: 14px 16px; background: #eff6ff; border: 1px solid #bcd5ff; border-radius: 11px; font-size: 13px; line-height: 1.5; color: #295894; }
+  .ccy-note-mark { width: 20px; height: 20px; display: grid; place-items: center; border: 1px solid #80a9e8; border-radius: 50%; font-size: 12px; font-weight: 750; flex: none; color: #295894; }
+  .ccy-note-body { min-width: 0; flex: 1; }
+  .ccy-note-rule { color: #204b84; }
+  .ccy-note-rule + .ccy-note-rule { margin-top: 8px; padding-top: 8px; border-top: 1px solid #d3e4ff; }
+  .ccy-note-sub { margin-top: 4px; padding-left: 22px; text-indent: -22px; color: #426b9d; }
+  .ccy-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .ccy-meta-k { font-size: 12px; color: var(--ink-muted); }
+  .ccy-meta-v { margin-top: 4px; font-size: 14px; font-weight: 600; color: var(--ink); }
+  .ccy-sec { border: 1px solid var(--hair); border-radius: 10px; padding: 12px 14px; margin-top: 12px; }
+  .ccy-sec-title { font-size: 14px; margin-bottom: 10px; }
+  .ccy-sec .set-radio2 { display: grid; grid-template-columns: 16px 1fr; column-gap: 8px; align-items: center; }
+  .ccy-rate-copy { min-width: 0; display: block; }
+  .ccy-rate-line { grid-column: 2; display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+  .ccy-rate-line .input { width: 120px; height: 32px; border-top-right-radius: 0; border-bottom-right-radius: 0; }
+  .ccy-line { width: 100%; min-height: 32px; }
+  .ccy-num { width: 88px; height: 32px; margin-left: 4px; }
+  .ccy-decimals { display: flex; gap: 8px; }
+  .ccy-decimals .set-radio { height: 32px; min-width: 72px; justify-content: center; padding: 0 14px; border: 1px solid var(--hair); border-radius: 8px; background: #fff; }
+  .ccy-decimals .set-radio.on { border-color: var(--brand); background: #e6f0ff; color: var(--ink); }
+  .ccy-decimals .proc-radio { display: none; }
   .set-page.set-narrow { width: 960px; }
   .domain-change-action { flex: 0 0 auto; min-width: 168px; justify-content: center; white-space: nowrap; }
 
@@ -7608,6 +8122,13 @@
   .set-addon .input { border-radius: var(--radius); }
   .set-addon-suffix, .set-addon-prefix { display: inline-flex; align-items: center; padding: 0 12px; border: 1px solid var(--ctl); background: var(--panel); font-size: 13px; color: var(--ink-body); }
   .set-addon-suffix { border-left: none; border-top-right-radius: var(--radius); border-bottom-right-radius: var(--radius); }
+  .ccy-rate-line .set-addon .input { width: 120px; height: 32px; border-radius: var(--radius) 0 0 var(--radius); border-right: 0; -moz-appearance: textfield; appearance: textfield; }
+  .ccy-rate-line .set-addon .input::-webkit-outer-spin-button,
+  .ccy-rate-line .set-addon .input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; display: none; }
+  .ccy-rate-line .set-addon-suffix { height: 32px; box-sizing: border-box; margin-left: 0; border-left: 1px solid var(--ctl); border-radius: 0 var(--radius) var(--radius) 0; background: #fff; }
+  .ccy-rate-line .set-addon:focus-within .input { border-color: var(--brand); }
+  .ccy-rate-line .set-addon:focus-within .set-addon-suffix { border-left-color: var(--brand); }
+  .ccy-rate-line .input:disabled + .set-addon-suffix { background: #f3f4f6; }
   .set-addon-prefix { border-right: none; border-top-left-radius: var(--radius); border-bottom-left-radius: var(--radius); }
 
   .set-range { flex: 1; accent-color: var(--brand); height: 4px; }
@@ -7689,6 +8210,37 @@
 
   /* preview modal frame */
   .preview-frame { display: grid; place-items: center; border: 1px solid var(--hair); border-radius: 10px; background: var(--panel); }
+
+  /* Klaviyo */
+  .kv-card { background: #fff; border: 1px solid var(--hair); border-radius: 12px; padding: 16px 18px; margin-bottom: 14px; }
+  .kv-head { display: flex; align-items: flex-start; gap: 14px; }
+  .kv-head > div:nth-child(2) { flex: 1; min-width: 0; }
+  .kv-head h2 { margin: 0; font-size: 16px; font-weight: 600; color: var(--ink); }
+  .kv-head p { margin: 4px 0 0; color: var(--ink-body); font-size: 13px; line-height: 1.5; }
+  .kv-aside { color: var(--ink-muted) !important; }
+  .kv-mark { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: #1a1a1a; color: #fff; font-weight: 700; font-size: 18px; flex: none; }
+  .kv-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; flex: none; }
+  .kv-send { display: inline-flex; align-items: center; gap: 8px; border: 0; background: transparent; padding: 0; font: inherit; font-size: 13px; font-weight: 500; color: var(--ink); cursor: pointer; }
+  .kv-phone { display: flex; align-items: flex-start; gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--hair); }
+  .kv-group { margin: 16px 0 8px; font-size: 13px; font-weight: 600; color: var(--ink); }
+  .kv-row { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 1px solid var(--hair); border-radius: 10px; background: #fff; margin-bottom: 8px; }
+  .kv-row.off { background: var(--panel); }
+  .kv-main { flex: 1; min-width: 0; }
+  .kv-name { font-size: 14px; font-weight: 600; color: var(--ink); }
+  .kv-metric { margin-top: 2px; font-size: 12.5px; font-weight: 600; color: var(--brand); }
+  .kv-when { margin-top: 4px; font-size: 12.5px; color: var(--ink-muted); line-height: 1.45; }
+  .kv-props { margin-top: 6px; font-size: 12px; line-height: 1.45; color: #5a6473; }
+  .kv-note { margin-bottom: 12px; padding: 10px 12px; border-radius: 8px; background: #f7f8fb; color: var(--ink-body); font-size: 12.5px; line-height: 1.5; }
+  .kv-steps { margin: 10px 0 0; padding-left: 18px; color: var(--ink-body); font-size: 13px; line-height: 1.55; }
+  .kv-steps li { margin: 6px 0; }
+  .kv-log { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .kv-log th { text-align: left; font-weight: 500; font-size: 12px; color: var(--ink-muted); padding: 8px 10px; border-bottom: 1px solid var(--hair); }
+  .kv-log td { padding: 10px; border-bottom: 1px solid var(--hair); vertical-align: middle; }
+  .kv-empty { color: var(--ink-muted); text-align: center; padding: 18px 10px !important; }
+  .kv-row > .btn { flex: none; }
+  .sp-field { margin-bottom: 14px; }
+  .sp-err { margin-top: 6px; color: var(--err); font-size: 13px; }
+  .sp-err:empty { display: none; }
   `;
 
   // ---- SPA registration (the shell drives render + renders the sidebar) ----
