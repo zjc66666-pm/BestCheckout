@@ -435,7 +435,7 @@
     chain = chain.then(function () {
       if ((id === 'customers' || id === 'abandoned-checkouts') && !window.DATA_ORDERS) return loadScript('orders/js/data.js?v=20261016-ac-detail');
     });
-    var moduleV = id === 'settings' ? '20261113-kv-copy9'
+    var moduleV = id === 'settings' ? '20261113-kv-nophone1'
       : id === 'online-store' ? '20261016-hide-pdp'
       : id === 'bestcheckout' ? '20261016-edit-tab'
       : id === 'bundles' ? '20261013-pdp1'

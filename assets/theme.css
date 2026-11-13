@@ -819,7 +819,7 @@ select::-ms-expand { display: none; }
 .ui-select.is-disabled { background: #f3f4f6; color: var(--ink-muted); cursor: default; pointer-events: none; }
 .ui-select.is-disabled:hover { border-color: var(--ctl); }
 .ui-select.is-disabled .ui-chev { opacity: .4; }
-.ui-select .ui-select-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1; display: flex; align-items: center; transform: translateY(1px); }
+.ui-select .ui-select-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 22px; height: 22px; display: flex; align-items: center; transform: none; }
 .ui-select .ui-chev { flex: 0 0 14px; color: var(--ink-muted); display: block; }
 .ui-select-pop .opt { padding: 7px 10px; border-radius: 6px; font-size: 13px; color: var(--ink-body); cursor: pointer; white-space: nowrap; }
 .ui-select-pop .opt:hover { background: var(--panel); color: var(--ink); }

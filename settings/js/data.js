@@ -407,9 +407,7 @@ window.DATA_SETTINGS = {
   // authorizes BestCheckout. Shopify Placed Order stays the revenue metric.
   klaviyo: {
     connected: false,
-    paused: false,
     accountName: '',
-    sendPhone: false,
     enabled: {
       begin_checkout: true,
       checkout_contact_info: true,

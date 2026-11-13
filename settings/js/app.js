@@ -7833,7 +7833,6 @@
       'purchase is not the revenue metric. Revenue stays on Placed Order.': 'purchase 不作为收入指标。收入仍看 Placed Order。',
       'Turn these BestCheckout events on or off. This does not change the Shopify Klaviyo app.': '在这里开关 BestCheckout 的事件。这里不会改动 Shopify 的 Klaviyo 应用。',
       "Shopify's abandoned checkout flow uses Checkout Started. Buyers on BestCheckout do not trigger it.": 'Shopify 的弃单 Flow 用的是 Checkout Started。走 BestCheckout 的买家不会触发它。',
-      'Sending is paused. Shopper events wait here until you turn sending back on. Test events can still be sent.': '发送已暂停。买家事件会留在这里，直到重新打开发送。测试事件仍可发送。',
       'After payment': '付款之后',
       'Klaviyo metric': 'Klaviyo 指标',
       'Once per checkout, the first time a valid email is captured.': '每次结账只发一次，在第一次拿到有效邮箱时发送。',
@@ -7846,9 +7845,6 @@
       'The buyer declines the offer and moves to the next step.': '买家拒绝优惠并进入下一步时发送。',
       'Post-purchase offer accepted': '接受购后优惠',
       'Post-purchase offer declined': '拒绝购后优惠',
-      'Send events': '发送事件',
-      'Send phone number': '发送手机号',
-      'Off until checkout has collected SMS consent. Numbers are sent with the country code.': '结账页收集到短信同意之前保持关闭。号码会带上国家码。',
       'Connect Klaviyo': '连接 Klaviyo',
       'Klaviyo will ask you to allow BestCheckout to use this account.': 'Klaviyo 会请你允许 BestCheckout 使用这个账号。',
       'Klaviyo account': 'Klaviyo 账号',
@@ -7883,14 +7879,13 @@
       'add_payment_info: the buyer reached payment and has not purchased.': 'add_payment_info：买家已经选择支付方式，但还没有购买。',
       'post_purchase_offer_decline: follow up after an upsell or downsell is declined.': 'post_purchase_offer_decline：加售或降级售被拒绝后跟进。',
       'purchase: post-purchase. Filter purchase_stage to checkout, upsell, or downsell.': 'purchase：购买之后。用 purchase_stage 过滤 checkout、upsell 或 downsell。',
-      'Sending paused': '发送已暂停',
       'Connected': '已连接',
     });
   }
 
   function klaviyoState() {
     if (!D.klaviyo) {
-      D.klaviyo = { connected: false, paused: false, accountName: '', sendPhone: false, enabled: {}, deliveries: [] };
+      D.klaviyo = { connected: false, accountName: '', enabled: {}, deliveries: [] };
     }
     D.klaviyo.enabled = D.klaviyo.enabled || {};
     KLAVIYO_EVENTS.forEach((ev) => {
@@ -7934,8 +7929,7 @@
       KLAVIYO_LOG_PAGE.store = store;
       KLAVIYO_LOG_PAGE.page = 1;
     }
-    const extra = (klaviyoState().sentByStore && klaviyoState().sentByStore[store]) || [];
-    return extra.concat(KLAVIYO_STORE_LOGS[store] || []);
+    return KLAVIYO_STORE_LOGS[store] || [];
   }
 
   function renderKlaviyo() {
@@ -7943,39 +7937,26 @@
     const scroll = root ? root.scrollTop : 0;
     const status = !k.connected
       ? '<span class="pill pill-gray"><span class="dot"></span>Not connected</span>'
-      : k.paused
-        ? '<span class="pill pill-orange"><span class="dot"></span>Sending paused</span>'
-        : '<span class="pill pill-green"><span class="dot"></span>Connected</span>';
+      : '<span class="pill pill-green"><span class="dot"></span>Connected</span>';
     const actions = k.connected
-      ? '<button type="button" class="kv-send" data-kv-pause><span>Send events</span><span class="set-switch' + (k.paused ? '' : ' on') + '"><span class="set-knob"></span></span></button>' +
-        '<button type="button" class="btn btn-default" data-kv-disconnect>Disconnect</button>'
+      ? '<button type="button" class="btn btn-default" data-kv-disconnect>Disconnect</button>'
       : '<button type="button" class="btn btn-primary" data-kv-connect>Connect</button>';
     const intro = k.connected
       ? '<span>Connected to</span> <span class="i18n-skip">' + esc(k.accountName) + '</span>'
       : esc('After Klaviyo is connected, BestCheckout sends checkout and subscription contract events to Klaviyo.');
-    const phone = k.connected
-      ? '<div class="kv-phone"><button type="button" class="kv-send" data-kv-phone aria-label="Send phone number"><span class="set-switch' + (k.sendPhone ? ' on' : '') + '"><span class="set-knob"></span></span></button><div><div class="kv-name">Send phone number</div><div class="kv-when">Off until checkout has collected SMS consent. Numbers are sent with the country code.</div></div></div>'
-      : '';
     let lastGroup = '';
     const bcRows = KLAVIYO_EVENTS.map((ev) => {
       const on = k.enabled[ev.id] !== false;
       const head = ev.group !== lastGroup
         ? (lastGroup = ev.group, '<div class="kv-group">' + esc(ev.group) + '</div>')
         : '';
-      const test = k.connected && on
-        ? '<button type="button" class="btn btn-default" data-kv-test="' + esc(ev.id) + '">Send test event</button>'
-        : '';
       return head +
         '<div class="kv-line kv-ctrl' + (on ? '' : ' off') + '">' +
           '<button type="button" class="kv-send" data-kv-event="' + esc(ev.id) + '" aria-label="' + esc(ev.label) + '"><span class="set-switch' + (on ? ' on' : '') + '"><span class="set-knob"></span></span></button>' +
           '<div class="kv-main"><div class="kv-name">' + esc(ev.label) + ' <span class="kv-metric i18n-skip">' + esc(ev.metric) + '</span></div>' +
             '<div class="kv-when">' + esc(ev.when) + '</div></div>' +
-          test +
         '</div>';
     }).join('');
-    const bcNote = k.connected && k.paused
-      ? '<div class="kv-note">Sending is paused. Shopper events wait here until you turn sending back on. Test events can still be sent.</div>'
-      : '';
     const sourceRows = (items) => {
       let last = '';
       return items.map((item) => {
@@ -8012,14 +7993,13 @@
       : '';
     paint(
       pageHead('Klaviyo') +
-      '<section class="kv-card"><div class="kv-head"><span class="kv-mark" aria-hidden="true">K</span><div><h2>Klaviyo</h2><p>' + intro + '</p></div><div class="kv-actions">' + status + actions + '</div></div>' + phone + '</section>' +
+      '<section class="kv-card"><div class="kv-head"><span class="kv-mark" aria-hidden="true"><svg viewBox="0 0 116 77" width="26" height="17"><path fill="#fff" d="M0 0h116L92 38.5 116 77H0z"/></svg></span><div><h2>Klaviyo</h2><p>' + intro + '</p></div><div class="kv-actions">' + status + actions + '</div></div></section>' +
       '<section class="kv-card"><div class="kv-name">Events in this Klaviyo account</div>' +
         '<div class="kv-split">' +
           '<div class="kv-source"><h3>Shopify Klaviyo app</h3><p class="kv-when">Sent by the Klaviyo app installed on Shopify.</p>' +
             sourceRows(SHOPIFY_KLAVIYO_EVENTS) +
           '</div>' +
           '<div class="kv-source"><h3>BestCheckout</h3><p class="kv-when">BestCheckout sends checkout and subscription contract events to Klaviyo.</p>' +
-            bcNote +
             bcRows +
           '</div>' +
         '</div></section>' +
@@ -8029,14 +8009,11 @@
     const on = (sel, fn) => root.querySelectorAll(sel).forEach((el) => { el.onclick = fn; });
     on('[data-kv-connect]', () => openKlaviyoConnect());
     on('[data-kv-disconnect]', () => disconnectKlaviyo());
-    on('[data-kv-pause]', () => { k.paused = !k.paused; renderKlaviyo(); });
-    on('[data-kv-phone]', () => { k.sendPhone = !k.sendPhone; renderKlaviyo(); });
     on('[data-kv-event]', (e) => {
       const id = e.currentTarget.getAttribute('data-kv-event');
       k.enabled[id] = !k.enabled[id];
       renderKlaviyo();
     });
-    on('[data-kv-test]', (e) => openKlaviyoTest(e.currentTarget.getAttribute('data-kv-test')));
     on('[data-kv-page]', (e) => {
       const page = Number(e.currentTarget.getAttribute('data-kv-page'));
       if (!page || page < 1) return;
@@ -8066,7 +8043,6 @@
       onOk: (_m, close) => {
         const k = klaviyoState();
         k.connected = true;
-        k.paused = false;
         k.accountName = klaviyoStoreName();
         close();
         toast('Klaviyo connected');
@@ -8082,54 +8058,8 @@
       onOk: () => {
         const k = klaviyoState();
         k.connected = false;
-        k.paused = false;
         k.accountName = '';
-        k.sendPhone = false;
         toast('Klaviyo disconnected');
-        renderKlaviyo();
-      },
-    });
-  }
-
-  function openKlaviyoTest(eventId) {
-    const k = klaviyoState();
-    const choices = KLAVIYO_EVENTS.filter((ev) => k.enabled[ev.id] !== false);
-    const picked = choices.find((ev) => ev.id === eventId) || choices[0];
-    if (!picked) { toast('Turn on an event before sending a test.', 'error'); return; }
-    const options = choices.map((ev) =>
-      '<option value="' + esc(ev.id) + '"' + (ev.id === picked.id ? ' selected' : '') + '>' + esc(ev.metric) + '</option>'
-    ).join('');
-    modal({
-      title: 'Send a test event', width: 520, okText: 'Send test event',
-      body:
-        '<div class="sp-field"><label class="ctrl-label" style="text-transform:none;margin-bottom:6px;display:block">Klaviyo metric</label>' +
-          '<select id="kv-test-event" class="input">' + options + '</select></div>' +
-        '<div class="sp-field"><label class="ctrl-label" style="text-transform:none;margin-bottom:6px;display:block">Email <span style="color:var(--err)">*</span></label>' +
-          '<input id="kv-test-email" class="input" type="email" autocomplete="off" placeholder="name@store.com" />' +
-          '<div class="sp-err" data-err="kv-email"></div>' +
-          '<div class="muted" style="font-size:12.5px;line-height:1.5;margin-top:8px">Klaviyo lists a metric only after it receives that event once.</div>' +
-          '<div class="muted" style="font-size:12.5px;line-height:1.5;margin-top:4px">Klaviyo drops example.com and test.com addresses. Use a real inbox.</div></div>',
-      onOk: (m, close) => {
-        const id = m.querySelector('#kv-test-event').value;
-        const email = m.querySelector('#kv-test-email').value.trim();
-        const input = m.querySelector('#kv-test-email');
-        const ev = KLAVIYO_EVENTS.find((item) => item.id === id);
-        input.classList.remove('has-error');
-        if (!email) { setErr(m, 'kv-email', 'Enter an email address.'); input.classList.add('has-error'); return; }
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setErr(m, 'kv-email', 'Enter a valid email address.'); input.classList.add('has-error'); return; }
-        const domain = email.split('@')[1].toLowerCase();
-        if (domain === 'example.com' || domain === 'test.com') {
-          setErr(m, 'kv-email', 'Klaviyo drops example.com and test.com addresses. Use a real inbox.');
-          input.classList.add('has-error');
-          return;
-        }
-        const store = klaviyoStoreName();
-        const sent = klaviyoState().sentByStore || (klaviyoState().sentByStore = {});
-        sent[store] = sent[store] || [];
-        sent[store].unshift({ at: Date.now(), metric: ev ? ev.metric : id, email: email });
-        KLAVIYO_LOG_PAGE.page = 1;
-        close();
-        toast('Test event sent');
         renderKlaviyo();
       },
     });
@@ -8354,10 +8284,10 @@
   .kv-head h2 { margin: 0; font-size: 16px; font-weight: 600; color: var(--ink); }
   .kv-head p { margin: 4px 0 0; color: var(--ink-body); font-size: 13px; line-height: 1.5; }
   .kv-aside { color: var(--ink-muted) !important; }
-  .kv-mark { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: #1a1a1a; color: #fff; font-weight: 700; font-size: 18px; flex: none; }
+  .kv-mark { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: #1a1a1a; flex: none; }
+  .kv-mark svg { display: block; }
   .kv-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; flex: none; }
   .kv-send { display: inline-flex; align-items: center; gap: 8px; border: 0; background: transparent; padding: 0; font: inherit; font-size: 13px; font-weight: 500; color: var(--ink); cursor: pointer; }
-  .kv-phone { display: flex; align-items: flex-start; gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--hair); }
   .kv-group { margin: 16px 0 8px; font-size: 13px; font-weight: 600; color: var(--ink); }
   .kv-row { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 1px solid var(--hair); border-radius: 10px; background: #fff; margin-bottom: 8px; }
   .kv-row.off { background: var(--panel); }
