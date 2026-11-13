@@ -7846,14 +7846,6 @@
       'Post-purchase offer accepted': '接受购后优惠',
       'Post-purchase offer declined': '拒绝购后优惠',
       'Connect Klaviyo': '连接 Klaviyo',
-      'Klaviyo will ask you to allow BestCheckout to use this account.': 'Klaviyo 会请你允许 BestCheckout 使用这个账号。',
-      'Klaviyo account': 'Klaviyo 账号',
-      'BestCheckout can': 'BestCheckout 可以',
-      'See the account name': '查看账号名称',
-      'Create events': '创建事件',
-      'Create and update profiles': '创建和更新 Profile',
-      'This app has not been reviewed by Klaviyo. You can still allow access.': '这个应用尚未经过 Klaviyo 审核。你仍然可以授权。',
-      'Allow access': '允许访问',
       'Klaviyo connected': 'Klaviyo 已连接',
       'Disconnect Klaviyo?': '断开 Klaviyo？',
       'BestCheckout stops sending new checkout events. Flows already in Klaviyo stay as they are.': 'BestCheckout 会停止发送新的结账事件。Klaviyo 里已经建好的 Flow 保持不变。',
@@ -8029,26 +8021,54 @@
   }
 
   function openKlaviyoConnect() {
-    modal({
-      title: 'Connect Klaviyo', width: 480, okText: 'Allow access',
-      body:
-        '<p class="kv-auth-lead">Klaviyo will ask you to allow BestCheckout to use this account.</p>' +
-        '<div class="kv-auth">' +
-          '<div class="kv-auth-k i18n-skip">Klaviyo</div>' +
-          '<div class="kv-auth-account"><div class="kv-auth-kicker">Klaviyo account</div><div class="i18n-skip">' + esc(klaviyoStoreName()) + '</div></div>' +
-          '<div class="kv-auth-kicker">BestCheckout can</div>' +
-          '<ul class="kv-auth-list"><li>See the account name</li><li>Create events</li><li>Create and update profiles</li></ul>' +
-          '<div class="kv-auth-note">This app has not been reviewed by Klaviyo. You can still allow access.</div>' +
-        '</div>',
-      onOk: (_m, close) => {
-        const k = klaviyoState();
-        k.connected = true;
-        k.accountName = klaviyoStoreName();
-        close();
-        toast('Klaviyo connected');
-        renderKlaviyo();
-      },
-    });
+    const backdrop = h(
+      '<div class="kv-oauth-back">' +
+        '<div class="kv-oauth-frame">' +
+          '<div class="kv-oauth-url i18n-skip">https://www.klaviyo.com/oauth/authorize</div>' +
+          '<div class="kv-oauth i18n-skip">' +
+            '<div class="kv-oauth-bar"><span class="kv-oauth-word">klaviyo</span></div>' +
+            '<div class="kv-oauth-page">' +
+              '<div class="kv-oauth-card">' +
+                '<div class="kv-oauth-title">Allow BestCheckout to access your account\'s information</div>' +
+                '<div class="kv-oauth-brands">' +
+                  '<span class="kv-oauth-app" aria-hidden="true">B</span>' +
+                  '<span class="kv-oauth-swap" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#9aa3b2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h11l-3-3"/><path d="M17 17H6l3 3"/></svg></span>' +
+                  '<span class="kv-oauth-flag" aria-hidden="true"><svg viewBox="0 0 116 77" width="22" height="15"><path fill="#fff" d="M0 0h116L92 38.5 116 77H0z"/></svg></span>' +
+                '</div>' +
+                '<div class="kv-oauth-account">' +
+                  '<div><div class="kv-oauth-acct">' + esc(klaviyoStoreName()) + '</div><div class="kv-oauth-current">Current account</div></div>' +
+                  '<button type="button" class="kv-oauth-switch">Switch account</button>' +
+                '</div>' +
+                '<div class="kv-oauth-perm-h">Allow app to access the following information:</div>' +
+                '<div class="kv-oauth-perms">' +
+                  '<div><span>Accounts</span><span>View content and information.</span></div>' +
+                  '<div><span>Events</span><span>Create, view, edit, and delete content and information.</span></div>' +
+                  '<div><span>Profiles</span><span>Create, view, edit, and delete content and information.</span></div>' +
+                '</div>' +
+                '<p class="kv-oauth-fine">You may be sharing sensitive info with this site or app. You can view or remove access at any time in the app settings on the Integration page.</p>' +
+                '<div class="kv-oauth-actions">' +
+                  '<button type="button" class="kv-oauth-deny" data-kv-deny>Deny</button>' +
+                  '<button type="button" class="kv-oauth-allow" data-kv-allow>Allow</button>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>'
+    );
+    document.body.appendChild(backdrop);
+    const finish = () => { document.removeEventListener('keydown', onKey); backdrop.remove(); };
+    const onKey = (e) => { if (e.key === 'Escape') finish(); };
+    document.addEventListener('keydown', onKey);
+    backdrop.querySelector('[data-kv-deny]').onclick = finish;
+    backdrop.querySelector('[data-kv-allow]').onclick = () => {
+      const k = klaviyoState();
+      k.connected = true;
+      k.accountName = klaviyoStoreName();
+      finish();
+      toast('Klaviyo connected');
+      renderKlaviyo();
+    };
   }
 
   function disconnectKlaviyo() {
@@ -8297,13 +8317,31 @@
   .kv-when { margin-top: 4px; font-size: 12.5px; color: var(--ink-muted); line-height: 1.45; }
   .kv-props { margin-top: 6px; font-size: 12px; line-height: 1.45; color: #5a6473; }
   .kv-note { margin-bottom: 12px; padding: 10px 12px; border-radius: 8px; background: #f7f8fb; color: var(--ink-body); font-size: 12.5px; line-height: 1.5; }
-  .kv-auth-lead { margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink-body); }
-  .kv-auth { margin-top: 12px; padding: 14px; border: 1px solid var(--hair); border-radius: 10px; background: #fbfcfd; }
-  .kv-auth-k { font-size: 13px; font-weight: 700; }
-  .kv-auth-account { margin-top: 10px; font-size: 15px; font-weight: 650; color: var(--ink); }
-  .kv-auth-kicker { margin-top: 12px; font-size: 12px; font-weight: 600; color: var(--ink-muted); }
-  .kv-auth-list { margin: 6px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.55; color: var(--ink); }
-  .kv-auth-note { margin-top: 12px; padding: 8px 10px; border-radius: 8px; background: #fff8eb; color: #8a5a00; font-size: 12.5px; line-height: 1.45; }
+  .kv-oauth-back { position: fixed; inset: 0; z-index: 80; display: flex; flex-direction: column; background: #f4f5f7; }
+  .kv-oauth-frame { display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; }
+  .kv-oauth-url { height: 40px; display: flex; align-items: center; padding: 0 16px; background: #e8eaed; border-bottom: 1px solid #d0d5dd; color: #3c4257; font-size: 13px; }
+  .kv-oauth { flex: 1; min-height: 0; overflow: auto; background: #f4f5f7; }
+  .kv-oauth-bar { height: 52px; display: flex; align-items: center; padding: 0 18px; background: #1d1e20; }
+  .kv-oauth-word { color: #fff; font-size: 22px; font-weight: 700; letter-spacing: -.03em; }
+  .kv-oauth-page { padding: 28px 24px 32px; }
+  .kv-oauth-card { max-width: 520px; margin: 0 auto; padding: 22px 22px 16px; background: #fff; border-radius: 8px; box-shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 0 0 1px rgba(16, 24, 40, .05); }
+  .kv-oauth-title { font-size: 15px; font-weight: 650; color: #1a1a1a; }
+  .kv-oauth-brands { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 18px 0 16px; }
+  .kv-oauth-app, .kv-oauth-flag { width: 44px; height: 44px; border-radius: 8px; display: grid; place-items: center; }
+  .kv-oauth-app { background: #f3f4f6; border: 1px solid #e5e7eb; font-weight: 700; color: #111; }
+  .kv-oauth-flag { background: #111; }
+  .kv-oauth-account { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid #e6e8ec; border-radius: 8px; padding: 10px 12px; }
+  .kv-oauth-acct { font-size: 14px; font-weight: 650; color: #1a1a1a; }
+  .kv-oauth-current { margin-top: 2px; font-size: 12px; color: #6b7280; }
+  .kv-oauth-switch { height: 32px; padding: 0 12px; border: 1px solid #d0d5dd; border-radius: 6px; background: #fff; font: inherit; font-size: 13px; color: #1a1a1a; }
+  .kv-oauth-perm-h { margin: 18px 0 8px; font-size: 14px; font-weight: 650; color: #1a1a1a; }
+  .kv-oauth-perms > div { display: grid; grid-template-columns: 108px 1fr; gap: 12px; padding: 10px 0; border-top: 1px solid #eceef2; font-size: 13px; line-height: 1.4; color: #3c4257; }
+  .kv-oauth-perms > div span:first-child { color: #1a1a1a; font-weight: 650; }
+  .kv-oauth-fine { margin: 14px 0 0; font-size: 12.5px; line-height: 1.45; color: #6b7280; }
+  .kv-oauth-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+  .kv-oauth-deny, .kv-oauth-allow { height: 34px; padding: 0 16px; border-radius: 6px; font: inherit; font-size: 14px; font-weight: 650; cursor: pointer; }
+  .kv-oauth-deny { background: #fff; border: 1px solid #d0d5dd; color: #1a1a1a; }
+  .kv-oauth-allow { background: #1a1a1a; border: 1px solid #1a1a1a; color: #fff; }
   .kv-steps { margin: 10px 0 0; padding-left: 18px; color: var(--ink-body); font-size: 13px; line-height: 1.55; }
   .kv-steps li { margin: 6px 0; }
   .kv-log-card { padding: 0; overflow: hidden; }
