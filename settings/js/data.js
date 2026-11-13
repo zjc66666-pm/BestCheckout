@@ -403,12 +403,12 @@ window.DATA_SETTINGS = {
     ],
   },
 
-  // Klaviyo receives the same checkout events already sent to Meta, GA4 and GTM.
-  // Each event is its own Klaviyo metric. Shopify Placed Order stays the revenue metric.
+  // Klaviyo receives checkout and subscription events after the merchant
+  // authorizes BestCheckout. Shopify Placed Order stays the revenue metric.
   klaviyo: {
     connected: false,
     paused: false,
-    keyMask: '',
+    accountName: '',
     sendPhone: false,
     enabled: {
       begin_checkout: true,
@@ -419,6 +419,10 @@ window.DATA_SETTINGS = {
       post_purchase_offer_view: true,
       post_purchase_offer_accept: true,
       post_purchase_offer_decline: true,
+      subscription_started: true,
+      subscription_renewed: true,
+      subscription_payment_failed: true,
+      subscription_cancelled: true,
     },
     deliveries: [],
   },

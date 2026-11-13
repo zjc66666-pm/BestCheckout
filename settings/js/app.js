@@ -7738,39 +7738,101 @@
   // ===========================================================================
   // KLAVIYO — same checkout events already sent to Meta, GA4 and GTM
   // ===========================================================================
+  const SHOPIFY_KLAVIYO_EVENTS = [
+    { group: 'Shopify storefront', name: 'Active on Site', detail: 'An identified visitor is on the store.' },
+    { group: 'Shopify storefront', name: 'Viewed Product', detail: 'An identified visitor opens a product page.' },
+    { group: 'Shopify storefront', name: 'Viewed Collection', detail: 'An identified visitor opens a collection.' },
+    { group: 'Shopify storefront', name: 'Submitted Search', detail: 'An identified visitor submits a search.' },
+    { group: 'Shopify storefront', name: 'Added to Cart', detail: 'An identified visitor adds an item to the cart.' },
+    { group: 'Shopify orders', name: 'Placed Order', detail: 'An order is created in Shopify. This is the revenue metric.' },
+    { group: 'Shopify orders', name: 'Ordered Product', detail: 'One event for each product on that order.' },
+    { group: 'Shopify orders', name: 'Fulfilled Order', detail: 'The order is fulfilled.' },
+    { group: 'Shopify orders', name: 'Fulfilled Partial Order', detail: 'Part of the order is fulfilled.' },
+    { group: 'Shopify orders', name: 'Cancelled Order', detail: 'The order is cancelled before fulfillment.' },
+    { group: 'Shopify orders', name: 'Refunded Order', detail: 'The order is refunded in full. A partial refund does not send this event.' },
+    { group: 'Shopify orders', name: 'Confirmed Shipment', detail: 'The carrier is notified. Shopify only provides this for some carriers.' },
+    { group: 'Shopify orders', name: 'Marked Out for Delivery', detail: 'The shipment is out for delivery. Shopify only provides this for some carriers.' },
+    { group: 'Shopify orders', name: 'Delivered Shipment', detail: 'The shipment is delivered. Shopify only provides this for some carriers.' },
+  ];
   const KLAVIYO_EVENTS = [
-    { group: 'Checkout', id: 'begin_checkout', label: 'Checkout started', metric: 'BestCheckout Checkout Started',
+    { group: 'Checkout', id: 'begin_checkout', label: 'Checkout started', metric: 'begin_checkout',
       when: 'Once per checkout, the first time a valid email is captured.',
       props: 'CheckoutURL, $value, Items, Item Count, Currency, Funnel, Discount codes' },
-    { group: 'Checkout', id: 'checkout_contact_info', label: 'Contact information', metric: 'BestCheckout Contact Submitted',
+    { group: 'Checkout', id: 'checkout_contact_info', label: 'Contact information', metric: 'checkout_contact_info',
       when: 'The email passes validation on the checkout page.',
       props: '$value, Items, Item Count, Currency, Checkout type' },
-    { group: 'Checkout', id: 'add_shipping_info', label: 'Shipping information', metric: 'BestCheckout Shipping Submitted',
+    { group: 'Checkout', id: 'add_shipping_info', label: 'Shipping information', metric: 'add_shipping_info',
       when: 'A shipping method is selected.',
       props: 'Shipping method, Shipping price, Country, $value' },
-    { group: 'Checkout', id: 'add_payment_info', label: 'Payment information', metric: 'BestCheckout Payment Submitted',
+    { group: 'Checkout', id: 'add_payment_info', label: 'Payment information', metric: 'add_payment_info',
       when: 'A payment method is selected, before the charge.',
       props: 'Payment method, $value, Items, Currency' },
-    { group: 'After payment', id: 'purchase', label: 'Completed purchase', metric: 'BestCheckout Purchase Completed',
-      when: 'Payment succeeds. Sent once per order. purchase_stage is checkout, upsell, or downsell.',
-      props: '$value, Order ID, purchase_stage, Items, Currency, Funnel' },
-    { group: 'After payment', id: 'post_purchase_offer_view', label: 'Post-purchase offer', metric: 'BestCheckout Offer Viewed',
+    { group: 'After payment', id: 'post_purchase_offer_view', label: 'Post-purchase offer', metric: 'post_purchase_offer_view',
       when: 'An upsell or downsell offer is shown. Once per offer step.',
       props: 'Offer name, Offer type, Product, Price' },
-    { group: 'After payment', id: 'post_purchase_offer_accept', label: 'Post-purchase offer accepted', metric: 'BestCheckout Offer Accepted',
+    { group: 'After payment', id: 'post_purchase_offer_accept', label: 'Post-purchase offer accepted', metric: 'post_purchase_offer_accept',
       when: 'The buyer accepts the offer and the add-on purchase succeeds.',
       props: 'Offer name, Offer type, Product, Price, Order ID' },
-    { group: 'After payment', id: 'post_purchase_offer_decline', label: 'Post-purchase offer declined', metric: 'BestCheckout Offer Declined',
+    { group: 'After payment', id: 'post_purchase_offer_decline', label: 'Post-purchase offer declined', metric: 'post_purchase_offer_decline',
       when: 'The buyer declines the offer and moves to the next step.',
       props: 'Offer name, Offer type, Product, Price' },
+    { group: 'After payment', id: 'purchase', label: 'Completed purchase', metric: 'purchase',
+      when: 'Payment succeeds. Sent once per order. purchase_stage is checkout, upsell, or downsell.',
+      props: '$value, Order ID, purchase_stage, Items, Currency, Funnel' },
+    { group: 'Subscription contract', id: 'subscription_started', label: 'Subscription started', metric: 'subscription_started',
+      when: 'A BestCheckout contract is created after the first successful payment.',
+      props: 'Contract ID, Plan, Product, Amount, Billing cycle' },
+    { group: 'Subscription contract', id: 'subscription_renewed', label: 'Subscription renewed', metric: 'subscription_renewed',
+      when: 'A later billing cycle is charged. The Shopify order still sends Placed Order.',
+      props: 'Contract ID, Order ID, Amount, Billing cycle' },
+    { group: 'Subscription contract', id: 'subscription_payment_failed', label: 'Subscription payment failed', metric: 'subscription_payment_failed',
+      when: 'A renewal charge fails and the contract becomes Past due.',
+      props: 'Contract ID, Amount, Billing cycle' },
+    { group: 'Subscription contract', id: 'subscription_cancelled', label: 'Subscription cancelled', metric: 'subscription_cancelled',
+      when: 'The contract is cancelled. No further charges are scheduled.',
+      props: 'Contract ID, Plan, Product' },
   ];
   if (window.I18N && window.I18N.extend) {
     window.I18N.extend({
-      'Send checkout events to Klaviyo. Shopify keeps Placed Order for revenue.': '把结账事件发到 Klaviyo。收入仍以 Shopify 的 Placed Order 为准。',
-      'Paste a private API key to send checkout, purchase, and post-purchase offer events.': '粘贴 Private API Key 后，结账、购买和购后优惠事件会发到 Klaviyo。',
-      'BestCheckout email notifications stay separate.': 'BestCheckout 的邮件通知仍然单独发送。',
+      'BestCheckout sends checkout and subscription contract events to Klaviyo.': '由 BestCheckout 发送结账和订阅合同事件给 Klaviyo。',
+      'Subscription contract': '订阅合同',
+      'Subscription started': '订阅开始',
+      'A BestCheckout contract is created after the first successful payment.': '首次支付成功后生成 BestCheckout 合同。',
+      'Subscription renewed': '订阅续费',
+      'A later billing cycle is charged. The Shopify order still sends Placed Order.': '后续周期扣款成功。Shopify 订单仍会发送 Placed Order。',
+      'Subscription payment failed': '订阅扣款失败',
+      'A renewal charge fails and the contract becomes Past due.': '续费扣款失败，合同变为 Past due。',
+      'Subscription cancelled': '订阅取消',
+      'The contract is cancelled. No further charges are scheduled.': '合同已取消，不再扣款。',
+      'BestCheckout stops sending new events. Flows already in Klaviyo stay as they are.': 'BestCheckout 会停止发送新事件。Klaviyo 里已经建好的 Flow 保持不变。',
+      'After Klaviyo is connected, BestCheckout sends checkout and subscription contract events to Klaviyo.': '连接 Klaviyo 之后，BestCheckout 发送结账和订阅合同事件给 Klaviyo。',
+      'Connected to': '已连接到',
       'These are the checkout events BestCheckout already sends to Meta, GA4, and GTM. Klaviyo receives each one under its own metric name.': '这些是 BestCheckout 已经发给 Meta、GA4 和 GTM 的结账事件。Klaviyo 会按各自的指标名接收。',
-      'Events start sending after Klaviyo is connected.': '连接 Klaviyo 之后才会开始发送。',
+      'Events in this Klaviyo account': '这个 Klaviyo 账号里的事件',
+      'Shopify Klaviyo app': 'Shopify 的 Klaviyo 应用',
+      'Sent by the Klaviyo app installed on Shopify.': '由安装在 Shopify 上的 Klaviyo 应用发送。',
+      'Shopify storefront': '店铺前台',
+      'Shopify checkout': 'Shopify 结账',
+      'Shopify orders': 'Shopify 订单',
+      'An identified visitor is on the store.': '已识别的访客在店铺里。',
+      'An identified visitor opens a product page.': '已识别的访客打开商品页。',
+      'An identified visitor opens a collection.': '已识别的访客打开商品系列。',
+      'An identified visitor submits a search.': '已识别的访客提交搜索。',
+      'An identified visitor adds an item to the cart.': '已识别的访客把商品加入购物车。',
+      'The buyer enters an email or phone on Shopify checkout. A buyer who enters BestCheckout does not trigger this event.': '买家在 Shopify 结账页留下邮箱或电话。进入 BestCheckout 的买家不会触发这条。',
+      'An order is created in Shopify. This is the revenue metric.': '订单在 Shopify 创建。收入以这条为准。',
+      'One event for each product on that order.': '该订单里每个商品一条。',
+      'The order is fulfilled.': '订单已履约。',
+      'Part of the order is fulfilled.': '订单部分履约。',
+      'The order is cancelled before fulfillment.': '订单在履约前取消。',
+      'The order is refunded in full. A partial refund does not send this event.': '订单全额退款。部分退款不发这条。',
+      'The carrier is notified. Shopify only provides this for some carriers.': '承运商收到通知。Shopify 只对部分承运商提供这条。',
+      'The shipment is out for delivery. Shopify only provides this for some carriers.': '正在派送。Shopify 只对部分承运商提供这条。',
+      'The shipment is delivered. Shopify only provides this for some carriers.': '已送达。Shopify 只对部分承运商提供这条。',
+      'BestCheckout does not send storefront, fulfillment, shipment, or refund events.': 'BestCheckout 不发送店头、履约、物流和退款事件。',
+      'purchase is not the revenue metric. Revenue stays on Placed Order.': 'purchase 不作为收入指标。收入仍看 Placed Order。',
+      'Turn these BestCheckout events on or off. This does not change the Shopify Klaviyo app.': '在这里开关 BestCheckout 的事件。这里不会改动 Shopify 的 Klaviyo 应用。',
+      "Shopify's abandoned checkout flow uses Checkout Started. Buyers on BestCheckout do not trigger it.": 'Shopify 的弃单 Flow 用的是 Checkout Started。走 BestCheckout 的买家不会触发它。',
       'Sending is paused. Shopper events wait here until you turn sending back on. Test events can still be sent.': '发送已暂停。买家事件会留在这里，直到重新打开发送。测试事件仍可发送。',
       'After payment': '付款之后',
       'Klaviyo metric': 'Klaviyo 指标',
@@ -7787,12 +7849,15 @@
       'Send events': '发送事件',
       'Send phone number': '发送手机号',
       'Off until checkout has collected SMS consent. Numbers are sent with the country code.': '结账页收集到短信同意之前保持关闭。号码会带上国家码。',
-      'Private API key': 'Private API Key',
       'Connect Klaviyo': '连接 Klaviyo',
-      'In Klaviyo, open Settings, then API keys, and create a private key with Events and Profiles write access.': '在 Klaviyo 打开 Settings，再打开 API keys，创建一个具备 Events 和 Profiles 写权限的 Private API Key。',
-      'Enter a private API key.': '请输入 Private API Key。',
-      'Private API keys start with pk_.': 'Private API Key 以 pk_ 开头。',
-      'Enter the full private API key.': '请输入完整的 Private API Key。',
+      'Klaviyo will ask you to allow BestCheckout to use this account.': 'Klaviyo 会请你允许 BestCheckout 使用这个账号。',
+      'Klaviyo account': 'Klaviyo 账号',
+      'BestCheckout can': 'BestCheckout 可以',
+      'See the account name': '查看账号名称',
+      'Create events': '创建事件',
+      'Create and update profiles': '创建和更新 Profile',
+      'This app has not been reviewed by Klaviyo. You can still allow access.': '这个应用尚未经过 Klaviyo 审核。你仍然可以授权。',
+      'Allow access': '允许访问',
       'Klaviyo connected': 'Klaviyo 已连接',
       'Disconnect Klaviyo?': '断开 Klaviyo？',
       'BestCheckout stops sending new checkout events. Flows already in Klaviyo stay as they are.': 'BestCheckout 会停止发送新的结账事件。Klaviyo 里已经建好的 Flow 保持不变。',
@@ -7810,14 +7875,14 @@
       'Recent events': '最近发送',
       'Abandoned checkout flow': '弃单 Flow',
       'In Klaviyo, open Flows, choose Create flow, then Create from scratch.': '在 Klaviyo 打开 Flows，选择 Create flow，再选择 Create from scratch。',
-      'Set the trigger to Metric, then choose BestCheckout Checkout Started.': '触发器选 Metric，再选择 BestCheckout Checkout Started。',
-      'Add a flow filter: BestCheckout Purchase Completed is zero times since starting this flow.': '添加 Flow 过滤器：自进入 Flow 以来，BestCheckout Purchase Completed 为 0 次。',
+      'Set the trigger to Metric, then choose begin_checkout.': '触发器选 Metric，再选择 begin_checkout。',
+      'Add a flow filter: purchase is zero times since starting this flow.': '添加 Flow 过滤器：自进入 Flow 以来，purchase 为 0 次。',
       'If the store also uses Shopify Placed Order, add the same filter for that metric.': '如果店铺也在用 Shopify 的 Placed Order，同样加上这条指标的过滤器。',
       'In the email, set the button link to {{ event.CheckoutURL }}.': '在邮件里，把按钮链接设为 {{ event.CheckoutURL }}。',
       'Other flows you can start from these events': '还可以用这些事件另建 Flow',
-      'BestCheckout Payment Submitted: the buyer reached payment and has not purchased.': 'BestCheckout Payment Submitted：买家已经选择支付方式，但还没有购买。',
-      'BestCheckout Offer Declined: follow up after an upsell or downsell is declined.': 'BestCheckout Offer Declined：加售或降级售被拒绝后跟进。',
-      'BestCheckout Purchase Completed: post-purchase. Filter purchase_stage to checkout, upsell, or downsell.': 'BestCheckout Purchase Completed：购买之后。用 purchase_stage 过滤 checkout、upsell 或 downsell。',
+      'add_payment_info: the buyer reached payment and has not purchased.': 'add_payment_info：买家已经选择支付方式，但还没有购买。',
+      'post_purchase_offer_decline: follow up after an upsell or downsell is declined.': 'post_purchase_offer_decline：加售或降级售被拒绝后跟进。',
+      'purchase: post-purchase. Filter purchase_stage to checkout, upsell, or downsell.': 'purchase：购买之后。用 purchase_stage 过滤 checkout、upsell 或 downsell。',
       'Sending paused': '发送已暂停',
       'Connected': '已连接',
     });
@@ -7825,7 +7890,7 @@
 
   function klaviyoState() {
     if (!D.klaviyo) {
-      D.klaviyo = { connected: false, paused: false, keyMask: '', sendPhone: false, enabled: {}, deliveries: [] };
+      D.klaviyo = { connected: false, paused: false, accountName: '', sendPhone: false, enabled: {}, deliveries: [] };
     }
     D.klaviyo.enabled = D.klaviyo.enabled || {};
     KLAVIYO_EVENTS.forEach((ev) => {
@@ -7846,6 +7911,32 @@
       return '';
     }
   }
+  function klaviyoStoreName() {
+    return (window.SITE && window.SITE.store) || 'Lavender Labs';
+  }
+  const KLAVIYO_LOG_PAGE = { page: 1, size: 20, store: '' };
+  function klaviyoMockRows(count, emails) {
+    const metrics = ['begin_checkout', 'checkout_contact_info', 'add_shipping_info', 'add_payment_info', 'post_purchase_offer_view', 'post_purchase_offer_accept', 'post_purchase_offer_decline', 'purchase', 'subscription_started', 'subscription_renewed', 'subscription_payment_failed', 'subscription_cancelled'];
+    const start = Date.parse('2026-11-13T02:40:00Z');
+    const rows = [];
+    for (let i = 0; i < count; i++) {
+      rows.push({ at: start - i * 5 * 3600000, metric: metrics[i % metrics.length], email: emails[i % emails.length] });
+    }
+    return rows;
+  }
+  const KLAVIYO_STORE_LOGS = {
+    'Lavender Labs': klaviyoMockRows(28, ['avery@lavenderlabs.co', 'mina.chen@fieldmail.com', 'jordan@northline.co', 'samira@harborandco.com', 'leo@kilnmail.com']),
+    'Plover Studio': klaviyoMockRows(6, ['hello@ploverstudio.com', 'noah@ploverstudio.com', 'iris@studioplover.com']),
+  };
+  function klaviyoLogRows() {
+    const store = klaviyoStoreName();
+    if (KLAVIYO_LOG_PAGE.store !== store) {
+      KLAVIYO_LOG_PAGE.store = store;
+      KLAVIYO_LOG_PAGE.page = 1;
+    }
+    const extra = (klaviyoState().sentByStore && klaviyoState().sentByStore[store]) || [];
+    return extra.concat(KLAVIYO_STORE_LOGS[store] || []);
+  }
 
   function renderKlaviyo() {
     const k = klaviyoState();
@@ -7860,13 +7951,13 @@
         '<button type="button" class="btn btn-default" data-kv-disconnect>Disconnect</button>'
       : '<button type="button" class="btn btn-primary" data-kv-connect>Connect</button>';
     const intro = k.connected
-      ? '<span>Private API key</span> ' + esc(k.keyMask)
-      : esc('Paste a private API key to send checkout, purchase, and post-purchase offer events.');
+      ? '<span>Connected to</span> <span class="i18n-skip">' + esc(k.accountName) + '</span>'
+      : esc('After Klaviyo is connected, BestCheckout sends checkout and subscription contract events to Klaviyo.');
     const phone = k.connected
       ? '<div class="kv-phone"><button type="button" class="kv-send" data-kv-phone aria-label="Send phone number"><span class="set-switch' + (k.sendPhone ? ' on' : '') + '"><span class="set-knob"></span></span></button><div><div class="kv-name">Send phone number</div><div class="kv-when">Off until checkout has collected SMS consent. Numbers are sent with the country code.</div></div></div>'
       : '';
     let lastGroup = '';
-    const rows = KLAVIYO_EVENTS.map((ev) => {
+    const bcRows = KLAVIYO_EVENTS.map((ev) => {
       const on = k.enabled[ev.id] !== false;
       const head = ev.group !== lastGroup
         ? (lastGroup = ev.group, '<div class="kv-group">' + esc(ev.group) + '</div>')
@@ -7875,42 +7966,64 @@
         ? '<button type="button" class="btn btn-default" data-kv-test="' + esc(ev.id) + '">Send test event</button>'
         : '';
       return head +
-        '<div class="kv-row' + (on ? '' : ' off') + '">' +
+        '<div class="kv-line kv-ctrl' + (on ? '' : ' off') + '">' +
           '<button type="button" class="kv-send" data-kv-event="' + esc(ev.id) + '" aria-label="' + esc(ev.label) + '"><span class="set-switch' + (on ? ' on' : '') + '"><span class="set-knob"></span></span></button>' +
-          '<div class="kv-main"><div class="kv-name">' + esc(ev.label) + '</div>' +
-            '<div class="kv-metric">' + esc(ev.metric) + '</div>' +
-            '<div class="kv-when">' + esc(ev.when) + '</div>' +
-            '<div class="kv-props">' + esc(ev.props) + '</div></div>' +
+          '<div class="kv-main"><div class="kv-name">' + esc(ev.label) + ' <span class="kv-metric i18n-skip">' + esc(ev.metric) + '</span></div>' +
+            '<div class="kv-when">' + esc(ev.when) + '</div></div>' +
           test +
         '</div>';
     }).join('');
-    const banner = !k.connected
-      ? '<div class="kv-note">Events start sending after Klaviyo is connected.</div>'
-      : k.paused
-        ? '<div class="kv-note">Sending is paused. Shopper events wait here until you turn sending back on. Test events can still be sent.</div>'
-        : '';
-    const logRows = k.deliveries.length
-      ? k.deliveries.map((row) =>
-          '<tr><td>' + esc(klaviyoWhen(row.at)) + '</td><td>' + esc(row.metric) + '</td><td>' + esc(maskKlaviyoEmail(row.email)) + '</td><td><span class="pill pill-green"><span class="dot"></span>Event accepted</span></td></tr>'
+    const bcNote = k.connected && k.paused
+      ? '<div class="kv-note">Sending is paused. Shopper events wait here until you turn sending back on. Test events can still be sent.</div>'
+      : '';
+    const sourceRows = (items) => {
+      let last = '';
+      return items.map((item) => {
+        const head = item.group !== last
+          ? (last = item.group, '<div class="kv-group">' + esc(item.group) + '</div>')
+          : '';
+        return head + '<div class="kv-line"><div class="kv-name"><span class="i18n-skip">' + esc(item.name) + '</span></div><div class="kv-when">' + esc(item.detail) + '</div></div>';
+      }).join('');
+    };
+    const logAll = klaviyoLogRows();
+    const logPages = Math.max(1, Math.ceil(logAll.length / KLAVIYO_LOG_PAGE.size) || 1);
+    if (KLAVIYO_LOG_PAGE.page > logPages) KLAVIYO_LOG_PAGE.page = logPages;
+    if (KLAVIYO_LOG_PAGE.page < 1) KLAVIYO_LOG_PAGE.page = 1;
+    const logSlice = logAll.slice((KLAVIYO_LOG_PAGE.page - 1) * KLAVIYO_LOG_PAGE.size, KLAVIYO_LOG_PAGE.page * KLAVIYO_LOG_PAGE.size);
+    const logRows = logSlice.length
+      ? logSlice.map((row) =>
+          '<tr><td>' + esc(klaviyoWhen(row.at)) + '</td><td class="i18n-skip">' + esc(row.metric) + '</td><td class="i18n-skip">' + esc(maskKlaviyoEmail(row.email)) + '</td><td><span class="pill pill-green"><span class="dot"></span>Event accepted</span></td></tr>'
         ).join('')
       : '<tr><td colspan="4" class="kv-empty">No events sent in this session.</td></tr>';
+    const logPagerItem = (label, page, opts) => {
+      opts = opts || {};
+      return '<span class="pg-item' + (opts.active ? ' active' : '') + (opts.disabled ? ' disabled' : '') + '"' +
+        (opts.disabled ? '' : ' data-kv-page="' + page + '"') + '>' + label + '</span>';
+    };
+    let logPagerNums = '';
+    for (let p = 1; p <= logPages; p++) logPagerNums += logPagerItem(String(p), p, { active: p === KLAVIYO_LOG_PAGE.page });
+    const logPager = logPages > 1
+      ? '<div class="pg">' + logPagerItem('‹', KLAVIYO_LOG_PAGE.page - 1, { disabled: KLAVIYO_LOG_PAGE.page <= 1 }) + logPagerNums +
+          logPagerItem('›', KLAVIYO_LOG_PAGE.page + 1, { disabled: KLAVIYO_LOG_PAGE.page >= logPages }) +
+          '<select class="pg-size" id="kv-pgsize">' + [20, 50, 100].map((s) => '<option value="' + s + '"' + (s === KLAVIYO_LOG_PAGE.size ? ' selected' : '') + '>' + s + ' / page</option>').join('') + '</select></div>'
+      : '';
+    const logFoot = logAll.length
+      ? '<div class="kv-log-foot"><span class="muted" style="font-size:13px">Total ' + logAll.length + ' records</span>' + logPager + '</div>'
+      : '';
     paint(
-      pageHead('Klaviyo', 'Send checkout events to Klaviyo. Shopify keeps Placed Order for revenue.') +
-      '<section class="kv-card"><div class="kv-head"><span class="kv-mark" aria-hidden="true">K</span><div><h2>Klaviyo</h2><p>' + intro + '</p><p class="kv-aside">BestCheckout email notifications stay separate.</p></div><div class="kv-actions">' + status + actions + '</div></div>' + phone + '</section>' +
-      '<section class="kv-card"><div class="kv-note">These are the checkout events BestCheckout already sends to Meta, GA4, and GTM. Klaviyo receives each one under its own metric name.</div>' + banner + rows + '</section>' +
-      '<section class="kv-card"><div class="kv-name" style="margin-bottom:10px">Recent events</div><table class="kv-log"><thead><tr><th>Time</th><th>Klaviyo metric</th><th>Email</th><th>Status</th></tr></thead><tbody>' + logRows + '</tbody></table></section>' +
-      '<section class="kv-card"><div class="kv-name">Abandoned checkout flow</div><ol class="kv-steps">' +
-        '<li>In Klaviyo, open Flows, choose Create flow, then Create from scratch.</li>' +
-        '<li>Set the trigger to Metric, then choose BestCheckout Checkout Started.</li>' +
-        '<li>Add a flow filter: BestCheckout Purchase Completed is zero times since starting this flow.</li>' +
-        '<li>If the store also uses Shopify Placed Order, add the same filter for that metric.</li>' +
-        '<li>In the email, set the button link to {{ event.CheckoutURL }}.</li>' +
-      '</ol></section>' +
-      '<section class="kv-card"><div class="kv-name">Other flows you can start from these events</div><ul class="kv-steps">' +
-        '<li>BestCheckout Payment Submitted: the buyer reached payment and has not purchased.</li>' +
-        '<li>BestCheckout Offer Declined: follow up after an upsell or downsell is declined.</li>' +
-        '<li>BestCheckout Purchase Completed: post-purchase. Filter purchase_stage to checkout, upsell, or downsell.</li>' +
-      '</ul></section>'
+      pageHead('Klaviyo') +
+      '<section class="kv-card"><div class="kv-head"><span class="kv-mark" aria-hidden="true">K</span><div><h2>Klaviyo</h2><p>' + intro + '</p></div><div class="kv-actions">' + status + actions + '</div></div>' + phone + '</section>' +
+      '<section class="kv-card"><div class="kv-name">Events in this Klaviyo account</div>' +
+        '<div class="kv-split">' +
+          '<div class="kv-source"><h3>Shopify Klaviyo app</h3><p class="kv-when">Sent by the Klaviyo app installed on Shopify.</p>' +
+            sourceRows(SHOPIFY_KLAVIYO_EVENTS) +
+          '</div>' +
+          '<div class="kv-source"><h3>BestCheckout</h3><p class="kv-when">BestCheckout sends checkout and subscription contract events to Klaviyo.</p>' +
+            bcNote +
+            bcRows +
+          '</div>' +
+        '</div></section>' +
+      '<section class="kv-card kv-log-card"><div class="kv-log-head"><span class="kv-log-ico" aria-hidden="true">' + svg('<path d="M6 2h9l5 5v15H6z"/><path d="M15 2v5h5"/><path d="M8 13h8M8 17h6"/>') + '</span><div class="kv-name">Recent events</div></div><table class="kv-log"><thead><tr><th>Time</th><th>Klaviyo metric</th><th>Email</th><th>Status</th></tr></thead><tbody>' + logRows + '</tbody></table>' + logFoot + '</section>'
     );
     if (root) root.scrollTop = scroll;
     const on = (sel, fn) => root.querySelectorAll(sel).forEach((el) => { el.onclick = fn; });
@@ -7924,45 +8037,53 @@
       renderKlaviyo();
     });
     on('[data-kv-test]', (e) => openKlaviyoTest(e.currentTarget.getAttribute('data-kv-test')));
+    on('[data-kv-page]', (e) => {
+      const page = Number(e.currentTarget.getAttribute('data-kv-page'));
+      if (!page || page < 1) return;
+      KLAVIYO_LOG_PAGE.page = page;
+      renderKlaviyo();
+    });
+    const kvPageSize = root.querySelector('#kv-pgsize');
+    if (kvPageSize) kvPageSize.onchange = () => {
+      KLAVIYO_LOG_PAGE.size = Number(kvPageSize.value) || 20;
+      KLAVIYO_LOG_PAGE.page = 1;
+      renderKlaviyo();
+    };
   }
 
   function openKlaviyoConnect() {
-    const ref = modal({
-      title: 'Connect Klaviyo', width: 520, okText: 'Connect',
+    modal({
+      title: 'Connect Klaviyo', width: 480, okText: 'Allow access',
       body:
-        '<div class="sp-field"><label class="ctrl-label" style="text-transform:none;margin-bottom:6px;display:block">Private API key <span style="color:var(--err)">*</span></label>' +
-          '<input id="kv-key" class="input" autocomplete="off" spellcheck="false" placeholder="pk_" />' +
-          '<div class="sp-err" data-err="kv-key"></div>' +
-          '<div class="muted" style="font-size:12.5px;line-height:1.5;margin-top:8px">In Klaviyo, open Settings, then API keys, and create a private key with Events and Profiles write access.</div></div>',
-      onOk: (m, close) => {
-        const raw = m.querySelector('#kv-key').value.trim();
-        const input = m.querySelector('#kv-key');
-        input.classList.remove('has-error');
-        if (!raw) { setErr(m, 'kv-key', 'Enter a private API key.'); input.classList.add('has-error'); return; }
-        if (raw.indexOf('pk_') !== 0) { setErr(m, 'kv-key', 'Private API keys start with pk_.'); input.classList.add('has-error'); return; }
-        if (raw.length < 12) { setErr(m, 'kv-key', 'Enter the full private API key.'); input.classList.add('has-error'); return; }
+        '<p class="kv-auth-lead">Klaviyo will ask you to allow BestCheckout to use this account.</p>' +
+        '<div class="kv-auth">' +
+          '<div class="kv-auth-k i18n-skip">Klaviyo</div>' +
+          '<div class="kv-auth-account"><div class="kv-auth-kicker">Klaviyo account</div><div class="i18n-skip">' + esc(klaviyoStoreName()) + '</div></div>' +
+          '<div class="kv-auth-kicker">BestCheckout can</div>' +
+          '<ul class="kv-auth-list"><li>See the account name</li><li>Create events</li><li>Create and update profiles</li></ul>' +
+          '<div class="kv-auth-note">This app has not been reviewed by Klaviyo. You can still allow access.</div>' +
+        '</div>',
+      onOk: (_m, close) => {
         const k = klaviyoState();
         k.connected = true;
         k.paused = false;
-        k.keyMask = 'pk_••••' + raw.slice(-4);
+        k.accountName = klaviyoStoreName();
         close();
         toast('Klaviyo connected');
         renderKlaviyo();
       },
     });
-    const input = ref.m.querySelector('#kv-key');
-    if (input) input.focus();
   }
 
   function disconnectKlaviyo() {
     confirm({
       title: 'Disconnect Klaviyo?', okText: 'Disconnect', danger: true,
-      content: 'BestCheckout stops sending new checkout events. Flows already in Klaviyo stay as they are.',
+      content: 'BestCheckout stops sending new events. Flows already in Klaviyo stay as they are.',
       onOk: () => {
         const k = klaviyoState();
         k.connected = false;
         k.paused = false;
-        k.keyMask = '';
+        k.accountName = '';
         k.sendPhone = false;
         toast('Klaviyo disconnected');
         renderKlaviyo();
@@ -8002,7 +8123,11 @@
           input.classList.add('has-error');
           return;
         }
-        klaviyoState().deliveries.unshift({ at: Date.now(), metric: ev ? ev.metric : id, email: email });
+        const store = klaviyoStoreName();
+        const sent = klaviyoState().sentByStore || (klaviyoState().sentByStore = {});
+        sent[store] = sent[store] || [];
+        sent[store].unshift({ at: Date.now(), metric: ev ? ev.metric : id, email: email });
+        KLAVIYO_LOG_PAGE.page = 1;
         close();
         toast('Test event sent');
         renderKlaviyo();
@@ -8213,7 +8338,18 @@
 
   /* Klaviyo */
   .kv-card { background: #fff; border: 1px solid var(--hair); border-radius: 12px; padding: 16px 18px; margin-bottom: 14px; }
-  .kv-head { display: flex; align-items: flex-start; gap: 14px; }
+  .kv-split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+  .kv-source { min-width: 0; padding: 14px 16px; border: 1px solid var(--hair); border-radius: 10px; background: #fbfcfd; }
+  .kv-source h3 { margin: 0; font-size: 14px; font-weight: 650; color: var(--ink); }
+  .kv-line { padding: 8px 0; border-top: 1px solid var(--hair); }
+  .kv-line.kv-ctrl { display: flex; align-items: flex-start; gap: 10px; }
+  .kv-line.kv-ctrl .kv-main { flex: 1; min-width: 0; }
+  .kv-line.kv-ctrl.off { opacity: 0.55; }
+  .kv-line.kv-ctrl .btn { flex: none; height: 30px; margin-top: 1px; }
+  .kv-line .kv-name { font-size: 13px; }
+  .kv-line .kv-metric { display: inline; margin-left: 8px; }
+  @media (max-width: 860px) { .kv-split { grid-template-columns: 1fr; } }
+  .kv-head { display: flex; align-items: center; gap: 14px; }
   .kv-head > div:nth-child(2) { flex: 1; min-width: 0; }
   .kv-head h2 { margin: 0; font-size: 16px; font-weight: 600; color: var(--ink); }
   .kv-head p { margin: 4px 0 0; color: var(--ink-body); font-size: 13px; line-height: 1.5; }
@@ -8231,12 +8367,25 @@
   .kv-when { margin-top: 4px; font-size: 12.5px; color: var(--ink-muted); line-height: 1.45; }
   .kv-props { margin-top: 6px; font-size: 12px; line-height: 1.45; color: #5a6473; }
   .kv-note { margin-bottom: 12px; padding: 10px 12px; border-radius: 8px; background: #f7f8fb; color: var(--ink-body); font-size: 12.5px; line-height: 1.5; }
+  .kv-auth-lead { margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink-body); }
+  .kv-auth { margin-top: 12px; padding: 14px; border: 1px solid var(--hair); border-radius: 10px; background: #fbfcfd; }
+  .kv-auth-k { font-size: 13px; font-weight: 700; }
+  .kv-auth-account { margin-top: 10px; font-size: 15px; font-weight: 650; color: var(--ink); }
+  .kv-auth-kicker { margin-top: 12px; font-size: 12px; font-weight: 600; color: var(--ink-muted); }
+  .kv-auth-list { margin: 6px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.55; color: var(--ink); }
+  .kv-auth-note { margin-top: 12px; padding: 8px 10px; border-radius: 8px; background: #fff8eb; color: #8a5a00; font-size: 12.5px; line-height: 1.45; }
   .kv-steps { margin: 10px 0 0; padding-left: 18px; color: var(--ink-body); font-size: 13px; line-height: 1.55; }
   .kv-steps li { margin: 6px 0; }
-  .kv-log { width: 100%; border-collapse: collapse; font-size: 13px; }
-  .kv-log th { text-align: left; font-weight: 500; font-size: 12px; color: var(--ink-muted); padding: 8px 10px; border-bottom: 1px solid var(--hair); }
-  .kv-log td { padding: 10px; border-bottom: 1px solid var(--hair); vertical-align: middle; }
-  .kv-empty { color: var(--ink-muted); text-align: center; padding: 18px 10px !important; }
+  .kv-log-card { padding: 0; overflow: hidden; }
+  .kv-log-head { display: flex; align-items: center; gap: 10px; padding: 13px 16px; border-bottom: 1px solid var(--hair); background: #f5f7fb; }
+  .kv-log-head .kv-name { margin: 0; }
+  .kv-log-ico { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; background: #eef3ff; color: var(--brand); flex: none; }
+  .kv-log-ico svg { display: block; }
+  .kv-log { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .kv-log th { text-align: left; font-weight: 600; font-size: 13.5px; color: var(--ink); background: #fafbfc; padding: 12px 16px; border-bottom: 1px solid var(--hair); white-space: nowrap; }
+  .kv-log td { padding: 12px 16px; border-bottom: 1px solid var(--hair); vertical-align: middle; }
+  .kv-log tbody tr:last-child td { border-bottom: 0; }
+  .kv-log-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--hair); }
   .kv-row > .btn { flex: none; }
   .sp-field { margin-bottom: 14px; }
   .sp-err { margin-top: 6px; color: var(--err); font-size: 13px; }
