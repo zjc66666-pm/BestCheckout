@@ -23,7 +23,7 @@
     analytics: s('<path d="M4 4v16h16"/><rect x="7" y="11" width="3" height="6"/><rect x="12" y="7" width="3" height="10"/><rect x="17" y="13" width="3" height="4"/>'),
     google: s('<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>'),
     facebook: s('<path d="M4 12c0-2.5 2-4.5 4.5-4.5 2 0 3 1.5 3.5 3 .5-1.5 1.5-3 3.5-3 2.5 0 4.5 2 4.5 4.5s-2 4.5-4.5 4.5c-2 0-3-1.5-3.5-3-.5 1.5-1.5 3-3.5 3-2.5 0-4.5-2-4.5-4.5z"/>'),
-    settings: s('<circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.3l2-1.5-2-3.4-2.3 1a7 7 0 0 0-2.3-1.3L14 1h-4l-.3 2.5a7 7 0 0 0-2.3 1.3l-2.3-1-2 3.4 2 1.5A7 7 0 0 0 5 12a7 7 0 0 0 .1 1.3l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 2.3 1.3L10 23h4l.3-2.5a7 7 0 0 0 2.3-1.3l2.3 1 2-3.4-2-1.5A7 7 0 0 0 19 12z"/>'),
+    settings: s('<path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37 1 .608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/>'),
     card: s('<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>'),
     coin: s('<circle cx="12" cy="12" r="9"/><path d="M14.5 9a2.5 2 0 0 0-2.5-1.5c-1.5 0-2.5.8-2.5 2s1 1.6 2.5 2 2.5.8 2.5 2-1 2-2.5 2A2.5 2 0 0 1 9.5 16"/><path d="M12 6v12"/>'),
     cart: s('<circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/><path d="M2 3h3l2.4 12.4a1.5 1.5 0 0 0 1.5 1.2h8.7a1.5 1.5 0 0 0 1.5-1.2L22 7H6"/>'),
@@ -115,7 +115,11 @@
         '<div class="nav-subs' + (open ? '' : ' collapsed') + '">' + subs + '</div>' +
       '</div>';
     }
-    return '<a class="nav-item' + (it.id === activeId ? ' active' : '') + '" data-nav-id="' + it.id + '" href="' + it.route + '">' + icon + '<span>' + navText(it.label) + '</span></a>';
+    var item = '<a class="nav-item' + (it.id === activeId ? ' active' : '') + '" data-nav-id="' + it.id + '" href="' + it.route + '">' + icon + '<span>' + navText(it.label) + '</span></a>';
+    // Refer sits between Orders and Settings, which are groups and already
+    // have the 4px group gap. Give it the same gap so the active row is even.
+    if (it.id === 'refer') return '<div class="nav-group">' + item + '</div>';
+    return item;
   }
 
   function renderSidebar(activeId) {
@@ -436,6 +440,7 @@
       if ((id === 'customers' || id === 'abandoned-checkouts') && !window.DATA_ORDERS) return loadScript('orders/js/data.js?v=20261016-ac-detail');
     });
     var moduleV = id === 'settings' ? '20261113-kv-oauth3'
+      : id === 'refer' ? '20261117-refer8'
       : id === 'online-store' ? '20261016-hide-pdp'
       : id === 'bestcheckout' ? '20261016-edit-tab'
       : id === 'bundles' ? '20261013-pdp1'

@@ -47,6 +47,7 @@ window.NAV_MENU = [
   { id: 'orders', label: 'Orders', icon: 'inbox', route: '#/orders', desc: 'Paid BestCheckout orders written back to Shopify.', children: [
     { id: 'abandoned-checkouts', label: 'Abandoned checkouts', route: '#/abandoned-checkouts', desc: 'Recover unpaid Hosted Checkout orders that never reached Shopify.' },
   ] },
+  { id: 'refer', label: 'Refer', icon: 'user', route: '#/refer', desc: 'Share BestCheckout and earn when stores you refer pay their software fees.' },
   {
     id: 'settings', label: 'Settings', icon: 'settings', route: '#/settings/base', desc: 'Manage the Shopify connection and checkout services.',
     children: [
@@ -95,6 +96,7 @@ window.ROUTE_MODULE = {
   bundles: 'bundles',
   subscriptions: 'settings',
   orders: 'orders',
+  refer: 'refer',
   'abandoned-checkouts': 'abandoned-checkouts',
   payments: 'settings',
   domains: 'settings',

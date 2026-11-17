@@ -30,7 +30,7 @@
   // Google, SKU, OAuth, SSL, DNS, MID, OMS, MRR…) are intentionally absent => stay as-is.
   var DICT = {
     // ---- top sidebar menu ----
-    'Orders': '订单', 'Products': '商品', 'Collections': '商品系列', 'Reviews': '评价',
+    'Orders': '订单', 'Refer': '推荐', 'Products': '商品', 'Collections': '商品系列', 'Reviews': '评价',
     'Customers': '客户', 'Discounts': '折扣', 'Content': '内容', 'Blog': '博客',
     'Page': '页面', 'Menu': '导航菜单', 'Analytics': '数据分析', 'Reports': '报表',
     'Live View': '实时概览', 'Online store': '网上商店',
