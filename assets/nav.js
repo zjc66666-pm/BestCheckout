@@ -8,6 +8,7 @@ window.SITE = {
 };
 
 window.STORES = [
+  { name: 'Wren Supply', url: 'wren-supply.myshopify.com', homeState: 'live' },
   { name: 'Plover Studio', url: 'plover-studio.myshopify.com', homeState: 'live' },
   { name: 'Bramble Market', url: 'bramble-market.myshopify.com', homeState: 'live' },
   { name: 'Lavender Labs', url: 'lavender-labs.myshopify.com', homeState: 'unconfigured', shopifyPayments: true },

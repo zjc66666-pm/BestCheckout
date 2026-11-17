@@ -21,7 +21,8 @@
     'Kiln Coffee': profile('Kiln Coffee', 'hello@kilncoffee.co', 'Mastercard', '8888', '11/27', STANDARD, false, 2500000, true, 30, 22000000, 1100, 90, 0, 3500000, 140, 18, []),
     'Marlow Supply': profile('Marlow Supply', 'owen@marlowsupply.com', '', '', '', STANDARD, false, 2500000, true, 30, 8600000, 410, 18, 4, 1200000, 40, 4, []),
     'Linden Goods': profile('Linden Goods', 'billing@lindengoods.co', 'Visa', '4141', '06/28', STANDARD, false, 2500000, true, 30, 9600000, 480, 30, 31, 5400000, 240, 16, []),
-    'Maple Goods': profile('Maple Goods', 'hello@maplegoods.co', '', '', '', STANDARD, false, 2500000, true, 30, 4000000, 160, 8, 31, 800000, 30, 2, [])
+    'Maple Goods': profile('Maple Goods', 'hello@maplegoods.co', '', '', '', STANDARD, false, 2500000, true, 30, 4000000, 160, 8, 31, 800000, 30, 2, []),
+    'Wren Supply': profile('Wren Supply', 'hello@wrensupply.co', 'Visa', '2626', '05/28', STANDARD, false, 2500000, true, 30, 8600000, 410, 18, 7, 1200000, 40, 4, [])
   };
   accounts['Hey June'].invoices[0].status = 'Past due';
   accounts['Hey June'].invoices[0].paidAt = '';
@@ -78,6 +79,27 @@
   accounts['Lavender Labs'].declinedCardKey = 'Visa:4242';
   accounts['Northline Goods'].declinedCardKey = 'Visa:5454';
   accounts['Kiln Coffee'].declinedCardKey = 'Mastercard:8888';
+  accounts['Wren Supply'].invoices[0].status = 'Past due';
+  accounts['Wren Supply'].invoices[0].paidAt = '';
+  accounts['Wren Supply'].billingStatus = 'Past due';
+  accounts['Wren Supply'].checkoutFallback = true;
+  accounts['Wren Supply'].fallbackOn = 'Oct 8, 2026';
+  accounts['Wren Supply'].invoices.push(invoiceFor(
+    'Wren Supply',
+    '2026-10',
+    '2026.10',
+    STANDARD,
+    1200000,
+    40,
+    4,
+    [],
+    'Charge failed',
+    '',
+    7,
+    31,
+    2500000,
+    0
+  ));
   accounts['Marlow Supply'].billingStatus = 'Charge failed';
   accounts['Marlow Supply'].invoices.push(invoiceFor(
     'Marlow Supply',
@@ -213,7 +235,8 @@
       'Plover Studio': '64021837',
       'Bramble Market': '27563914',
       'Linden Goods': '35081627',
-      'Maple Goods': '38472019'
+      'Maple Goods': '38472019',
+      'Wren Supply': '73910584'
     };
     var code = shopIds[name] || 'store';
     var lines = chargeLines(priceBook, volumeCents, approvals, declines, adjustments, billableDays, daysInMonth);
@@ -282,6 +305,14 @@
     add('2026-10-01 00:05', 'BestCheckout', 'Issued invoice', kilnSep, kilnSep && kilnSep.totalCents, '');
     add('2026-10-04 09:00', 'BestCheckout', 'Charge retry failed', kilnSep, null, 'Status unchanged');
     add('2026-10-09 00:05', 'BestCheckout', 'Stopped intercepting', kilnSep, null, 'Invoice past due');
+    var wrenSep = inv('Wren Supply', '2026-09');
+    var wrenOct = inv('Wren Supply', '2026-10');
+    add('2026-10-08 00:05', 'BestCheckout', 'Stopped intercepting', wrenSep, null, 'Invoice past due');
+    add('2026-10-04 09:00', 'BestCheckout', 'Charge retry failed', wrenSep, null, 'Status unchanged');
+    add('2026-10-01 09:04', 'BestCheckout', 'Emailed the owner', wrenSep, null, 'Card declined');
+    add('2026-10-01 00:05', 'BestCheckout', 'Issued invoice', wrenSep, wrenSep && wrenSep.totalCents, '');
+    add('2026-10-27 09:06', 'BestCheckout', 'Emailed the owner', wrenOct, null, 'Card declined');
+    add('2026-10-27 09:00', 'BestCheckout', 'Issued invoice', wrenOct, wrenOct && wrenOct.totalCents, '');
     add('2026-10-02 08:16', 'BestCheckout', 'Recorded payment', marSep, marSep && marSep.totalCents, '');
     add('2026-10-01 00:05', 'BestCheckout', 'Issued invoice', marSep, marSep && marSep.totalCents, '');
     add('2026-10-29 09:00', 'BestCheckout', 'Charge retry failed', marOct, null, 'Status unchanged');
@@ -555,12 +586,16 @@
     else renderHome(api, account);
   }
 
-  function unpaidInvoice(account) {
+  function unpaidInvoices(account) {
     return (account.invoices || []).filter(function (item) {
       return item.status !== 'Paid' && item.totalCents > 0;
     }).sort(function (a, b) {
-      return String(b.monthKey || b.month || '').localeCompare(String(a.monthKey || a.month || ''));
-    })[0];
+      return String(a.monthKey || a.month || '').localeCompare(String(b.monthKey || b.month || ''));
+    });
+  }
+  function unpaidInvoice(account) {
+    var open = unpaidInvoices(account);
+    return open.length ? open[open.length - 1] : null;
   }
   function payNowHtml(account) {
     if (!unpaidInvoice(account)) return '';
@@ -632,12 +667,13 @@
       '<div class="bill-invoice-foot" id="billInvoiceFoot"><span class="muted" id="billInvoiceTotal">Total 0 records</span><div class="pg" id="billInvoicePager"></div></div></div>';
     api.paint(shell(pageTitle('Invoices') + banner + '<div class="bill-top-grid">' + pay + email + allowance + '</div>' + rates + invoices), false);
     var root = api.root;
+    var openInvoices = unpaidInvoices(account);
     var payBtn = root.querySelector('#billPay');
-    if (payBtn) payBtn.onclick = function () { payInvoice(api, account, due || account.invoices[0]); };
+    if (payBtn) payBtn.onclick = function () { payInvoices(api, account, openInvoices); };
     var payCardBtn = root.querySelector('#billPayCard');
-    if (payCardBtn) payCardBtn.onclick = function () { openCard(api, account, { payItem: due || account.invoices[0] }); };
+    if (payCardBtn) payCardBtn.onclick = function () { openCard(api, account, { payItems: openInvoices }); };
     var cardBtn = root.querySelector('#billCard');
-    if (cardBtn) cardBtn.onclick = function () { openCard(api, account, due ? { payItem: due } : {}); };
+    if (cardBtn) cardBtn.onclick = function () { openCard(api, account, openInvoices.length ? { payItems: openInvoices } : {}); };
     var emailBtn = root.querySelector('#billEmail');
     if (emailBtn) emailBtn.onclick = function () { openEmail(api, account); };
     bindInvoicePager(root, account, esc);
@@ -876,37 +912,65 @@
       status.textContent = busy ? t('Charging this card…') : '';
     }
   }
-  function markInvoicePaid(api, account, item, close) {
-    item.status = 'Paid';
-    item.paidAt = 'Oct 30, 2026';
+  function syncBillingStatus(account) {
+    var open = unpaidInvoices(account);
+    if (open.some(function (item) { return item.status === 'Past due'; })) {
+      account.billingStatus = 'Past due';
+      account.checkoutFallback = true;
+      return;
+    }
+    if (open.length) {
+      account.billingStatus = 'Charge failed';
+      account.checkoutFallback = false;
+      return;
+    }
     account.billingStatus = 'Current';
     account.checkoutFallback = false;
     account.failures = [];
+  }
+  function finishPayments(api, account, items, close) {
     account.extraLogs = account.extraLogs || [];
-    account.extraLogs.unshift({
-      at: '2026-10-30 10:50',
-      actor: 'BestCheckout',
-      action: 'Recorded payment',
-      invoiceId: item.id,
-      moneyText: item.number + ' · ' + money(item.totalCents),
-      reason: ''
+    items.forEach(function (item) {
+      item.status = 'Paid';
+      item.paidAt = 'Oct 30, 2026';
+      account.extraLogs.unshift({
+        at: '2026-10-30 10:50',
+        actor: 'BestCheckout',
+        action: 'Recorded payment',
+        invoiceId: item.id,
+        moneyText: item.number + ' · ' + money(item.totalCents),
+        reason: ''
+      });
     });
+    syncBillingStatus(account);
     savePatch(account);
     if (close) close();
     api.toast('Payment received');
     render(api);
   }
-  function payInvoice(api, account, item) {
+  function markInvoicePaid(api, account, item, close) {
+    finishPayments(api, account, [item], close);
+  }
+  function payBody(api, account, items) {
+    var card = '<span class="i18n-skip">' + api.esc(account.brand + ' ···· ' + account.last4) + '</span>';
+    if (items.length > 1) {
+      var total = items.reduce(function (sum, item) { return sum + item.totalCents; }, 0);
+      return '<p style="font-size:14px;line-height:1.5;margin:0"><span>Pay</span> <span class="i18n-skip">' + items.length + '</span> <span>unpaid invoices totaling</span> <span class="i18n-skip">' + api.esc(money(total)) + '</span> <span>with the card</span> ' + card + '?</p>';
+    }
+    return '<p style="font-size:14px;line-height:1.5;margin:0"><span>Pay the invoice of</span> <span class="i18n-skip">' + api.esc(money(items[0].totalCents)) + '</span> <span>with the card</span> ' + card + '?</p>';
+  }
+  function payInvoices(api, account, items) {
+    items = (items || []).filter(function (item) { return item && item.status !== 'Paid' && item.totalCents > 0; });
+    if (!items.length) return;
     api.modal({
-      title: 'Pay invoice',
+      title: items.length > 1 ? 'Pay invoices' : 'Pay invoice',
       okText: 'Pay now',
-      body: '<p style="font-size:14px;line-height:1.5;margin:0"><span>Pay the invoice of</span> <span class="i18n-skip">' + api.esc(money(item.totalCents)) + '</span> <span>with the card</span> <span class="i18n-skip">' + api.esc(account.brand + ' ···· ' + account.last4) + '</span>?</p>' +
-        '<div class="bill-verify-status" id="billPayStatus"></div>',
+      body: payBody(api, account, items) + '<div class="bill-verify-status" id="billPayStatus"></div>',
       onOk: function (m, close) {
         if (m._billPaying) return;
         if (m._billPayFailed) {
           close();
-          openCard(api, account, { payItem: item });
+          openCard(api, account, { payItems: items });
           return;
         }
         setPayBusy(m, true);
@@ -921,13 +985,15 @@
               status.textContent = t('This card was declined. Replace the card and pay.');
             }
             account.extraLogs = account.extraLogs || [];
-            account.extraLogs.unshift({
-              at: '2026-10-30 10:48',
-              actor: 'BestCheckout',
-              action: 'Charge failed',
-              invoiceId: item.id,
-              moneyText: item.number + ' · ' + money(item.totalCents),
-              reason: 'Card declined'
+            items.forEach(function (item) {
+              account.extraLogs.unshift({
+                at: '2026-10-30 10:48',
+                actor: 'BestCheckout',
+                action: 'Charge failed',
+                invoiceId: item.id,
+                moneyText: item.number + ' · ' + money(item.totalCents),
+                reason: 'Card declined'
+              });
             });
             if ((account.failures || []).indexOf('Oct 30, 2026') < 0) {
               account.failures = (account.failures || []).concat(['Oct 30, 2026']);
@@ -935,10 +1001,13 @@
             savePatch(account);
             return;
           }
-          markInvoicePaid(api, account, item, close);
+          finishPayments(api, account, items, close);
         }, 1600);
       }
     });
+  }
+  function payInvoice(api, account, item) {
+    payInvoices(api, account, [item]);
   }
   function setCardBusy(m, busy) {
     m._billVerifying = !!busy;
@@ -961,8 +1030,8 @@
   }
   function openCard(api, account, opts) {
     opts = opts || {};
-    var payItem = opts.payItem || null;
-    var paying = !!payItem;
+    var payItems = opts.payItems && opts.payItems.length ? opts.payItems.slice() : (opts.payItem ? [opts.payItem] : []);
+    var paying = payItems.length > 0;
     var payOk = paying ? (account.last4 ? 'Replace card and pay' : 'Add card and pay') : 'Save card';
     var opened = api.modal({
       title: paying ? payOk : (account.last4 ? 'Replace card' : 'Add card'),
@@ -1009,7 +1078,7 @@
             account.brand = brand;
             account.last4 = last4;
             account.exp = exp;
-            markInvoicePaid(api, account, payItem, close);
+            finishPayments(api, account, payItems, close);
             return;
           }
           var draft = [name, number, exp, cvc].join('|');
@@ -1323,6 +1392,9 @@
     'Gateway decline': '支付网关拒付',
     'Test orders are excluded': '测试订单排除',
     'Pay invoice': '支付账单',
+    'Pay invoices': '合并支付',
+    'Pay': '支付',
+    'unpaid invoices totaling': '张未付账单，合计',
     'Pay the invoice of': '支付账单金额',
     'with the card': '使用银行卡',
     'declined payments above': '笔拒付，超过',
