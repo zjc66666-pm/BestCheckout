@@ -1617,6 +1617,8 @@ const ZH_ATTRIBUTES = {
   'These checks run again when you publish this Funnel.': '发布此漏斗时会再次执行这些检查。',
   'Review store status': '查看店铺状态',
   'Choose a Funnel to edit its buyer journey.': '选择一个漏斗来编辑它的购买路径。',
+  'Sign in to your BestCheckout account.': '登录你的 BestCheckout 账户。',
+  'Create an account to share BestCheckout. Connect a Shopify store when you are ready.': '创建账户即可推荐 BestCheckout。准备好之后再连接 Shopify 店铺。',
 };
 
 export function translate(value, locale) {

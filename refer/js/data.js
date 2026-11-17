@@ -76,6 +76,31 @@
   function ownerOf(storeName) {
     return partner(owners[storeName] || '');
   }
+  var ACCOUNT_PARTNER = {
+    'hello@lavenderlabs.co': 'dana',
+    'avery@lavenderlabs.com': 'dana'
+  };
+  function forAccount(email) {
+    var key = String(email || '').trim().toLowerCase();
+    if (ACCOUNT_PARTNER[key]) return partner(ACCOUNT_PARTNER[key]);
+    var found = null;
+    partners.forEach(function (person) {
+      if (!found && String(person.email || '').toLowerCase() === key) found = person;
+    });
+    if (found) return found;
+    var code = key.split('@')[0].replace(/[^a-z0-9]/gi, '').slice(0, 10).toUpperCase() || 'SELLER';
+    var taken = {};
+    partners.forEach(function (person) { taken[person.code] = true; });
+    var unique = code;
+    var n = 2;
+    while (taken[unique]) {
+      unique = code.slice(0, 8) + n;
+      n += 1;
+    }
+    var person = { id: 'acct-' + unique.toLowerCase(), name: key, email: key, code: unique, parentId: '' };
+    partners.push(person);
+    return person;
+  }
   function storeOf(id) {
     var found = '';
     Object.keys(owners).forEach(function (storeName) {
@@ -200,6 +225,7 @@
     stores: stores,
     partner: partner,
     ownerOf: ownerOf,
+    forAccount: forAccount,
     storeOf: storeOf,
     personal: personal,
     rankOf: rankOf,

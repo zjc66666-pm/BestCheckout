@@ -1,6 +1,6 @@
 import { icon } from '../components/common.js';
 import { escapeHtml } from '../utils.js';
-import { renderLanguageSwitcher } from '../i18n.js?rev=20260820-nmi-card-only1';
+import { renderLanguageSwitcher } from '../i18n.js?rev=20261117-acct1';
 import { PROTOTYPE_ACCOUNTS } from '../session.js?rev=20260907-expired-link1';
 
 function brand(href) {
@@ -36,7 +36,7 @@ export function renderSignIn() {
     + '<p class="portal-auth-foot">New to BestCheckout? <button type="button" data-route="sign-up">Create your account</button></p>'
     + renderDemoAccountHints()
     + '</form>';
-  return authLayout('Welcome back', 'Sign in to BestCheckout', 'Manage checkout growth for your Shopify store.', form);
+  return authLayout('Welcome back', 'Sign in to BestCheckout', 'Sign in to your BestCheckout account.', form);
 }
 
 export function renderForgotPassword() {
@@ -76,7 +76,7 @@ export function renderSignUp() {
     + portalField('Password', '<input required minlength="8" type="password" name="password" placeholder="Create a password" autocomplete="new-password" data-validation-required="Create a password." data-validation-too-short="Use at least 8 characters." />')
     + portalField('Confirm password', '<input required minlength="8" type="password" name="confirmPassword" placeholder="Re-enter your password" autocomplete="new-password" data-validation-required="Confirm your password." data-validation-too-short="Use at least 8 characters." />')
     + '<button type="submit" class="portal-submit">Create account ' + icon('arrow', 16) + '</button><p class="portal-terms-note">By creating an account, you agree to the Terms and Privacy Policy.</p></form>';
-  return authLayout('Get started', 'Create your BestCheckout account', 'Start with your Shopify store. You can build and test before sending buyers to a new checkout.', form, '<p class="portal-auth-foot">Already have an account? <button type="button" data-route="sign-in">Sign in</button></p>');
+  return authLayout('Get started', 'Create your BestCheckout account', 'Create an account to share BestCheckout. Connect a Shopify store when you are ready.', form, '<p class="portal-auth-foot">Already have an account? <button type="button" data-route="sign-in">Sign in</button></p>');
 }
 
 export function renderSignupVerificationEmailPage(email) {

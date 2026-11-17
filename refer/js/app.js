@@ -1,4 +1,4 @@
-/* Merchant Refer page. The signed-in store owner is a BestCheckout salesperson. */
+/* Account Refer page. The signed-in account is a BestCheckout salesperson. */
 (function () {
   'use strict';
 
@@ -94,8 +94,11 @@
 
   function render() {
     var model = R();
+    var accountMode = !!window.BESTCHECKOUT_ACCOUNT_EMAIL;
     var storeName = (window.SITE && window.SITE.store) || 'Lavender Labs';
-    var me = model.ownerOf(storeName);
+    var me = accountMode && model.forAccount
+      ? model.forAccount(window.BESTCHECKOUT_ACCOUNT_EMAIL)
+      : model.ownerOf(storeName);
     if (!me) {
       root.innerHTML = '<div class="view-wrap"><div class="refer-page"><h1 class="page-title">Refer</h1><p class="orders-page-subtitle">Refer is not set up for this store.</p></div></div>';
       if (window.I18N) window.I18N.apply(root);
@@ -111,15 +114,18 @@
       });
     });
     var referredBy = parent
-      ? '<div class="refer-by"><span>Referred by</span> <strong class="i18n-skip">' + esc(parent.name) + '</strong> <span class="refer-pill">' + esc(model.rankOf(parent.id).current.name) + '</span></div>'
+      ? '<div class="refer-by"><span>Referred by</span> <strong class="i18n-skip">' + esc(accountMode ? parent.code : parent.name) + '</strong> <span class="refer-pill">' + esc(model.rankOf(parent.id).current.name) + '</span></div>'
       : '<div class="refer-by"><span>You joined without a referrer.</span></div>';
-    var ownNote = '<p class="refer-note">This store is yours. Its software fees are not commissioned to you.</p>';
-    var referrerOfThisStore = null;
-    model.stores.forEach(function (store) {
-      if (store.store === storeName && store.referrerId) referrerOfThisStore = model.partner(store.referrerId);
-    });
-    if (referrerOfThisStore && referrerOfThisStore.id !== me.id) {
-      ownNote = '<p class="refer-note"><span>This store was referred by</span> <strong class="i18n-skip">' + esc(referrerOfThisStore.name) + '</strong><span>. Commission on its paid invoices goes to them.</span></p>';
+    var ownNote = '';
+    if (!accountMode) {
+      ownNote = '<p class="refer-note">This store is yours. Its software fees are not commissioned to you.</p>';
+      var referrerOfThisStore = null;
+      model.stores.forEach(function (store) {
+        if (store.store === storeName && store.referrerId) referrerOfThisStore = model.partner(store.referrerId);
+      });
+      if (referrerOfThisStore && referrerOfThisStore.id !== me.id) {
+        ownNote = '<p class="refer-note"><span>This store was referred by</span> <strong class="i18n-skip">' + esc(referrerOfThisStore.name) + '</strong><span>. Commission on its paid invoices goes to them.</span></p>';
+      }
     }
     var nextRank = standing.next
       ? '<strong>' + esc(standing.next.name) + '</strong><small><span>Starts at</span> <b class="i18n-skip">' + esc(model.money(standing.next.at)) + '</b></small>'

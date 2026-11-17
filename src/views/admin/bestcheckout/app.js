@@ -36,7 +36,7 @@ import { renderActivity } from './pages/activity.js?rev=20260720-standalone-port
 import { renderSettings } from './pages/settings.js?rev=20260720-standalone-portal-v150';
 import { renderEditor, mountEditor } from './pages/editor.js?rev=20260719-preview-session-v92';
 import { renderAbandonedCheckouts, renderOrders } from './pages/orders.js?rev=20260825-abandoned1';
-import { renderConnectShopify, renderForgotPasswordCode, renderInstallEmailPage, renderOauthConsent, renderPasswordResetEmailPage, renderSignIn, renderSignUp, renderSignupVerificationEmailPage } from './pages/auth.js?rev=20260910-oauth13';
+import { renderConnectShopify, renderForgotPasswordCode, renderInstallEmailPage, renderOauthConsent, renderPasswordResetEmailPage, renderSignIn, renderSignUp, renderSignupVerificationEmailPage } from './pages/auth.js?rev=20261117-acct1';
 import { renderHelpCenter } from './pages/help.js?rev=20260907-install-link1';
 import { renderLookbookSite, renderMarketingSite } from './pages/website.js?rev=20261110-contact-whatsapp';
 import {
@@ -47,7 +47,7 @@ import {
   clearPrototypeSession,
 } from './session.js?rev=20260907-expired-link1';
 import { escapeHtml, formatDateTime, getRouteName, isOauthConsentEntry, parseRoute, setRoute } from './utils.js?rev=20260910-oauth3';
-import { applyLocale, renderLanguageSwitcher, translate } from './i18n.js?rev=20260820-nmi-card-only1';
+import { applyLocale, renderLanguageSwitcher, translate } from './i18n.js?rev=20261117-acct1';
 
 const appRoot = document.getElementById('app');
 const modalRoot = document.getElementById('modal-root');
@@ -204,16 +204,12 @@ function rememberConnectOrigin(route) {
 }
 
 function enterSignedInDestination(next) {
-  if (state.ui.hasConnectedStore) {
-    openNewBestCheckoutDashboard();
-    return;
-  }
   const requested = String(next || '').replace(/^#?\/?/, '');
-  if (requested && requested !== 'home' && requested.indexOf('connect-shopify') !== 0) {
+  if (requested.indexOf('connect-shopify') === 0) {
     setRoute(requested);
     return;
   }
-  setRoute(connectSetupRoute(state));
+  window.location.assign('account/#/stores');
 }
 
 function redirectPublicAuth(route) {
@@ -2695,7 +2691,7 @@ function bindFormSubmissions(event) {
     state.ui.connectShop = '';
     persistPrototypeSession(state);
     useEnglishPortalDefault();
-    enterSignedInDestination(parseRoute().query.get('next') || 'connect-shopify');
+    enterSignedInDestination(parseRoute().query.get('next'));
     return;
   }
   if (form.id === 'connect-shopify-form') {

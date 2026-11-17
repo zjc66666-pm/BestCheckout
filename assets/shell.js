@@ -115,11 +115,7 @@
         '<div class="nav-subs' + (open ? '' : ' collapsed') + '">' + subs + '</div>' +
       '</div>';
     }
-    var item = '<a class="nav-item' + (it.id === activeId ? ' active' : '') + '" data-nav-id="' + it.id + '" href="' + it.route + '">' + icon + '<span>' + navText(it.label) + '</span></a>';
-    // Refer sits between Orders and Settings, which are groups and already
-    // have the 4px group gap. Give it the same gap so the active row is even.
-    if (it.id === 'refer') return '<div class="nav-group">' + item + '</div>';
-    return item;
+    return '<a class="nav-item' + (it.id === activeId ? ' active' : '') + '" data-nav-id="' + it.id + '" href="' + it.route + '">' + icon + '<span>' + navText(it.label) + '</span></a>';
   }
 
   function renderSidebar(activeId) {
@@ -896,6 +892,10 @@
     }
     // Performance is now part of Overview. Keep existing shared links useful.
     if (p.first === 'performance') { location.hash = '#/home'; return; }
+    if (p.first === 'refer') {
+      window.location.assign(new URL('account/#/refer', document.baseURI).href);
+      return;
+    }
     // Preserve previously shared links while grouping these operational pages
     // under Settings in the primary navigation.
     if (p.first === 'payments' || p.first === 'domains' || p.first === 'notifications') {
@@ -1036,6 +1036,7 @@
   function userMenuHtml() {
     return '<div class="hdr-menu-head">' + MICO.user + '<span>' + (SITE.email || 'owner@bestshopio.com') + '</span></div>' +
       '<div class="hdr-menu-divider"></div>' +
+      '<a class="hdr-menu-item" href="account/#/stores">' + MICO.user + 'Your account</a>' +
       '<a class="hdr-menu-item" href="#/account/ai" data-account-ai>' + MICO.spark + 'AI & MCP</a>' +
       '<div class="hdr-menu-divider"></div>' +
       '<button class="hdr-menu-item" data-changepw>' + MICO.lock + 'Change password</button>' +
