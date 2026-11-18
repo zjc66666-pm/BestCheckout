@@ -8965,6 +8965,10 @@ kbd {
 /* ===========================================================================
    Marketing site — Fable5 reference reconstruction
    ======================================================================== */
+html:has(.fable-site),
+body:has(.fable-site) {
+  background: hsl(222 47% 5%);
+}
 .fable-site {
   --fable-bg: hsl(222 47% 5%);
   --fable-card: hsl(222 35% 9%);
@@ -8975,6 +8979,7 @@ kbd {
   --fable-primary: hsl(262 80% 70%);
   --fable-primary-dark: hsl(222 47% 5%);
   min-width: 0;
+  min-height: 100vh;
   overflow: hidden;
   color: var(--fable-text);
   background: var(--fable-bg);
