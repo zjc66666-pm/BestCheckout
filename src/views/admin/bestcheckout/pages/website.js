@@ -454,6 +454,11 @@ function marketingNavLinks(active) {
   return '<a href="#/landing" data-landing-section="home">Home</a><a href="#/landing?section=funnels" data-landing-section="funnels">Funnels</a><a href="#/lookbook"' + lookbook + '>Lookbook</a><a href="#/landing?section=results" data-landing-section="results">Product</a><a href="#/landing?section=how-it-works" data-landing-section="how-it-works">How it works</a><a href="help/#guide=feature-list">Help Center</a><a href="help/#guide=connect-shopify">Connect guide</a><a href="https://wa.me/8618142853170" target="_blank" rel="noopener noreferrer">Contact us</a>';
 }
 
+function marketingFooterLinks(active) {
+  const about = active === 'about' ? ' aria-current="page"' : '';
+  return marketingNavLinks(active) + '<a href="#/about"' + about + '>About us</a>';
+}
+
 function marketingPrimaryButton(ctas, extraClass, withArrow) {
   return `<a class="fable-button${extraClass ? ' ' + extraClass : ''}" href="${ctas.primaryHref}">${ctas.primaryLabel}${withArrow ? ' ' + icon('arrow', 16) : ''}</a>`;
 }
@@ -469,8 +474,10 @@ function renderMarketingFrame(session, options) {
     ? `<button type="button" class="fable-sign-out" data-action="portal-signout">Sign out</button>`
     : `<a class="fable-sign-in" href="#/sign-in">Sign in</a>`;
   const links = marketingNavLinks(active);
+  const footerLinks = marketingFooterLinks(active);
+  const siteModifier = active === 'lookbook' ? ' is-lookbook' : active === 'about' ? ' is-about' : '';
   return `
-    <div class="fable-site${menuOpen ? ' is-menu-open' : ''}${active === 'lookbook' ? ' is-lookbook' : ''}">
+    <div class="fable-site${menuOpen ? ' is-menu-open' : ''}${siteModifier}">
       <header class="fable-nav${menuOpen ? ' is-open' : ''}">
         <nav aria-label="Primary">
           <a class="fable-brand" href="#/landing" data-landing-section="home" aria-label="BestCheckout home"><img class="fable-brand-mark" src="${brandMark}" alt="" aria-hidden="true"/><span>BestCheckout</span></a>
@@ -485,7 +492,7 @@ function renderMarketingFrame(session, options) {
         ${mobileAccount}
       </div>
       ${options && options.main ? options.main : ''}
-      <footer class="fable-footer"><div class="fable-container fable-footer-main"><section class="fable-footer-brand"><strong><img class="fable-footer-brand-mark" src="${brandMark}" alt="" aria-hidden="true"/><span>BestCheckout</span></strong><p>Conversion infrastructure for Shopify brands.</p><div class="fable-trust-badges" aria-label="Trust and compliance badges">${footerTrustBadges.map(renderFooterTrustBadge).join('')}</div></section><nav>${links}<a href="${ctas.footerHref}">${ctas.footerLabel}</a></nav></div><div class="fable-container fable-footer-bottom"><small>© 2026 BestCheckout. All rights reserved.</small><section class="fable-payment-methods" aria-label="Supported payment methods"><span class="fable-footer-label">Supported payment methods</span><img class="fable-payment-logo" src="${footerPaymentLogo}" alt="American Express, Visa, Mastercard, UnionPay, PayPal, JCB, Discover, and Klarna" loading="lazy" decoding="async"/></section></div></footer>
+      <footer class="fable-footer"><div class="fable-container fable-footer-main"><section class="fable-footer-brand"><strong><img class="fable-footer-brand-mark" src="${brandMark}" alt="" aria-hidden="true"/><span>BestCheckout</span></strong><p>Conversion infrastructure for Shopify brands.</p><div class="fable-trust-badges" aria-label="Trust and compliance badges">${footerTrustBadges.map(renderFooterTrustBadge).join('')}</div></section><nav>${footerLinks}<a href="${ctas.footerHref}">${ctas.footerLabel}</a></nav></div><div class="fable-container fable-footer-bottom"><small>© 2026 BestCheckout. All rights reserved.</small><section class="fable-payment-methods" aria-label="Supported payment methods"><span class="fable-footer-label">Supported payment methods</span><img class="fable-payment-logo" src="${footerPaymentLogo}" alt="American Express, Visa, Mastercard, UnionPay, PayPal, JCB, Discover, and Klarna" loading="lazy" decoding="async"/></section></div></footer>
     </div>`;
 }
 
@@ -517,6 +524,31 @@ export function renderMarketingSite(session) {
         <section class="fable-section fable-testimonials"><div class="fable-container"><h2 class="fable-section-title">Built for operators who<br/>move fast and measure everything.</h2><div class="fable-testimonial-grid">${testimonials.map((item) => `<article><div class="fable-stars" aria-label="Rated 5 out of 5 stars">★★★★★</div><blockquote>“${item.quote}”</blockquote><span class="fable-metric">${item.metric}</span><footer><img class="fable-avatar" src="${item.avatar}" alt="" width="40" height="40" loading="lazy" decoding="async"/><span><b>${item.name}</b><small>${item.role}</small></span></footer></article>`).join('')}</div></div></section>
         <section class="fable-section"><div class="fable-container"><h2 class="fable-section-title">Your store. Your payment accounts.<br/>Your data.</h2><div class="fable-trust-grid"><article>${cardIcon('shield')}<h3>Merchant-owned access</h3><p>You connect your own Shopify app; BestCheckout never holds your credentials.</p></article><article>${cardIcon('orders')}<h3>Shopify order sync</h3><p>Every completed checkout writes back to Shopify automatically.</p></article><article>${cardIcon('analytics')}<h3>Clear performance data</h3><p>Conversion rates, AOV, and recovery stats visible from day one.</p></article></div></div></section>
         <section class="fable-section fable-final"><div class="fable-container"><div><h2 class="fable-section-title">Make the checkout your<br/>strongest sales page.</h2>${marketingPrimaryButton(ctas, '', true)}</div></div></section>
+      </main>`,
+  });
+}
+
+export function renderAboutSite(session) {
+  return renderMarketingFrame(session, {
+    active: 'about',
+    main: `<main class="fable-about-page">
+        <section class="fable-about">
+          <div class="fable-container">
+            <div class="fable-about-panel">
+              <p class="fable-lookbook-kicker">BestCheckout</p>
+              <h1>About us</h1>
+              <p>BestCheckout is conversion infrastructure for Shopify brands. Merchants design the path from cart to paid order, run checkout funnels with Upsell, Downsell, and Thank you, and keep orders and inventory in sync with Shopify.</p>
+              <p>You connect your own store and payment accounts. Carts that do not match a BestCheckout flow stay on Shopify Checkout.</p>
+              <h2>Company information</h2>
+              <dl class="fable-about-facts">
+                <div><dt>Company</dt><dd>HUACHAO TRADING LIMITED</dd></div>
+                <div><dt>Address</dt><dd>Office Unit B on 9/F, Thomson Commercial Building, 8 Thomson Road, Hong Kong</dd></div>
+                <div><dt>Phone</dt><dd><a href="tel:+8613143727741">+86 131 4372 7741</a></dd></div>
+                <div><dt>Email</dt><dd><a href="mailto:hchk01@163.com">hchk01@163.com</a></dd></div>
+              </dl>
+            </div>
+          </div>
+        </section>
       </main>`,
   });
 }

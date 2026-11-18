@@ -9390,6 +9390,46 @@ kbd {
   .fable-lookbook-hero { padding-top: calc(var(--fable-nav-height, 64px) + 36px); }
   .fable-lookbook-hero h1 { font-size: 36px; }
 }
+.fable-about { padding: calc(var(--fable-nav-height, 80px) + 72px) 0 96px; }
+.fable-about-panel { max-width: 760px; }
+.fable-about h1 {
+  margin: 0 0 24px;
+  color: var(--fable-text);
+  font-size: clamp(42px, 5vw, 64px);
+  font-weight: 750;
+  letter-spacing: -.05em;
+  line-height: 1.08;
+}
+.fable-about-panel > p {
+  margin: 0 0 16px;
+  color: var(--fable-muted);
+  font-size: 17px;
+  line-height: 1.7;
+}
+.fable-about h2 {
+  margin: 40px 0 8px;
+  color: var(--fable-text);
+  font-size: 28px;
+  font-weight: 750;
+  letter-spacing: -.04em;
+}
+.fable-about-facts { margin: 0; }
+.fable-about-facts div {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 20px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--fable-line);
+}
+.fable-about-facts dt { color: var(--fable-muted); font-size: 13px; font-weight: 650; }
+.fable-about-facts dd { margin: 0; color: var(--fable-text); font-size: 16px; line-height: 1.5; }
+.fable-about-facts a:hover { color: var(--fable-primary); }
+@media (max-width: 640px) {
+  .fable-about { padding-top: calc(var(--fable-nav-height, 64px) + 48px); }
+  .fable-about h1 { font-size: 40px; }
+  .fable-about-panel > p { font-size: 16px; }
+  .fable-about-facts div { grid-template-columns: 1fr; gap: 4px; }
+}
 @media (max-width:780px) {
   .fable-brand { font-size:17px; }
   .fable-brand::after { display:none; content:none; }

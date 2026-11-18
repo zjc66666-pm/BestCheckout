@@ -38,7 +38,7 @@ import { renderEditor, mountEditor } from './pages/editor.js?rev=20260719-previe
 import { renderAbandonedCheckouts, renderOrders } from './pages/orders.js?rev=20260825-abandoned1';
 import { renderConnectShopify, renderForgotPasswordCode, renderInstallEmailPage, renderOauthConsent, renderPasswordResetEmailPage, renderSignIn, renderSignUp, renderSignupVerificationEmailPage } from './pages/auth.js?rev=20260910-oauth13';
 import { renderHelpCenter } from './pages/help.js?rev=20260907-install-link1';
-import { renderLookbookSite, renderMarketingSite } from './pages/website.js?rev=20261110-contact-whatsapp';
+import { renderAboutSite, renderLookbookSite, renderMarketingSite } from './pages/website.js?rev=20261118-about1';
 import {
   applyPrototypeSession,
   connectSetupRoute,
@@ -194,7 +194,7 @@ function connectLogoHref(route) {
 
 function rememberConnectOrigin(route) {
   const name = route && route.segments ? route.segments[0] : '';
-  if (name === 'landing' || name === 'lookbook' || name === 'sign-in' || name === 'sign-up') {
+  if (name === 'landing' || name === 'lookbook' || name === 'about' || name === 'sign-in' || name === 'sign-up') {
     state.ui.connectFrom = 'site';
     return;
   }
@@ -231,7 +231,7 @@ function redirectPublicAuth(route) {
 
 function isMarketingLandingMounted() {
   const site = appRoot.querySelector('.fable-site');
-  return Boolean(site && !site.classList.contains('is-lookbook'));
+  return Boolean(site && !site.classList.contains('is-lookbook') && !site.classList.contains('is-about'));
 }
 
 function handleLandingNavClick(event) {
@@ -671,7 +671,7 @@ function renderShopifyChrome(pageMarkup, route) {
 }
 
 function isPublicRoute(route) {
-  return ['landing', 'lookbook', 'sign-in', 'sign-up', 'email-preview', 'password-reset-email-preview', 'install-email-preview', 'forgot-password', 'connect-shopify', 'help', 'oauth-consent'].includes(route.segments[0]);
+  return ['landing', 'lookbook', 'about', 'sign-in', 'sign-up', 'email-preview', 'password-reset-email-preview', 'install-email-preview', 'forgot-password', 'connect-shopify', 'help', 'oauth-consent'].includes(route.segments[0]);
 }
 
 function renderPublicRoute(route) {
@@ -691,6 +691,7 @@ function renderPublicRoute(route) {
     });
   }
   if (route.segments[0] === 'help') return renderHelpCenter(route, marketingSession());
+  if (route.segments[0] === 'about') return renderAboutSite(marketingSession());
   if (route.segments[0] === 'lookbook') return renderLookbookSite(marketingSession(), route.query);
   return renderMarketingSite(marketingSession());
 }
@@ -791,6 +792,9 @@ function renderShell(options) {
     }
     if (route.segments[0] === 'lookbook') {
       window.requestAnimationFrame(function () { window.scrollTo(0, keepLookbookScroll); });
+    }
+    if (route.segments[0] === 'about') {
+      window.requestAnimationFrame(function () { window.scrollTo(0, 0); });
     }
     lastRenderedHash = window.location.hash;
     lastRenderedWasEditor = false;
@@ -3898,7 +3902,7 @@ window.addEventListener('beforeunload', function (event) {
 });
 
 const initialRoute = parseRoute();
-if (!window.location.hash || !['landing', 'lookbook', 'sign-in', 'sign-up', 'email-preview', 'password-reset-email-preview', 'install-email-preview', 'forgot-password', 'connect-shopify', 'help'].includes(initialRoute.segments[0])) {
+if (!window.location.hash || !['landing', 'lookbook', 'about', 'sign-in', 'sign-up', 'email-preview', 'password-reset-email-preview', 'install-email-preview', 'forgot-password', 'connect-shopify', 'help'].includes(initialRoute.segments[0])) {
   setRoute('landing');
 } else {
   renderShell();
