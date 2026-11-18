@@ -8978,6 +8978,8 @@ body:has(.fable-site) {
   --fable-muted: hsl(220 20% 65%);
   --fable-primary: hsl(262 80% 70%);
   --fable-primary-dark: hsl(222 47% 5%);
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   min-height: 100vh;
   overflow: hidden;
@@ -8986,6 +8988,7 @@ body:has(.fable-site) {
   font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 .fable-site { --fable-nav-height: 80px; }
+.fable-site > main { flex: 1 0 auto; }
 .fable-site *, .fable-site *::before, .fable-site *::after { box-sizing: border-box; }
 .fable-site a { color: inherit; text-decoration: none; }
 .fable-container { width: min(1280px, calc(100% - 32px)); margin: 0 auto; }
