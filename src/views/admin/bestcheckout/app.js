@@ -36,18 +36,18 @@ import { renderActivity } from './pages/activity.js?rev=20260720-standalone-port
 import { renderSettings } from './pages/settings.js?rev=20260720-standalone-portal-v150';
 import { renderEditor, mountEditor } from './pages/editor.js?rev=20260719-preview-session-v92';
 import { renderAbandonedCheckouts, renderOrders } from './pages/orders.js?rev=20260825-abandoned1';
-import { renderConnectShopify, renderForgotPasswordCode, renderInstallEmailPage, renderOauthConsent, renderPasswordResetEmailPage, renderSignIn, renderSignUp, renderSignupVerificationEmailPage } from './pages/auth.js?rev=20261117-acct1';
-import { renderHelpCenter } from './pages/help.js?rev=20260907-install-link1';
-import { renderLookbookSite, renderMarketingSite } from './pages/website.js?rev=20261110-contact-whatsapp';
+import { renderConnectShopify, renderForgotPasswordCode, renderInstallEmailPage, renderOauthConsent, renderPasswordResetEmailPage, renderSignIn, renderSignUp, renderSignupVerificationEmailPage } from './pages/auth.js?rev=20261123-acct165';
+import { renderHelpCenter } from './pages/help.js?rev=20261121-acct68';
+import { renderAboutSite, renderLookbookSite, renderMarketingSite } from './pages/website.js?rev=20261121-acct68';
 import {
   applyPrototypeSession,
   connectSetupRoute,
   findPrototypeAccount,
   persistPrototypeSession,
   clearPrototypeSession,
-} from './session.js?rev=20260907-expired-link1';
+} from './session.js?rev=20261123-acct165';
 import { escapeHtml, formatDateTime, getRouteName, isOauthConsentEntry, parseRoute, setRoute } from './utils.js?rev=20260910-oauth3';
-import { applyLocale, renderLanguageSwitcher, translate } from './i18n.js?rev=20261117-acct1';
+import { applyLocale, renderLanguageSwitcher, translate } from './i18n.js?rev=20261121-acct96';
 
 const appRoot = document.getElementById('app');
 const modalRoot = document.getElementById('modal-root');
@@ -66,10 +66,8 @@ try {
   if (entry === 'connect-new-shopify-store') {
     state.ui.isAuthenticated = true;
     state.ui.hasConnectedStore = true;
-    state.ui.connectFrom = 'admin';
   }
   applyPrototypeSession(state);
-  if (entry === 'connect-new-shopify-store') state.ui.connectFrom = 'admin';
   const storedLocale = window.localStorage.getItem('bestcheckout-prototype-locale');
   if (storedLocale === 'zh' || storedLocale === 'en') state.ui.locale = storedLocale;
 } catch (error) {
@@ -181,26 +179,98 @@ function marketingSession() {
   };
 }
 
-function isConnectFromAdmin(route) {
-  const entry = new URLSearchParams(window.location.search).get('entry');
-  if (entry === 'connect-new-shopify-store') return true;
-  if (route && route.query && route.query.get('from') === 'admin') return true;
-  return state.ui.connectFrom === 'admin';
+function storedConnectOrigin() {
+  try {
+    const raw = sessionStorage.getItem('bc-connect-origin');
+    return raw ? JSON.parse(raw) : null;
+  } catch (error) {
+    return null;
+  }
 }
 
-function connectLogoHref(route) {
-  return isConnectFromAdmin(route) ? 'app/#/home' : '#/landing';
+function saveConnectOrigin(from, home) {
+  state.ui.connectFrom = from;
+  state.ui.connectHome = home || '';
+  try {
+    sessionStorage.setItem('bc-connect-origin', JSON.stringify({ from: from, home: home || '' }));
+  } catch (error) { /* no-op */ }
+}
+
+function clearConnectOrigin() {
+  state.ui.connectFrom = 'site';
+  state.ui.connectHome = '';
+  try { sessionStorage.removeItem('bc-connect-origin'); } catch (error) { /* no-op */ }
+}
+
+function originFromReferrer() {
+  const ref = document.referrer || '';
+  if (!ref) return null;
+  try {
+    const url = new URL(ref);
+    if (url.origin !== window.location.origin) return null;
+    const path = url.pathname;
+    if (/\/account(?:\/|$)/.test(path)) return { from: 'stores', home: '' };
+    if (/\/app(?:\/|$)/.test(path)) {
+      let home = url.searchParams.get('store') || '';
+      if (!home) {
+        try { home = sessionStorage.getItem('bc-demo-store') || ''; } catch (error) { /* no-op */ }
+      }
+      return { from: 'admin', home: home };
+    }
+  } catch (error) { /* no-op */ }
+  return null;
 }
 
 function rememberConnectOrigin(route) {
   const name = route && route.segments ? route.segments[0] : '';
-  if (name === 'landing' || name === 'lookbook' || name === 'sign-in' || name === 'sign-up') {
-    state.ui.connectFrom = 'site';
+  if (name === 'landing' || name === 'lookbook' || name === 'about' || name === 'sign-in' || name === 'sign-up') {
+    clearConnectOrigin();
     return;
   }
-  if (name === 'connect-shopify' && isConnectFromAdmin(route)) {
-    state.ui.connectFrom = 'admin';
+  if (name !== 'connect-shopify' || !route.query) return;
+  const from = route.query.get('from');
+  if (from === 'admin') {
+    saveConnectOrigin('admin', route.query.get('home') || state.ui.connectHome || '');
+    return;
   }
+  if (from === 'stores') {
+    saveConnectOrigin('stores', '');
+    return;
+  }
+  const inferred = originFromReferrer();
+  if (inferred) {
+    saveConnectOrigin(inferred.from, inferred.home);
+    return;
+  }
+  const stored = storedConnectOrigin();
+  if (stored && (stored.from === 'admin' || stored.from === 'stores')) {
+    state.ui.connectFrom = stored.from;
+    state.ui.connectHome = stored.home || '';
+  }
+}
+
+function connectReturnHref() {
+  if (state.ui.connectFrom === 'admin') {
+    const home = state.ui.connectHome ? '?store=' + encodeURIComponent(state.ui.connectHome) : '';
+    return 'app/' + home + '#/home';
+  }
+  return 'account/#/stores';
+}
+
+function connectBackLabel() {
+  return state.ui.connectFrom === 'admin' ? 'Back to dashboard' : 'Back to stores';
+}
+
+function connectOriginSuffix() {
+  if (state.ui.connectFrom === 'admin') {
+    return '&from=admin' + (state.ui.connectHome ? '&home=' + encodeURIComponent(state.ui.connectHome) : '');
+  }
+  if (state.ui.connectFrom === 'stores') return '&from=stores';
+  return '';
+}
+
+function connectLogoHref() {
+  return connectReturnHref();
 }
 
 function enterSignedInDestination(next) {
@@ -227,7 +297,7 @@ function redirectPublicAuth(route) {
 
 function isMarketingLandingMounted() {
   const site = appRoot.querySelector('.fable-site');
-  return Boolean(site && !site.classList.contains('is-lookbook'));
+  return Boolean(site && !site.classList.contains('is-lookbook') && !site.classList.contains('is-about'));
 }
 
 function handleLandingNavClick(event) {
@@ -550,12 +620,12 @@ function renderPortalStoreMenu() {
     const selected = !connecting && store.id === current.id;
     const stateChip = connecting ? '<span class="hdr-store-state is-' + store.connectStatus + '">' + escapeHtml(connectStateLabel(store.connectStatus, isZh)) + '</span>' : '';
     const attrs = connecting
-      ? ' data-route="connect-shopify?status=' + encodeURIComponent(store.connectStatus) + '&shop=' + encodeURIComponent(store.shop || store.id) + '&from=admin"'
+      ? ' data-route="connect-shopify?status=' + encodeURIComponent(store.connectStatus) + '&shop=' + encodeURIComponent(store.shop || store.id) + '&from=admin&home=' + encodeURIComponent(current.name || '') + '"'
       : ' data-action="switch-portal-store" data-store-id="' + escapeHtml(store.id) + '" role="menuitemradio" aria-checked="' + selected + '"';
     return '<button type="button" class="hdr-store-row' + (selected ? ' current' : '') + '"' + attrs + '><span class="hdr-store-ico"></span><span class="hdr-store-meta"><span class="hdr-store-name">' + escapeHtml(store.name) + '</span><span class="hdr-store-url">' + escapeHtml(store.domain) + '</span>' + stateChip + '</span>' + (selected ? '<span class="hdr-store-check">✓</span>' : '') + '</button>';
   }).join('');
   const foot = isZh ? '连接新的 Shopify 店铺' : 'Connect new Shopify store';
-  return '<div class="hdr-menu bc-shell-menu" role="menu">' + rows + '<button type="button" class="hdr-menu-foot" data-route="connect-shopify?from=admin">' + escapeHtml(foot) + '</button></div>';
+  return '<div class="hdr-menu bc-shell-menu" role="menu">' + rows + '<button type="button" class="hdr-menu-foot" data-route="connect-shopify?from=admin&home=' + encodeURIComponent(current.name || '') + '">' + escapeHtml(foot) + '</button></div>';
 }
 
 function renderPortalAccountMenu() {
@@ -667,17 +737,17 @@ function renderShopifyChrome(pageMarkup, route) {
 }
 
 function isPublicRoute(route) {
-  return ['landing', 'lookbook', 'sign-in', 'sign-up', 'email-preview', 'password-reset-email-preview', 'install-email-preview', 'forgot-password', 'connect-shopify', 'help', 'oauth-consent'].includes(route.segments[0]);
+  return ['landing', 'lookbook', 'about', 'sign-in', 'sign-up', 'email-preview', 'password-reset-email-preview', 'install-email-preview', 'forgot-password', 'connect-shopify', 'help', 'oauth-consent'].includes(route.segments[0]);
 }
 
 function renderPublicRoute(route) {
   if (route.segments[0] === 'sign-in') return renderSignIn();
-  if (route.segments[0] === 'sign-up') return renderSignUp();
+  if (route.segments[0] === 'sign-up') return renderSignUp(referralCodeForSignup());
   if (route.segments[0] === 'email-preview') return renderSignupVerificationEmailPage(route.query.get('email'));
   if (route.segments[0] === 'password-reset-email-preview') return renderPasswordResetEmailPage(route.query.get('email'));
   if (route.segments[0] === 'install-email-preview') return renderInstallEmailPage(route.query.get('shop'));
   if (route.segments[0] === 'forgot-password') return renderForgotPasswordCode(route.segments[1]);
-  if (route.segments[0] === 'connect-shopify') return renderConnectShopify(route, { logoHref: connectLogoHref(route), installLinkExpired: state.ui.installLinkExpired });
+  if (route.segments[0] === 'connect-shopify') return renderConnectShopify(route, { logoHref: connectLogoHref(), backHref: connectReturnHref(), backLabel: connectBackLabel(), originQuery: connectOriginSuffix(), installLinkExpired: state.ui.installLinkExpired });
   if (route.segments[0] === 'oauth-consent') {
     return renderOauthConsent(route, {
       locale: state.ui.locale,
@@ -687,6 +757,7 @@ function renderPublicRoute(route) {
     });
   }
   if (route.segments[0] === 'help') return renderHelpCenter(route, marketingSession());
+  if (route.segments[0] === 'about') return renderAboutSite(marketingSession());
   if (route.segments[0] === 'lookbook') return renderLookbookSite(marketingSession(), route.query);
   return renderMarketingSite(marketingSession());
 }
@@ -756,8 +827,66 @@ function pageForRoute(route) {
   return renderHome(state);
 }
 
+const REFERRAL_CODE_KEY = 'bc-referral-code';
+const REFERRAL_CODES = {
+  ANA: 1, BEN: 1, CHEN: 1, DANA: 1, NOAH: 1, RILEY: 1, NINA: 1, JUNE: 1, SAM: 1, QUINN: 1, MIA: 1,
+  OWEN: 1, LEO: 1, PAT: 1, LOOM: 1, BIRCH: 1, OAK: 1, MOSS: 1, NORTH: 1, ATELIER: 1, HARBOR: 1, RIVER: 1,
+  MIX: 1, AVA: 1, DREW: 1, PIP: 1,
+};
+
+function normalizeReferralCode(value) {
+  return String(value || '').trim().toUpperCase();
+}
+
+function rememberReferralCode() {
+  let fromSearch = '';
+  try { fromSearch = new URLSearchParams(window.location.search).get('ref') || ''; } catch (error) { /* no-op */ }
+  const fromHash = parseRoute().query.get('ref') || '';
+  const code = normalizeReferralCode(fromHash || fromSearch);
+  if (!code) return;
+  try {
+    window.localStorage.setItem(REFERRAL_CODE_KEY, JSON.stringify({ code: code, expires: Date.now() + 30 * 24 * 60 * 60 * 1000 }));
+  } catch (error) { /* no-op */ }
+}
+
+function storedReferralCode() {
+  try {
+    const raw = window.localStorage.getItem(REFERRAL_CODE_KEY);
+    if (!raw) return '';
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed.code || Number(parsed.expires) < Date.now()) return '';
+    return normalizeReferralCode(parsed.code);
+  } catch (error) {
+    return '';
+  }
+}
+
+function referralCodeForSignup() {
+  let fromSearch = '';
+  try { fromSearch = new URLSearchParams(window.location.search).get('ref') || ''; } catch (error) { /* no-op */ }
+  const fromHash = parseRoute().query.get('ref') || '';
+  return normalizeReferralCode(fromHash || fromSearch) || storedReferralCode();
+}
+
+function generatedReferralCode(code) {
+  try {
+    const raw = window.localStorage.getItem('bc-own-referral-codes');
+    const parsed = raw ? JSON.parse(raw) : {};
+    return Object.keys(parsed || {}).some(function (email) { return parsed[email] === code; });
+  } catch (error) {
+    return false;
+  }
+}
+
+function referralCodeError(value) {
+  const code = normalizeReferralCode(value);
+  if (!code) return '';
+  return REFERRAL_CODES[code] || generatedReferralCode(code) ? '' : 'Enter a valid referral code.';
+}
+
 function renderShell(options) {
   const route = parseRoute();
+  rememberReferralCode();
   rememberConnectOrigin(route);
   if (isPublicRoute(route)) {
     if (redirectPublicAuth(route)) return;
@@ -774,6 +903,7 @@ function renderShell(options) {
     const keepLookbookScroll = /^#\/lookbook/.test(lastRenderedHash || '') ? (window.scrollY || window.pageYOffset || 0) : 0;
     clearMarketingMotion();
     appRoot.innerHTML = renderPublicRoute(route);
+    if (route.segments[0] === 'connect-shopify') applyLocale(appRoot, state.ui.locale);
     if (route.segments[0] === 'forgot-password' && route.segments[1] !== 'complete') syncResetCodeCooldown();
     if (route.segments[0] === 'sign-up') syncSignupCodeCooldown();
     if (route.segments[0] === 'landing') {
@@ -787,6 +917,9 @@ function renderShell(options) {
     }
     if (route.segments[0] === 'lookbook') {
       window.requestAnimationFrame(function () { window.scrollTo(0, keepLookbookScroll); });
+    }
+    if (route.segments[0] === 'about') {
+      window.requestAnimationFrame(function () { window.scrollTo(0, 0); });
     }
     lastRenderedHash = window.location.hash;
     lastRenderedWasEditor = false;
@@ -2483,7 +2616,7 @@ function requestNewInstallLink(shop) {
   state.ui.connectShop = handle;
   state.ui.installLinkExpired = false;
   persistPrototypeSession(state);
-  setRoute('connect-shopify?status=install&shop=' + encodeURIComponent(handle) + (state.ui.connectFrom === 'admin' ? '&from=admin' : ''));
+  setRoute('connect-shopify?status=install&shop=' + encodeURIComponent(handle) + connectOriginSuffix());
 }
 
 function startShopifyConnection(form) {
@@ -2510,7 +2643,7 @@ function startShopifyConnection(form) {
   state.ui.connectStatus = 'pending';
   state.ui.connectShop = shop;
   persistPrototypeSession(state);
-  setRoute('connect-shopify?status=pending&shop=' + encodeURIComponent(shop));
+  setRoute('connect-shopify?status=pending&shop=' + encodeURIComponent(shop) + connectOriginSuffix());
 }
 
 function completeShopifyInstall(shop) {
@@ -2621,6 +2754,7 @@ function bindFormSubmissions(event) {
     state.ui.hasConnectedStore = account.hasStore;
     state.ui.connectStatus = account.connectStatus || '';
     state.ui.connectShop = account.shop || '';
+    state.ui.storeNames = Array.isArray(account.storeNames) ? account.storeNames : null;
     state.ui.installLinkExpired = Boolean(account.installLinkExpired);
     persistPrototypeSession(state);
     useEnglishPortalDefault();
@@ -2682,6 +2816,16 @@ function bindFormSubmissions(event) {
       if (field) field.classList.add('is-invalid');
       if (confirmInput) { confirmInput.setAttribute('aria-invalid', 'true'); confirmInput.focus(); }
       if (error) { error.hidden = false; error.textContent = 'Passwords do not match.'; }
+      return;
+    }
+    const referralInput = form.querySelector('[name="referralCode"]');
+    const referralMessage = referralCodeError(data.get('referralCode'));
+    if (referralMessage) {
+      const field = referralInput && referralInput.closest('[data-portal-field]');
+      const error = field && field.querySelector('[data-field-error]');
+      if (field) field.classList.add('is-invalid');
+      if (referralInput) { referralInput.setAttribute('aria-invalid', 'true'); referralInput.focus(); }
+      if (error) { error.hidden = false; error.textContent = referralMessage; }
       return;
     }
     state.ui.isAuthenticated = true;
@@ -3894,7 +4038,7 @@ window.addEventListener('beforeunload', function (event) {
 });
 
 const initialRoute = parseRoute();
-if (!window.location.hash || !['landing', 'lookbook', 'sign-in', 'sign-up', 'email-preview', 'password-reset-email-preview', 'install-email-preview', 'forgot-password', 'connect-shopify', 'help'].includes(initialRoute.segments[0])) {
+if (!window.location.hash || !['landing', 'lookbook', 'about', 'sign-in', 'sign-up', 'email-preview', 'password-reset-email-preview', 'install-email-preview', 'forgot-password', 'connect-shopify', 'help'].includes(initialRoute.segments[0])) {
   setRoute('landing');
 } else {
   renderShell();

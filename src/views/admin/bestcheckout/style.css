@@ -8075,6 +8075,7 @@ kbd {
 .portal-form { display:grid; gap:16px; }
 .portal-form label { display:grid; gap:7px; color:#344057; font-size:13px; font-weight:700; }
 .portal-field-label { display:block; }
+.portal-field-help { color:#748097; font-size:12px; font-weight:500; line-height:1.4; }
 .portal-field-with-action { position:relative; }
 .portal-field-with-action .portal-field-label { padding-right:112px; }
 .portal-email-preview-button { position:absolute; top:-4px; right:0; display:inline-flex; align-items:center; gap:5px; min-height:24px; padding:0 8px; color:#405de5; border:1px solid #cfd8ff; border-radius:6px; background:#f7f8ff; font-size:11px; font-weight:750; line-height:1; text-decoration:none; white-space:nowrap; transition:border-color .2s ease, background .2s ease, color .2s ease; }
@@ -8160,7 +8161,10 @@ kbd {
 .connect-header { display:flex; align-items:center; justify-content:space-between; height:72px; padding:0 clamp(24px,6vw,90px); border-bottom:1px solid #e6e9f0; background:#fff; }
 .connect-header .portal-mark { width:28px; height:28px; border-radius:0; background:transparent; box-shadow:none; filter:none; }
 .portal-auth-brand .portal-mark { width:28px; height:28px; border-radius:0; background:transparent; box-shadow:none; filter:none; }
-.connect-flow > main { display:grid; justify-items:center; padding:54px 24px 100px; }
+.connect-flow > main { display:grid; justify-items:center; padding:28px 24px 100px; }
+.connect-stage { width:min(100%, 590px); }
+.connect-back { display:inline-flex; align-items:center; gap:6px; margin:0 0 14px; color:#5c6b86; font-size:14px; font-weight:500; text-decoration:none; }
+.connect-back:hover { color:#182238; }
 .connect-card { width:min(100%, 590px); padding:38px; border:1px solid #e0e5ef; border-radius:16px; background:#fff; box-shadow:0 14px 42px rgba(24,35,63,.08); }
 .connect-icon { display:grid; width:44px; height:44px; place-items:center; margin-bottom:20px; color:#405de5; border-radius:12px; background:#eef1ff; }
 .connect-icon.is-warning { color:#b45309; background:#fff7ed; }
@@ -8965,6 +8969,10 @@ kbd {
 /* ===========================================================================
    Marketing site — Fable5 reference reconstruction
    ======================================================================== */
+html:has(.fable-site),
+body:has(.fable-site) {
+  background: hsl(222 47% 5%);
+}
 .fable-site {
   --fable-bg: hsl(222 47% 5%);
   --fable-card: hsl(222 35% 9%);
@@ -8974,13 +8982,17 @@ kbd {
   --fable-muted: hsl(220 20% 65%);
   --fable-primary: hsl(262 80% 70%);
   --fable-primary-dark: hsl(222 47% 5%);
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  min-height: 100vh;
   overflow: hidden;
   color: var(--fable-text);
   background: var(--fable-bg);
   font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 .fable-site { --fable-nav-height: 80px; }
+.fable-site > main { flex: 1 0 auto; }
 .fable-site *, .fable-site *::before, .fable-site *::after { box-sizing: border-box; }
 .fable-site a { color: inherit; text-decoration: none; }
 .fable-container { width: min(1280px, calc(100% - 32px)); margin: 0 auto; }
@@ -9389,6 +9401,46 @@ kbd {
   .fable-look-grid--teaser { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .fable-lookbook-hero { padding-top: calc(var(--fable-nav-height, 64px) + 36px); }
   .fable-lookbook-hero h1 { font-size: 36px; }
+}
+.fable-about { padding: calc(var(--fable-nav-height, 80px) + 72px) 0 96px; }
+.fable-about-panel { max-width: 760px; }
+.fable-about h1 {
+  margin: 0 0 24px;
+  color: var(--fable-text);
+  font-size: clamp(42px, 5vw, 64px);
+  font-weight: 750;
+  letter-spacing: -.05em;
+  line-height: 1.08;
+}
+.fable-about-panel > p {
+  margin: 0 0 16px;
+  color: var(--fable-muted);
+  font-size: 17px;
+  line-height: 1.7;
+}
+.fable-about h2 {
+  margin: 40px 0 8px;
+  color: var(--fable-text);
+  font-size: 28px;
+  font-weight: 750;
+  letter-spacing: -.04em;
+}
+.fable-about-facts { margin: 0; }
+.fable-about-facts div {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 20px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--fable-line);
+}
+.fable-about-facts dt { color: var(--fable-muted); font-size: 13px; font-weight: 650; }
+.fable-about-facts dd { margin: 0; color: var(--fable-text); font-size: 16px; line-height: 1.5; }
+.fable-about-facts a:hover { color: var(--fable-primary); }
+@media (max-width: 640px) {
+  .fable-about { padding-top: calc(var(--fable-nav-height, 64px) + 48px); }
+  .fable-about h1 { font-size: 40px; }
+  .fable-about-panel > p { font-size: 16px; }
+  .fable-about-facts div { grid-template-columns: 1fr; gap: 4px; }
 }
 @media (max-width:780px) {
   .fable-brand { font-size:17px; }

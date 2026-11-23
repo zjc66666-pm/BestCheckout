@@ -10,7 +10,11 @@
    location.hash; the router re-dispatches. */
 (function () {
   var V = '20260827-multi-offers1'; // cache-bust for lazy-loaded module scripts
-  var PUBLIC_SHOPIFY_CONNECTION_URL = './?entry=connect-new-shopify-store#/connect-shopify';
+  function shopifyConnectionUrl(hashQuery) {
+    var home = SITE.store ? '&home=' + encodeURIComponent(SITE.store) : '';
+    var extra = hashQuery ? '&' + String(hashQuery).replace(/^[?&]/, '') : '';
+    return './?entry=connect-new-shopify-store&rev=20261121-acctback3#/connect-shopify?from=admin' + home + extra;
+  }
   var s = function (p) { return '<svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>'; };
   var ICONS = {
     home: s('<path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/>'),
@@ -78,7 +82,7 @@
     // Unlinked stores start in the public connect flow. Pending / install / failed
     // stay in the workspace so merchants can see connection progress.
     if (shopifyConnectionState === 'unlinked') {
-      location.replace(PUBLIC_SHOPIFY_CONNECTION_URL);
+      location.replace(shopifyConnectionUrl());
       return;
     }
     // V1.139 provisioning still sends ?new=1. Normal entry derives the Home from store state.
@@ -779,12 +783,12 @@
     var connectTask = connected
       ? { done: true, title: 'Shopify store connected', desc: 'Products, discounts and delivery options are ready for checkout.' }
       : shopifyConnectionState === 'pending'
-        ? { done: false, current: true, title: 'Preparing your install link', desc: 'BestCheckout is creating a Custom App for this store. This usually takes about 1 day.', href: PUBLIC_SHOPIFY_CONNECTION_URL.replace('#/connect-shopify', '#/connect-shopify?status=pending'), action: 'View status' }
+        ? { done: false, current: true, title: 'Preparing your install link', desc: 'BestCheckout is creating a Custom App for this store. This usually takes about 1 day.', href: shopifyConnectionUrl('status=pending'), action: 'View status' }
         : shopifyConnectionState === 'install'
-          ? { done: false, current: true, title: 'Install BestCheckout', desc: 'Install from BestCheckout or from the email. Selecting Install does not finish this step.', href: PUBLIC_SHOPIFY_CONNECTION_URL.replace('#/connect-shopify', '#/connect-shopify?status=install'), action: 'Open install' }
+          ? { done: false, current: true, title: 'Install BestCheckout', desc: 'Install from BestCheckout or from the email. Selecting Install does not finish this step.', href: shopifyConnectionUrl('status=install'), action: 'Open install' }
           : shopifyConnectionState === 'failed'
-            ? { done: false, current: true, title: 'Shopify connection failed', desc: 'Check the myshopify.com address and who opened the install link, then try again.', href: PUBLIC_SHOPIFY_CONNECTION_URL.replace('#/connect-shopify', '#/connect-shopify?status=failed'), action: 'Try again' }
-            : { done: false, current: true, title: 'Connect your Shopify store', desc: 'Submit your myshopify.com address. BestCheckout emails an install link — you do not paste credentials.', href: PUBLIC_SHOPIFY_CONNECTION_URL, action: 'Connect' };
+            ? { done: false, current: true, title: 'Shopify connection failed', desc: 'Check the myshopify.com address and who opened the install link, then try again.', href: shopifyConnectionUrl('status=failed'), action: 'Try again' }
+            : { done: false, current: true, title: 'Connect your Shopify store', desc: 'Submit your myshopify.com address. BestCheckout emails an install link — you do not paste credentials.', href: shopifyConnectionUrl(), action: 'Connect' };
     var tasks = [connectTask];
     if (connected && !permissionsHealthy) {
       tasks.push({
@@ -887,7 +891,7 @@
   function dispatch() {
     var p = parse();
     if (shopifyConnectionState === 'unlinked') {
-      location.assign(PUBLIC_SHOPIFY_CONNECTION_URL);
+      location.assign(shopifyConnectionUrl());
       return;
     }
     // Performance is now part of Overview. Keep existing shared links useful.
@@ -932,12 +936,12 @@
     // The copied baseline used this path for a broader internal workspace.
     // Preserve bookmarks without exposing that unrelated surface to merchants.
     if (p.first === 'bestcheckout') {
-      if (p.rest === 'connect') location.assign(PUBLIC_SHOPIFY_CONNECTION_URL);
+      if (p.rest === 'connect') location.assign(shopifyConnectionUrl());
       else location.hash = '#/flows';
       return;
     }
     if (p.first === 'connect-shopify') {
-      location.assign(PUBLIC_SHOPIFY_CONNECTION_URL);
+      location.assign(shopifyConnectionUrl());
       return;
     }
     removeSettings();
@@ -1031,7 +1035,7 @@
       '</button>';
     }).join('');
     return '<div class="hdr-store-list">' + rows + '</div>' +
-      '<a class="hdr-menu-foot" href="./?entry=connect-new-shopify-store#/connect-shopify">Connect new Shopify store</a>';
+      '<a class="hdr-menu-foot" href="' + shopifyConnectionUrl() + '">Connect new Shopify store</a>';
   }
   function userMenuHtml() {
     return '<div class="hdr-menu-head">' + MICO.user + '<span>' + (SITE.email || 'owner@bestshopio.com') + '</span></div>' +
@@ -1108,7 +1112,7 @@
             var shop = row.getAttribute('data-shop');
             closeHdrMenus();
             if (status) {
-              window.location.assign(new URL('./?entry=connect-new-shopify-store#/connect-shopify?status=' + encodeURIComponent(status) + '&shop=' + encodeURIComponent(shop || 'your-store'), document.baseURI).href);
+              window.location.assign(new URL(shopifyConnectionUrl('status=' + encodeURIComponent(status) + '&shop=' + encodeURIComponent(shop || 'your-store')), document.baseURI).href);
               return;
             }
             var name = row.getAttribute('data-store');

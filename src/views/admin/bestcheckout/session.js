@@ -2,63 +2,45 @@ const SESSION_KEY = 'bestcheckout-prototype-session';
 
 export const PROTOTYPE_ACCOUNTS = [
   {
-    email: 'setup@bestcheckout.demo',
+    email: 'empty@bestcheckout.demo',
     password: '12345678',
     hasStore: false,
-    label: 'No store yet',
+    storeNames: [],
+    label: 'Empty refer',
   },
   {
-    email: 'pending@bestcheckout.demo',
-    password: '12345678',
-    hasStore: false,
-    connectStatus: 'pending',
-    shop: 'northstar',
-    label: 'Preparing install link',
-  },
-  {
-    email: 'install@bestcheckout.demo',
-    password: '12345678',
-    hasStore: false,
-    connectStatus: 'install',
-    shop: 'atelier',
-    label: 'Ready to install',
-  },
-  {
-    email: 'expired@bestcheckout.demo',
-    password: '12345678',
-    hasStore: false,
-    connectStatus: 'expired',
-    shop: 'harbor',
-    label: 'Install link expired',
-  },
-  {
-    email: 'workspace@bestcheckout.demo',
+    email: 'seller@bestcheckout.demo',
     password: '12345678',
     hasStore: true,
-    label: 'Store connected',
+    storeNames: ['Wren Supply', 'Plover Studio'],
+    label: 'Seller · billing mix',
   },
   {
-    email: 'disabled@bestcheckout.demo',
+    email: 'downline@bestcheckout.demo',
     password: '12345678',
-    hasStore: false,
-    connectStatus: 'disabled',
-    shop: 'river-remedy',
-    label: 'Store disabled · link valid',
-  },
-  {
-    email: 'disabled-expired@bestcheckout.demo',
-    password: '12345678',
-    hasStore: false,
-    connectStatus: 'disabled',
-    shop: 'river-remedy',
-    installLinkExpired: true,
-    label: 'Store disabled · link expired',
+    hasStore: true,
+    storeNames: ['Northstar', 'Atelier', 'Harbor', 'River Remedy'],
+    label: 'Seller · payout failed',
   },
   {
     email: 'hello@lavenderlabs.co',
     password: 'demo-password',
     hasStore: true,
-    label: 'Lavender Labs',
+    label: 'Seller · withdrawal states',
+  },
+  {
+    email: 'advanced@bestcheckout.demo',
+    password: '12345678',
+    hasStore: true,
+    storeNames: ['Lavender Labs', 'Aura Living', 'Northline Goods'],
+    label: 'Ready to withdraw',
+  },
+  {
+    email: 'director@bestcheckout.demo',
+    password: '12345678',
+    hasStore: true,
+    storeNames: ['Hey June', 'Kiln Coffee', 'Marlow Supply'],
+    label: 'No payout account',
   },
 ];
 
@@ -80,6 +62,7 @@ export function loadPrototypeSession() {
       hasStore: Boolean(parsed.hasStore),
       connectStatus: String(parsed.connectStatus || ''),
       shop: String(parsed.shop || ''),
+      storeNames: Array.isArray(parsed.storeNames) ? parsed.storeNames.map(String) : null,
     };
   } catch (error) {
     return null;
@@ -94,6 +77,7 @@ export function savePrototypeSession(session) {
       hasStore: Boolean(session && session.hasStore),
       connectStatus: String(session && session.connectStatus || ''),
       shop: String(session && session.shop || ''),
+      storeNames: Array.isArray(session && session.storeNames) ? session.storeNames.map(String) : null,
     }));
   } catch (error) { /* no-op */ }
 }
@@ -110,6 +94,7 @@ export function applyPrototypeSession(state) {
   state.ui.hasConnectedStore = session.hasStore;
   state.ui.connectStatus = session.connectStatus || '';
   state.ui.connectShop = session.shop || '';
+  state.ui.storeNames = session.storeNames;
   return state;
 }
 
@@ -123,6 +108,7 @@ export function persistPrototypeSession(state) {
     hasStore: state.ui.hasConnectedStore,
     connectStatus: state.ui.connectStatus,
     shop: state.ui.connectShop,
+    storeNames: state.ui.storeNames,
   });
 }
 
@@ -138,23 +124,12 @@ export function connectSetupRoute(state) {
 
 export function marketingCtas(session) {
   if (session && session.isAuthenticated) {
-    if (session.hasConnectedStore) {
-      return {
-        authenticated: true,
-        primaryHref: 'app/#/home',
-        primaryLabel: 'Open workspace',
-        footerHref: 'app/#/home',
-        footerLabel: 'Open workspace',
-      };
-    }
-    const setup = connectSetupRoute({ ui: session });
-    const setupHash = '#/' + setup;
     return {
       authenticated: true,
-      primaryHref: setupHash,
-      primaryLabel: 'Continue setup',
-      footerHref: setupHash,
-      footerLabel: 'Continue setup',
+      primaryHref: 'account/#/stores',
+      primaryLabel: 'Open workspace',
+      footerHref: 'account/#/stores',
+      footerLabel: 'Open workspace',
     };
   }
   return {

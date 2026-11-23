@@ -1,7 +1,7 @@
 import { icon } from '../components/common.js';
 import { escapeHtml } from '../utils.js';
 import { renderLanguageSwitcher } from '../i18n.js?rev=20261117-acct1';
-import { PROTOTYPE_ACCOUNTS } from '../session.js?rev=20260907-expired-link1';
+import { PROTOTYPE_ACCOUNTS } from '../session.js?rev=20261123-acct165';
 
 function brand(href) {
   const dest = href || '#/landing';
@@ -14,7 +14,7 @@ function authLayout(eyebrow, title, copy, formMarkup, foot) {
 }
 
 function portalField(label, control, help) {
-  return '<label class="portal-field" data-portal-field><span class="portal-field-label">' + label + '</span>' + control + '<span class="portal-field-error" data-field-error role="alert" hidden></span>' + (help ? '<small>' + help + '</small>' : '') + '</label>';
+  return '<label class="portal-field" data-portal-field><span class="portal-field-label">' + label + '</span>' + control + '<span class="portal-field-error" data-field-error role="alert" hidden></span>' + (help ? '<small class="portal-field-help">' + help + '</small>' : '') + '</label>';
 }
 
 function portalFieldWithAction(label, control, action) {
@@ -22,7 +22,7 @@ function portalFieldWithAction(label, control, action) {
 }
 
 function renderDemoAccountHints() {
-  const rows = PROTOTYPE_ACCOUNTS.filter(function (account) { return account.email !== 'hello@lavenderlabs.co'; }).map(function (account) {
+  const rows = PROTOTYPE_ACCOUNTS.map(function (account) {
     return '<button type="button" class="portal-demo-account" data-action="fill-demo-account" data-email="' + escapeHtml(account.email) + '" data-password="' + escapeHtml(account.password) + '"><strong>' + escapeHtml(account.label) + '</strong><span>' + escapeHtml(account.email) + ' · ' + escapeHtml(account.password) + '</span></button>';
   }).join('');
   return '<aside class="portal-demo-accounts" aria-label="Prototype test accounts"><p>Prototype test accounts</p>' + rows + '</aside>';
@@ -67,14 +67,16 @@ export function renderForgotPasswordCode(step) {
   return authLayout('Password recovery', 'Reset your password', 'Verify your email and choose a new password without leaving this page.', form, '<p class="portal-auth-foot">Remembered your password? <button type="button" data-route="sign-in">Back to sign in</button></p>');
 }
 
-export function renderSignUp() {
+export function renderSignUp(referralCode) {
   const codeInput = '<div class="portal-code-field"><input required type="text" name="verificationCode" inputmode="numeric" autocomplete="one-time-code" minlength="6" maxlength="6" pattern="[0-9]{6}" placeholder="Enter 6-digit code" data-validation-required="Enter the verification code." data-validation-too-short="Enter the 6-digit verification code." data-validation-invalid="Enter the 6-digit verification code." /><button type="button" class="portal-code-send" data-action="send-signup-code" data-signup-code-button>Send code</button></div>';
   const previewButton = '<button type="button" class="portal-email-preview-button" data-action="preview-signup-email" aria-label="Preview verification email (prototype only)">' + icon('email', 14) + '<span>Preview email</span></button>';
+  const referralValue = escapeHtml(String(referralCode || ''));
   const form = '<form class="portal-form" id="portal-signup-form" novalidate>'
     + portalField('Work email', '<input required type="email" name="email" placeholder="you@company.com" autocomplete="email" data-validation-required="Enter your work email address." data-validation-invalid="Enter a valid work email address." />')
     + portalFieldWithAction('Verification code', codeInput, previewButton)
     + portalField('Password', '<input required minlength="8" type="password" name="password" placeholder="Create a password" autocomplete="new-password" data-validation-required="Create a password." data-validation-too-short="Use at least 8 characters." />')
     + portalField('Confirm password', '<input required minlength="8" type="password" name="confirmPassword" placeholder="Re-enter your password" autocomplete="new-password" data-validation-required="Confirm your password." data-validation-too-short="Use at least 8 characters." />')
+    + portalField('Referral code', '<input type="text" name="referralCode" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Optional" value="' + referralValue + '" />')
     + '<button type="submit" class="portal-submit">Create account ' + icon('arrow', 16) + '</button><p class="portal-terms-note">By creating an account, you agree to the Terms and Privacy Policy.</p></form>';
   return authLayout('Get started', 'Create your BestCheckout account', 'Create an account to share BestCheckout. Connect a Shopify store when you are ready.', form, '<p class="portal-auth-foot">Already have an account? <button type="button" data-route="sign-in">Sign in</button></p>');
 }
@@ -104,12 +106,24 @@ function shopDomain(value) {
   return handle ? handle + '.myshopify.com' : '';
 }
 
-function connectFrame(card, logoHref) {
-  return '<div class="connect-flow"><header class="connect-header">' + brand(logoHref) + '<button type="button" class="portal-inline-button" data-action="portal-signout">Sign out</button></header><main>' + card + '</main></div>';
+function connectBack(back) {
+  const href = escapeHtml((back && back.href) || 'account/#/stores');
+  const label = escapeHtml((back && back.label) || 'Back to stores');
+  return '<a class="connect-back" href="' + href + '"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg><span>' + label + '</span></a>';
 }
 
-function installLinkHref(shop) {
-  return '#/connect-shopify?status=consent&shop=' + encodeURIComponent(shopHandle(shop) || 'your-store');
+function connectFrame(card, logoHref, back) {
+  return '<div class="connect-flow"><header class="connect-header">' + brand(logoHref) + '<button type="button" class="portal-inline-button" data-action="portal-signout">Sign out</button></header><main><div class="connect-stage">' + connectBack(back) + card + '</div></main></div>';
+}
+
+function withOrigin(href, origin) {
+  if (!origin) return href;
+  const extra = String(origin).replace(/^&/, '');
+  return href + (href.indexOf('?') >= 0 ? '&' : '?') + extra;
+}
+
+function installLinkHref(shop, origin) {
+  return withOrigin('#/connect-shopify?status=consent&shop=' + encodeURIComponent(shopHandle(shop) || 'your-store'), origin);
 }
 
 function connectPendingCard(shop, renew) {
@@ -123,17 +137,17 @@ function connectPendingCard(shop, renew) {
   return '<div class="connect-card"><span class="connect-icon">' + icon('store', 23) + '</span><span class="portal-auth-eyebrow">Shopify connection</span><h1>We\'re preparing your install link</h1><p>' + lead + '</p><ol class="connect-status-steps"><li class="is-complete"><span>1</span><div><strong>Store submitted</strong><small>' + domain + '</small></div></li><li class="is-active"><span>2</span><div><strong>Preparing the install link</strong><small>' + stepTwo + '</small></div></li><li><span>3</span><div><strong>Install BestCheckout</strong><small>Install from BestCheckout or from the email we send.</small></div></li></ol>' + '</div>';
 }
 
-function installStoreButton(shop) {
+function installStoreButton(shop, origin) {
   const handle = shopHandle(shop) || 'your-store';
   const domain = escapeHtml(shopDomain(handle));
-  return '<a class="portal-submit" href="' + installLinkHref(handle) + '">Install ' + domain + ' ' + icon('arrow', 16) + '</a>';
+  return '<a class="portal-submit" href="' + installLinkHref(handle, origin) + '">Install ' + domain + ' ' + icon('arrow', 16) + '</a>';
 }
 
-function connectInstallCard(shop) {
+function connectInstallCard(shop, origin) {
   const handle = shopHandle(shop) || 'your-store';
   const domain = escapeHtml(shopDomain(handle));
   return '<div class="connect-card"><span class="connect-icon">' + icon('store', 23) + '</span><span class="portal-auth-eyebrow">Ready to install</span><h1>Install BestCheckout</h1><p>Your install link for <b>' + domain + '</b> is ready. Install here, or use the email we sent. Open Shopify with the <b>store owner</b> account, or a staff account that can manage and install apps.</p>' +
-    '<div class="connect-form-actions">' + installStoreButton(handle) + '</div></div>';
+    '<div class="connect-form-actions">' + installStoreButton(handle, origin) + '</div></div>';
 }
 
 function shopifyAdminIcon(name) {
@@ -168,7 +182,7 @@ function storeInitials(name) {
   return String(name || 'S').replace(/[^A-Za-z0-9]/g, '').slice(0, 2).toUpperCase() || 'S';
 }
 
-function connectConsentPage(shop) {
+function connectConsentPage(shop, origin) {
   const handle = shopHandle(shop) || 'your-store';
   const storeName = handle.replace(/-/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
   const initials = storeInitials(storeName);
@@ -219,15 +233,15 @@ function connectConsentPage(shop) {
             '<div class="shopify-install-scopes">' + permissions.map(function (item) { return '<div class="shopify-install-scope">' + escapeHtml(item) + '</div>'; }).join('') + '</div>' +
           '</div>' +
         '</section>' +
-        '<div class="shopify-install-actions"><a class="shopify-install-cancel" href="#/connect-shopify?status=install&amp;shop=' + encodeURIComponent(handle) + '">Cancel</a><a class="shopify-install-submit" href="app/?rev=20260907-install-link2&amp;shopify=connected#/home">Install</a></div>' +
+        '<div class="shopify-install-actions"><a class="shopify-install-cancel" href="' + withOrigin('#/connect-shopify?status=install&amp;shop=' + encodeURIComponent(handle), origin) + '">Cancel</a><a class="shopify-install-submit" href="app/?rev=20260907-install-link2&amp;shopify=connected#/home">Install</a></div>' +
       '</div>' +
     '</main></div></div>';
 }
 
-function connectExpiredCard(shop) {
+function connectExpiredCard(shop, origin) {
   const handle = shopHandle(shop) || 'your-store';
   const domain = escapeHtml(shopDomain(handle));
-  return '<div class="connect-card"><span class="connect-icon is-warning">' + icon('alert', 23) + '</span><span class="portal-auth-eyebrow">Install link expired</span><h1>This install link has expired</h1><p>Shopify install links last 7 days. The previous link for <b>' + domain + '</b> can no longer be used. Request a new one and we\'ll email it to the store owner.</p><div class="connect-form-actions"><button type="button" class="portal-submit" data-action="request-new-install-link" data-shop="' + escapeHtml(handle) + '">Request a new install link</button></div><p class="portal-auth-foot"><button type="button" data-route="connect-shopify?shop=' + encodeURIComponent(handle) + '">Use a different store</button></p></div>';
+  return '<div class="connect-card"><span class="connect-icon is-warning">' + icon('alert', 23) + '</span><span class="portal-auth-eyebrow">Install link expired</span><h1>This install link has expired</h1><p>Shopify install links last 7 days. The previous link for <b>' + domain + '</b> can no longer be used. Request a new one and we\'ll email it to the store owner.</p><div class="connect-form-actions"><button type="button" class="portal-submit" data-action="request-new-install-link" data-shop="' + escapeHtml(handle) + '">Request a new install link</button></div><p class="portal-auth-foot"><button type="button" data-route="' + withOrigin('connect-shopify?shop=' + encodeURIComponent(handle), origin) + '">Use a different store</button></p></div>';
 }
 
 function connectDisabledCard(shop, options) {
@@ -235,12 +249,14 @@ function connectDisabledCard(shop, options) {
   const domain = escapeHtml(shopDomain(handle));
   const fromAdmin = options && options.fromAdmin;
   const linkExpired = options && options.linkExpired;
+  const origin = options && options.originQuery ? options.originQuery : '';
+  const returnHref = escapeHtml((options && options.backHref) || 'app/#/home');
   const back = fromAdmin
-    ? '<div class="connect-form-actions"><a class="portal-submit" href="app/#/home">Back to workspace</a></div>'
+    ? '<div class="connect-form-actions"><a class="portal-submit" href="' + returnHref + '">Back to workspace</a></div>'
     : '';
   const action = linkExpired
     ? '<div class="connect-form-actions"><button type="button" class="portal-submit" data-action="request-new-install-link" data-shop="' + escapeHtml(handle) + '">Request new install link</button></div>'
-    : '<div class="connect-form-actions"><a class="portal-submit" href="#/connect-shopify?status=consent&amp;shop=' + encodeURIComponent(handle) + '">Install app</a></div>';
+    : '<div class="connect-form-actions"><a class="portal-submit" href="' + withOrigin('#/connect-shopify?status=consent&amp;shop=' + encodeURIComponent(handle), origin) + '">Install app</a></div>';
   const note = linkExpired
     ? 'The app was uninstalled from this Shopify store. The previous install link has expired. Request a new one to reconnect it.'
     : 'The app was uninstalled from this Shopify store. Your install link is still valid. Install again to reconnect it.';
@@ -252,15 +268,17 @@ export function renderConnectShopify(route, options) {
   const shop = shopHandle(query.get('shop'));
   const status = String(query.get('status') || '');
   const logoHref = options && options.logoHref ? options.logoHref : '#/landing';
-  if (status === 'pending') return connectFrame(connectPendingCard(shop || 'your-store', query.get('renew') === '1'), logoHref);
-  if (status === 'install') return connectFrame(connectInstallCard(shop || 'your-store'), logoHref);
-  if (status === 'consent') return connectConsentPage(shop || 'your-store');
-  if (status === 'expired') return connectFrame(connectExpiredCard(shop || 'your-store'), logoHref);
-  if (status === 'disabled') return connectFrame(connectDisabledCard(shop || 'your-store', { fromAdmin: query.get('from') === 'admin', linkExpired: options && options.installLinkExpired }), logoHref);
+  const origin = options && options.originQuery ? options.originQuery : '';
+  const back = { href: options && options.backHref, label: options && options.backLabel };
+  if (status === 'pending') return connectFrame(connectPendingCard(shop || 'your-store', query.get('renew') === '1'), logoHref, back);
+  if (status === 'install') return connectFrame(connectInstallCard(shop || 'your-store', origin), logoHref, back);
+  if (status === 'consent') return connectConsentPage(shop || 'your-store', origin);
+  if (status === 'expired') return connectFrame(connectExpiredCard(shop || 'your-store', origin), logoHref, back);
+  if (status === 'disabled') return connectFrame(connectDisabledCard(shop || 'your-store', { fromAdmin: query.get('from') === 'admin', linkExpired: options && options.installLinkExpired, originQuery: origin, backHref: options && options.backHref }), logoHref, back);
   const domainField = '<div class="portal-domain-input"><input required type="text" name="shopDomain" placeholder="your-store" pattern="[a-z0-9]+(-[a-z0-9]+)*" autocomplete="off" value="' + escapeHtml(shop) + '" data-validation-required="Enter your Shopify store name." data-validation-invalid="Use the store name from your permanent myshopify.com address." /><span>.myshopify.com</span></div>';
   return connectFrame('<div class="connect-card"><span class="connect-icon">' + icon('store', 23) + '</span><span class="portal-auth-eyebrow">Shopify connection</span><h1>Connect your Shopify store</h1><p>Enter the permanent Shopify address. We\'ll prepare an install link and email it to you, usually within about 1 day.</p><form class="portal-form" id="connect-shopify-form" novalidate>'
     + portalField('Shopify store address', domainField, 'Enter <strong>your-store.myshopify.com</strong> only. Do not use a custom domain or add https://.')
-    + '<div class="connect-form-actions"><button type="submit" class="portal-submit">Submit store ' + icon('arrow', 16) + '</button></div></form></div>', logoHref);
+    + '<div class="connect-form-actions"><button type="submit" class="portal-submit">Submit store ' + icon('arrow', 16) + '</button></div></form></div>', logoHref, back);
 }
 
 export function renderInstallEmailPage(shop) {

@@ -126,13 +126,12 @@
 
     // ---- header menus (shell.js) ----
     'View all stores': '查看全部店铺',
+    'Account': '账户',
     'Your account': '你的账户',
     'Stores': '店铺',
     'Open a store': '进入店铺',
-    'Choose a store to open, or connect Shopify when you are ready. Refer stays with this account.': '选择要进入的店铺。准备好之后再连接 Shopify。推荐跟这个账户走，不跟某一家店走。',
+    'Choose a store to open.': '选择要进入的店铺。',
     'Connect a Shopify store': '连接 Shopify 店铺',
-    'Optional. A store is not required to share BestCheckout.': '可选。没有店铺也可以分享 BestCheckout。',
-    'No store is connected yet. You can still share BestCheckout from Refer.': '还没有连接店铺。你仍然可以在推荐里分享 BestCheckout。',
     'Continue setup': '继续设置',
     'Preparing install link': '正在准备安装链接',
     'Ready to install': '可以安装',
