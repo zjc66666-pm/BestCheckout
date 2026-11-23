@@ -30,7 +30,7 @@
   // Google, SKU, OAuth, SSL, DNS, MID, OMS, MRR…) are intentionally absent => stay as-is.
   var DICT = {
     // ---- top sidebar menu ----
-    'Orders': '订单', 'Products': '商品', 'Collections': '商品系列', 'Reviews': '评价',
+    'Orders': '订单', 'Refer': '推荐', 'Products': '商品', 'Collections': '商品系列', 'Reviews': '评价',
     'Customers': '客户', 'Discounts': '折扣', 'Content': '内容', 'Blog': '博客',
     'Page': '页面', 'Menu': '导航菜单', 'Analytics': '数据分析', 'Reports': '报表',
     'Live View': '实时概览', 'Online store': '网上商店',
@@ -126,6 +126,17 @@
 
     // ---- header menus (shell.js) ----
     'View all stores': '查看全部店铺',
+    'Account': '账户',
+    'Your account': '你的账户',
+    'Stores': '店铺',
+    'Open a store': '进入店铺',
+    'Choose a store to open.': '选择要进入的店铺。',
+    'Connect a Shopify store': '连接 Shopify 店铺',
+    'Continue setup': '继续设置',
+    'Preparing install link': '正在准备安装链接',
+    'Ready to install': '可以安装',
+    'Install link expired': '安装链接已过期',
+    'Store disabled': '店铺已停用',
     'Change password': '修改密码',
     'Sign out': '退出登录',
     'You have unsaved changes': '有未保存的更改',

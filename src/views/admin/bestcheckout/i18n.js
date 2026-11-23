@@ -192,6 +192,8 @@ const ZH = {
   'Connected store': '已连接店铺',
   'Shopify store connected': 'Shopify 店铺已连接',
   'Sign out': '退出登录',
+  'Back to stores': '返回店铺列表',
+  'Back to dashboard': '返回后台',
   'Search checkout settings': '搜索结账设置',
   'Help': '帮助',
   'Skip to content': '跳到内容',
@@ -1617,6 +1619,11 @@ const ZH_ATTRIBUTES = {
   'These checks run again when you publish this Funnel.': '发布此漏斗时会再次执行这些检查。',
   'Review store status': '查看店铺状态',
   'Choose a Funnel to edit its buyer journey.': '选择一个漏斗来编辑它的购买路径。',
+  'Sign in to your BestCheckout account.': '登录你的 BestCheckout 账户。',
+  'Create an account to share BestCheckout. Connect a Shopify store when you are ready.': '创建账户即可推荐 BestCheckout。准备好之后再连接 Shopify 店铺。',
+  'Referral code': '推荐码',
+  'Optional': '选填',
+  'Enter a valid referral code.': '请输入有效的推荐码。',
 };
 
 export function translate(value, locale) {

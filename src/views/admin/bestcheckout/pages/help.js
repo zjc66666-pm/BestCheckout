@@ -1,5 +1,5 @@
 import { icon } from '../components/common.js';
-import { marketingCtas } from '../session.js';
+import { marketingCtas } from '../session.js?rev=20261121-acct68';
 
 function brand() {
   return '<a class="help-brand" href="#/landing" aria-label="BestCheckout home"><img class="portal-mark" src="assets/brand-mark.svg?v=20260723brandmark1" alt="" aria-hidden="true"/><strong>BestCheckout</strong></a>';

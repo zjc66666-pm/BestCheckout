@@ -8075,6 +8075,7 @@ kbd {
 .portal-form { display:grid; gap:16px; }
 .portal-form label { display:grid; gap:7px; color:#344057; font-size:13px; font-weight:700; }
 .portal-field-label { display:block; }
+.portal-field-help { color:#748097; font-size:12px; font-weight:500; line-height:1.4; }
 .portal-field-with-action { position:relative; }
 .portal-field-with-action .portal-field-label { padding-right:112px; }
 .portal-email-preview-button { position:absolute; top:-4px; right:0; display:inline-flex; align-items:center; gap:5px; min-height:24px; padding:0 8px; color:#405de5; border:1px solid #cfd8ff; border-radius:6px; background:#f7f8ff; font-size:11px; font-weight:750; line-height:1; text-decoration:none; white-space:nowrap; transition:border-color .2s ease, background .2s ease, color .2s ease; }
@@ -8160,7 +8161,10 @@ kbd {
 .connect-header { display:flex; align-items:center; justify-content:space-between; height:72px; padding:0 clamp(24px,6vw,90px); border-bottom:1px solid #e6e9f0; background:#fff; }
 .connect-header .portal-mark { width:28px; height:28px; border-radius:0; background:transparent; box-shadow:none; filter:none; }
 .portal-auth-brand .portal-mark { width:28px; height:28px; border-radius:0; background:transparent; box-shadow:none; filter:none; }
-.connect-flow > main { display:grid; justify-items:center; padding:54px 24px 100px; }
+.connect-flow > main { display:grid; justify-items:center; padding:28px 24px 100px; }
+.connect-stage { width:min(100%, 590px); }
+.connect-back { display:inline-flex; align-items:center; gap:6px; margin:0 0 14px; color:#5c6b86; font-size:14px; font-weight:500; text-decoration:none; }
+.connect-back:hover { color:#182238; }
 .connect-card { width:min(100%, 590px); padding:38px; border:1px solid #e0e5ef; border-radius:16px; background:#fff; box-shadow:0 14px 42px rgba(24,35,63,.08); }
 .connect-icon { display:grid; width:44px; height:44px; place-items:center; margin-bottom:20px; color:#405de5; border-radius:12px; background:#eef1ff; }
 .connect-icon.is-warning { color:#b45309; background:#fff7ed; }

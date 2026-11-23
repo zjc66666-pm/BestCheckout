@@ -10,7 +10,11 @@
    location.hash; the router re-dispatches. */
 (function () {
   var V = '20260827-multi-offers1'; // cache-bust for lazy-loaded module scripts
-  var PUBLIC_SHOPIFY_CONNECTION_URL = './?entry=connect-new-shopify-store#/connect-shopify';
+  function shopifyConnectionUrl(hashQuery) {
+    var home = SITE.store ? '&home=' + encodeURIComponent(SITE.store) : '';
+    var extra = hashQuery ? '&' + String(hashQuery).replace(/^[?&]/, '') : '';
+    return './?entry=connect-new-shopify-store&rev=20261121-acctback3#/connect-shopify?from=admin' + home + extra;
+  }
   var s = function (p) { return '<svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>'; };
   var ICONS = {
     home: s('<path d="M3 9.5 12 3l9 6.5"/><path d="M5 10v10h14V10"/>'),
@@ -23,7 +27,7 @@
     analytics: s('<path d="M4 4v16h16"/><rect x="7" y="11" width="3" height="6"/><rect x="12" y="7" width="3" height="10"/><rect x="17" y="13" width="3" height="4"/>'),
     google: s('<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>'),
     facebook: s('<path d="M4 12c0-2.5 2-4.5 4.5-4.5 2 0 3 1.5 3.5 3 .5-1.5 1.5-3 3.5-3 2.5 0 4.5 2 4.5 4.5s-2 4.5-4.5 4.5c-2 0-3-1.5-3.5-3-.5 1.5-1.5 3-3.5 3-2.5 0-4.5-2-4.5-4.5z"/>'),
-    settings: s('<circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.3l2-1.5-2-3.4-2.3 1a7 7 0 0 0-2.3-1.3L14 1h-4l-.3 2.5a7 7 0 0 0-2.3 1.3l-2.3-1-2 3.4 2 1.5A7 7 0 0 0 5 12a7 7 0 0 0 .1 1.3l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 2.3 1.3L10 23h4l.3-2.5a7 7 0 0 0 2.3-1.3l2.3 1 2-3.4-2-1.5A7 7 0 0 0 19 12z"/>'),
+    settings: s('<path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37 1 .608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/>'),
     card: s('<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>'),
     coin: s('<circle cx="12" cy="12" r="9"/><path d="M14.5 9a2.5 2 0 0 0-2.5-1.5c-1.5 0-2.5.8-2.5 2s1 1.6 2.5 2 2.5.8 2.5 2-1 2-2.5 2A2.5 2 0 0 1 9.5 16"/><path d="M12 6v12"/>'),
     cart: s('<circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/><path d="M2 3h3l2.4 12.4a1.5 1.5 0 0 0 1.5 1.2h8.7a1.5 1.5 0 0 0 1.5-1.2L22 7H6"/>'),
@@ -78,7 +82,7 @@
     // Unlinked stores start in the public connect flow. Pending / install / failed
     // stay in the workspace so merchants can see connection progress.
     if (shopifyConnectionState === 'unlinked') {
-      location.replace(PUBLIC_SHOPIFY_CONNECTION_URL);
+      location.replace(shopifyConnectionUrl());
       return;
     }
     // V1.139 provisioning still sends ?new=1. Normal entry derives the Home from store state.
@@ -436,6 +440,7 @@
       if ((id === 'customers' || id === 'abandoned-checkouts') && !window.DATA_ORDERS) return loadScript('orders/js/data.js?v=20261016-ac-detail');
     });
     var moduleV = id === 'settings' ? '20261113-kv-oauth3'
+      : id === 'refer' ? '20261117-refer8'
       : id === 'online-store' ? '20261016-hide-pdp'
       : id === 'bestcheckout' ? '20261016-edit-tab'
       : id === 'bundles' ? '20261013-pdp1'
@@ -778,12 +783,12 @@
     var connectTask = connected
       ? { done: true, title: 'Shopify store connected', desc: 'Products, discounts and delivery options are ready for checkout.' }
       : shopifyConnectionState === 'pending'
-        ? { done: false, current: true, title: 'Preparing your install link', desc: 'BestCheckout is creating a Custom App for this store. This usually takes about 1 day.', href: PUBLIC_SHOPIFY_CONNECTION_URL.replace('#/connect-shopify', '#/connect-shopify?status=pending'), action: 'View status' }
+        ? { done: false, current: true, title: 'Preparing your install link', desc: 'BestCheckout is creating a Custom App for this store. This usually takes about 1 day.', href: shopifyConnectionUrl('status=pending'), action: 'View status' }
         : shopifyConnectionState === 'install'
-          ? { done: false, current: true, title: 'Install BestCheckout', desc: 'Install from BestCheckout or from the email. Selecting Install does not finish this step.', href: PUBLIC_SHOPIFY_CONNECTION_URL.replace('#/connect-shopify', '#/connect-shopify?status=install'), action: 'Open install' }
+          ? { done: false, current: true, title: 'Install BestCheckout', desc: 'Install from BestCheckout or from the email. Selecting Install does not finish this step.', href: shopifyConnectionUrl('status=install'), action: 'Open install' }
           : shopifyConnectionState === 'failed'
-            ? { done: false, current: true, title: 'Shopify connection failed', desc: 'Check the myshopify.com address and who opened the install link, then try again.', href: PUBLIC_SHOPIFY_CONNECTION_URL.replace('#/connect-shopify', '#/connect-shopify?status=failed'), action: 'Try again' }
-            : { done: false, current: true, title: 'Connect your Shopify store', desc: 'Submit your myshopify.com address. BestCheckout emails an install link — you do not paste credentials.', href: PUBLIC_SHOPIFY_CONNECTION_URL, action: 'Connect' };
+            ? { done: false, current: true, title: 'Shopify connection failed', desc: 'Check the myshopify.com address and who opened the install link, then try again.', href: shopifyConnectionUrl('status=failed'), action: 'Try again' }
+            : { done: false, current: true, title: 'Connect your Shopify store', desc: 'Submit your myshopify.com address. BestCheckout emails an install link — you do not paste credentials.', href: shopifyConnectionUrl(), action: 'Connect' };
     var tasks = [connectTask];
     if (connected && !permissionsHealthy) {
       tasks.push({
@@ -886,11 +891,15 @@
   function dispatch() {
     var p = parse();
     if (shopifyConnectionState === 'unlinked') {
-      location.assign(PUBLIC_SHOPIFY_CONNECTION_URL);
+      location.assign(shopifyConnectionUrl());
       return;
     }
     // Performance is now part of Overview. Keep existing shared links useful.
     if (p.first === 'performance') { location.hash = '#/home'; return; }
+    if (p.first === 'refer') {
+      window.location.assign(new URL('account/#/refer', document.baseURI).href);
+      return;
+    }
     // Preserve previously shared links while grouping these operational pages
     // under Settings in the primary navigation.
     if (p.first === 'payments' || p.first === 'domains' || p.first === 'notifications') {
@@ -927,12 +936,12 @@
     // The copied baseline used this path for a broader internal workspace.
     // Preserve bookmarks without exposing that unrelated surface to merchants.
     if (p.first === 'bestcheckout') {
-      if (p.rest === 'connect') location.assign(PUBLIC_SHOPIFY_CONNECTION_URL);
+      if (p.rest === 'connect') location.assign(shopifyConnectionUrl());
       else location.hash = '#/flows';
       return;
     }
     if (p.first === 'connect-shopify') {
-      location.assign(PUBLIC_SHOPIFY_CONNECTION_URL);
+      location.assign(shopifyConnectionUrl());
       return;
     }
     removeSettings();
@@ -1026,11 +1035,12 @@
       '</button>';
     }).join('');
     return '<div class="hdr-store-list">' + rows + '</div>' +
-      '<a class="hdr-menu-foot" href="./?entry=connect-new-shopify-store#/connect-shopify">Connect new Shopify store</a>';
+      '<a class="hdr-menu-foot" href="' + shopifyConnectionUrl() + '">Connect new Shopify store</a>';
   }
   function userMenuHtml() {
     return '<div class="hdr-menu-head">' + MICO.user + '<span>' + (SITE.email || 'owner@bestshopio.com') + '</span></div>' +
       '<div class="hdr-menu-divider"></div>' +
+      '<a class="hdr-menu-item" href="account/#/stores">' + MICO.user + 'Your account</a>' +
       '<a class="hdr-menu-item" href="#/account/ai" data-account-ai>' + MICO.spark + 'AI & MCP</a>' +
       '<div class="hdr-menu-divider"></div>' +
       '<button class="hdr-menu-item" data-changepw>' + MICO.lock + 'Change password</button>' +
@@ -1102,7 +1112,7 @@
             var shop = row.getAttribute('data-shop');
             closeHdrMenus();
             if (status) {
-              window.location.assign(new URL('./?entry=connect-new-shopify-store#/connect-shopify?status=' + encodeURIComponent(status) + '&shop=' + encodeURIComponent(shop || 'your-store'), document.baseURI).href);
+              window.location.assign(new URL(shopifyConnectionUrl('status=' + encodeURIComponent(status) + '&shop=' + encodeURIComponent(shop || 'your-store')), document.baseURI).href);
               return;
             }
             var name = row.getAttribute('data-store');

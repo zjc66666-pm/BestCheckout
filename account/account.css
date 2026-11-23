@@ -1,0 +1,47 @@
+.acct-app, .acct-app *, .acct-app *::before, .acct-app *::after { box-sizing: border-box; }
+.acct-app { height: 100%; display: flex; flex-direction: column; background: #f2f5ff; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+.acct-app button, .acct-app input, .acct-app select, .acct-app textarea { font: inherit; }
+.acct-app .btn { font-size: 13px; font-weight: 500; }
+.acct-app a { text-decoration: none; }
+.acct-header { height: var(--header-h); display: flex; align-items: center; gap: 12px; padding: 0 24px 0 16px; background: #f2f5ff; }
+.acct-brand { display: flex; align-items: center; gap: 8px; color: var(--ink); font-weight: 600; font-size: 18px; letter-spacing: -.01em; text-decoration: none; }
+.acct-header .i18n-toggle { margin-left: auto; }
+.acct-user { display: flex; align-items: center; gap: 12px; }
+.acct-email { color: var(--ink-muted); font-size: 13px; }
+.acct-signout { border: 1px solid var(--ctl); background: #fff; color: var(--ink); border-radius: 8px; padding: 6px 10px; cursor: pointer; font: inherit; }
+.acct-body { flex: 1; min-height: 0; display: flex; background: #fff; border-radius: 24px 24px 0 0; overflow: hidden; }
+.acct-side { width: var(--sidebar-w); flex: 0 0 var(--sidebar-w); border-right: 1px solid var(--hair); padding: 8px; }
+.acct-side .nav-item + .nav-item { margin-top: 4px; }
+.acct-main { flex: 1; min-width: 0; overflow: auto; padding: 20px 24px 40px; }
+.acct-lead { padding: 0 0 4px; }
+.acct-lead h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+.acct-main .page-title { margin: 0 0 4px; }
+.acct-lead p { margin: 0; color: var(--ink-muted); max-width: 640px; }
+.acct-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; padding: 16px 0 0; }
+.acct-card { display: flex; flex-direction: column; gap: 6px; min-height: 176px; padding: 20px; border: 1px solid var(--hair); border-radius: 12px; background: #fff; color: inherit; text-decoration: none; text-align: left; }
+.acct-card:hover { border-color: #b9c6ff; background: #fbfcff; }
+.acct-card strong { font-size: 15px; font-weight: 600; }
+.acct-card small { color: var(--ink-muted); }
+.acct-card em { display: inline-flex; align-items: center; gap: 4px; margin-top: 8px; font-style: normal; color: var(--brand); font-size: 13px; }
+.acct-status { display: inline-flex; align-items: center; gap: 4px; width: max-content; max-width: 100%; margin-top: auto; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; line-height: 18px; }
+.acct-status.is-connected { background: #e8f7ee; color: #178a52; }
+.acct-status.is-pending { background: #fff0ce; color: #9a5a00; }
+.acct-status.is-install { background: #eef2ff; color: #3450c5; }
+.acct-status.is-expired, .acct-status.is-disabled { background: #fff1f0; color: #b42318; }
+.acct-card-top { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
+.acct-card-copy { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.acct-card-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acct-mark { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 10px; background: #ebf0ff; color: #356dff; }
+.acct-mark .nav-ico { color: #356dff; }
+.acct-card.is-connect { border-style: dashed; border-color: #b4bdd2; justify-content: center; align-items: center; text-align: center; gap: 8px; min-height: 176px; background: #f4f7ff; }
+.acct-card.is-connect:hover { background: #eef2ff; border-color: #b9c6ff; }
+.acct-card.is-connect strong { color: var(--brand); }
+.acct-plus { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: #ebf0ff; color: var(--brand); }
+@media (max-width: 768px) {
+  .acct-brand { font-size: 16px; }
+}
+@media (max-width: 800px) {
+  .acct-body { flex-direction: column; }
+  .acct-side { width: auto; flex: none; display: flex; gap: 4px; border-right: 0; border-bottom: 1px solid var(--hair); }
+  .acct-email { display: none; }
+}

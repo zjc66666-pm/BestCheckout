@@ -1,5 +1,5 @@
 import { icon } from '../components/common.js';
-import { marketingCtas } from '../session.js';
+import { marketingCtas } from '../session.js?rev=20261121-acct68';
 
 const capabilities = [
   { step: '01', iconName: 'sparkles', title: 'Own the purchase moment', description: 'On-brand checkout journeys', features: ['Visual builder', 'Custom domains', 'Native wallets'] },
