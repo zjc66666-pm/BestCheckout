@@ -1,7 +1,8 @@
 /* BestShopio Admin · Orders prototype — sample data.
    Shaped after reference/bestvoy-admin .../orders/type.ts (OrderRecord, OrderItem,
    OrderShippingInfo) and api/modules/admin/orders.ts (ApiOrderDetail).
-   Money is in store currency (USD $). No real PII / secrets.
+   Amounts use the checkout currency locked on the order. Orders without a
+   currency are USD. No real PII / secrets.
 
    This workspace audits paid BestCheckout transactions and their Shopify
    write-back state. Fulfillment continues in Shopify Admin. Refunds are
@@ -40,6 +41,34 @@
   // order_status drives the OrderStatusCell pill + derived fulfillment. order_type:
   // 0 = standard shipping order, 1/2 = pickup/verify order (drives Verify action).
   const ORDERS = [
+    {
+      order_id: 6070, order_sn: 'EN1070', create_time: '2026-11-24 15:20', order_type: 0,
+      user: { nickname: 'Nora Bennett', uid: 91070 },
+      shipping: { name: 'Nora Bennett', first_name: 'Nora', last_name: 'Bennett', detail: '88 King Street West', detail2: '', city: 'Toronto', province: 'ON', post_code: 'M5H 1A1', country: 'Canada', phone_code: '1', phone: '416 555 0148', email: 'nora.bennett@example.com' },
+      total: 128.40, currency: 'CAD', pay_currency: 'USD', pay_amount: 94.41, order_status: 'to_ship', payment_status: 'paid', payment_method: 'Card', pay_time: '2026-11-24 15:20', delivery_time: null,
+      source: 'BestCheckout', shopify_writeback_status: 'synced', shopify_order_id: '#1042', shopify_writeback_detail: 'Written back to Shopify in CAD.',
+    },
+    {
+      order_id: 6071, order_sn: 'EN1071', create_time: '2026-11-24 11:05', order_type: 0,
+      user: { nickname: 'Lena Vogel', uid: 91071 },
+      shipping: { name: 'Lena Vogel', first_name: 'Lena', last_name: 'Vogel', detail: '12 Torstrasse', detail2: '', city: 'Berlin', province: '', post_code: '10119', country: 'Germany', phone_code: '49', phone: '30 555 0188', email: 'lena.vogel@example.com' },
+      total: 74.90, currency: 'EUR', order_status: 'to_ship', payment_status: 'paid', payment_method: 'PayPal', pay_time: '2026-11-24 11:05', delivery_time: null,
+      source: 'BestCheckout', shopify_writeback_status: 'synced', shopify_order_id: '#1043', shopify_writeback_detail: 'Written back to Shopify in EUR.',
+    },
+    {
+      order_id: 6072, order_sn: 'EN1072', create_time: '2026-11-23 18:40', order_type: 0,
+      user: { nickname: 'Priya Shah', uid: 91072 },
+      shipping: { name: 'Priya Shah', first_name: 'Priya', last_name: 'Shah', detail: '14 Floral Street', detail2: '', city: 'London', province: '', post_code: 'WC2E 9DS', country: 'United Kingdom', phone_code: '44', phone: '20 7946 0148', email: 'priya.shah@example.com' },
+      total: 52.00, currency: 'GBP', order_status: 'shipped', payment_status: 'paid', payment_method: 'Card', pay_time: '2026-11-23 18:41', delivery_time: '2026-11-24 09:10',
+      source: 'BestCheckout', shopify_writeback_status: 'synced', shopify_order_id: '#1044', shopify_writeback_detail: 'Written back to Shopify in GBP.',
+    },
+    {
+      order_id: 6073, order_sn: 'EN1073', create_time: '2026-11-23 09:15', order_type: 0,
+      user: { nickname: 'Haruto Sato', uid: 91073 },
+      shipping: { name: 'Haruto Sato', first_name: 'Haruto', last_name: 'Sato', detail: '2-1 Marunouchi', detail2: '', city: 'Tokyo', province: 'Tokyo', post_code: '100-0005', country: 'Japan', phone_code: '81', phone: '3 5550 0148', email: 'haruto.sato@example.com' },
+      total: 9800, currency: 'JPY', order_status: 'to_ship', payment_status: 'paid', payment_method: 'Card', pay_time: '2026-11-23 09:15', delivery_time: null,
+      source: 'BestCheckout', shopify_writeback_status: 'synced', shopify_order_id: '#1045', shopify_writeback_detail: 'Written back to Shopify in JPY.',
+    },
     {
       order_id: 6064, order_sn: 'EN1064', create_time: '2026-08-30 19:05', order_type: 0,
       user: { nickname: 'Miles Ortega', uid: 91056 },
@@ -798,6 +827,9 @@
       shopify_writeback_status: order.shopify_writeback_status,
       shopify_order_id: order.shopify_order_id,
       shopify_writeback_detail: order.shopify_writeback_detail,
+      currency: order.currency || 'USD',
+      pay_currency: order.pay_currency || order.currency || 'USD',
+      pay_amount: order.pay_amount != null ? order.pay_amount : order.total,
       payment_method: order.payment_method || '--',
       delivery_name: order.delivery_name || '',
       delivery_id: order.delivery_id || '',

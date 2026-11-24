@@ -157,6 +157,7 @@ window.I18N.extend({
   "Canceled": "已取消",
   "Done": "完成",
   "Paid": "已付款",
+  "Collected": "实收",
   "Unpaid": "未付款",
   "Fulfilled": "已发货",
   "Unfulfilled": "未发货",

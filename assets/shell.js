@@ -437,14 +437,14 @@
     // Customer detail renders canonical order snapshots. Load the shared order data
     // first so a direct #/customers entry cannot fall back to stale duplicate mocks.
     chain = chain.then(function () {
-      if ((id === 'customers' || id === 'abandoned-checkouts') && !window.DATA_ORDERS) return loadScript('orders/js/data.js?v=20261016-ac-detail');
+      if ((id === 'customers' || id === 'abandoned-checkouts') && !window.DATA_ORDERS) return loadScript('orders/js/data.js?v=20261124-ccy-orders1');
     });
     var moduleV = id === 'settings' ? '20261113-kv-oauth3'
       : id === 'refer' ? '20261117-refer8'
       : id === 'online-store' ? '20261016-hide-pdp'
       : id === 'bestcheckout' ? '20261016-edit-tab'
       : id === 'bundles' ? '20261013-pdp1'
-      : id === 'orders' ? '20261016-ac-detail'
+      : id === 'orders' ? '20261124-ccy-orders4'
       : id === 'abandoned-checkouts' ? '20261022-ac-sent-pair' : V;
     chain = chain.then(function () {
       if (id === 'online-store' && !window.POST_PURCHASE_ORDER_MOCK)
@@ -470,7 +470,7 @@
     if (homeLoaded) return homeLoaded;
     var billingData = window.BestCheckoutBilling ? Promise.resolve() : loadScript('settings/js/billing.js?v=20261117-merge1');
     var homeData = window.DATA_HOME ? Promise.resolve() : loadScript('home/js/data.js?v=' + V);
-    var orderData = window.DATA_ORDERS ? Promise.resolve() : loadScript('orders/js/data.js?v=' + V);
+    var orderData = window.DATA_ORDERS ? Promise.resolve() : loadScript('orders/js/data.js?v=20261124-ccy-orders1');
     homeLoaded = Promise.all([billingData, homeData, orderData]).catch(function () {});
     return homeLoaded;
   }
@@ -701,10 +701,16 @@
       : '<div class="home-attention-clear"><div class="home-attention-clear-icon">' + ICONS.home + '</div><div><strong>All checkout actions are complete</strong><span>No purchase flow or Shopify sync needs attention right now.</span></div></div>';
     return '<section class="home-attention"><div class="home-attention-top"><div><div class="home-overline">Attention</div><div class="home-attention-title">Orders need attention</div></div></div>' + actionArea + '</section>';
   }
+  function homeMoney(order) {
+    var code = (order && order.currency) || 'USD';
+    var spec = { USD: ['$', 2], CAD: ['C$', 2], EUR: ['€', 2], GBP: ['£', 2], JPY: ['¥', 0] }[code] || [code + ' ', 2];
+    var value = Number((order && order.total) || 0);
+    return spec[0] + (spec[1] === 0 ? String(Math.round(value)) : value.toFixed(spec[1]));
+  }
   function homeRecentOrdersHtml(orders) {
     var rows = orders.slice(0, 3).map(function (order) {
       var state = homeOrderState(order);
-      return '<a class="home-order-row" href="#/orders/' + homeEsc(order.order_id) + '"><span class="home-order-main"><span class="home-order-id">' + homeEsc(order.order_sn) + '</span><span class="home-order-customer">' + homeEsc((order.user || {}).nickname || 'Guest') + '</span><span class="home-order-tags">' + homeOrderTags(order) + '</span></span><span class="home-order-side">' + homePill(state[0], state[1]) + '<strong>$' + Number(order.total || 0).toFixed(2) + '</strong></span></a>';
+      return '<a class="home-order-row" href="#/orders/' + homeEsc(order.order_id) + '"><span class="home-order-main"><span class="home-order-id">' + homeEsc(order.order_sn) + '</span><span class="home-order-customer">' + homeEsc((order.user || {}).nickname || 'Guest') + '</span><span class="home-order-tags">' + homeOrderTags(order) + '</span></span><span class="home-order-side">' + homePill(state[0], state[1]) + '<strong>' + homeMoney(order) + '</strong></span></a>';
     }).join('');
     return rows || '<div class="home-empty-list">Your latest paid orders will appear here.</div>';
   }
