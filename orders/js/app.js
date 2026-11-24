@@ -10,7 +10,21 @@
   // tiny html -> element helper
   const h = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const money = (n) => '$' + Number(n || 0).toFixed(2);
+  const CURRENCY_DISPLAY = {
+    USD: { prefix: '$', decimals: 2 },
+    CAD: { prefix: 'C$', decimals: 2 },
+    EUR: { prefix: '€', decimals: 2 },
+    GBP: { prefix: '£', decimals: 2 },
+    JPY: { prefix: '¥', decimals: 0 },
+  };
+  let activeCurrency = 'USD';
+  const money = (n, currency) => {
+    const code = currency || activeCurrency || 'USD';
+    const spec = CURRENCY_DISPLAY[code] || { prefix: code + ' ', decimals: 2 };
+    const value = Number(n || 0);
+    const amount = spec.decimals === 0 ? String(Math.round(value)) : value.toFixed(spec.decimals);
+    return spec.prefix + amount;
+  };
   // Product options are presented with one separator across all order-detail rows.
   const variantText = (value) => String(value == null ? '' : value).trim().replace(/\s*,\s*/g, ' / ');
 
@@ -167,6 +181,7 @@
   }
 
   function renderList() {
+    activeCurrency = 'USD';
     LST.page = LST.page || 1;
     const rows = filteredRows();
     const totalRecords = rows.length;
@@ -286,7 +301,7 @@
           '<span class="muted" style="display:inline-flex">' + I.chevDown + '</span>' +
         '</span>' +
       '</td>' +
-      '<td style="font-weight:600;color:var(--ink)">' + money(o.total) + '</td>' +
+      '<td style="font-weight:600;color:var(--ink)">' + money(o.total, o.currency || 'USD') + '</td>' +
       '<td>' + shopifySyncCell(o) + '</td>' +
       '<td class="muted">' + esc(o.payment_method) + '</td>' +
       '<td style="text-align:center"><button class="back-btn" data-view="' + o.order_id + '" title="BestCheckout details" aria-label="BestCheckout details" style="width:30px;height:30px">' + I.eye + '</button></td>' +
@@ -510,11 +525,12 @@
     const byOrderNumber = stored ? null : Object.keys(D.DETAILS).map((key) => D.DETAILS[key]).find((row) => String(row.order_sn) === String(id));
     const o = stored || byOrderNumber || subscriptionOrderDetail(id);
     if (!o) { renderMissing(id); return; }
+    activeCurrency = o.currency || (listOrder && listOrder.currency) || 'USD';
 
     // Action visibility mirrors BestShopio: refund stays on paid orders until
     // they are fully refunded, canceled, or archived. Fulfillment stays in Shopify.
     const showRefund = o.status !== 'refund' && o.status !== 'cancel' && o.status !== 'archived'
-      && (o.paid === 1 || Number(o.paid_amount || 0) > 0.001);
+      && (currenciesDiffer(o) ? refundablePay(o) > 0.001 : (o.paid === 1 || Number(o.paid_amount || 0) > 0.001));
     const actions = showRefund ? '<button class="btn btn-primary" data-act="refund">Refund</button>' : '';
 
     root.innerHTML =
@@ -772,8 +788,12 @@
     }
     body += row('Total', money(o.total), { border: true, bold: true });
     if ((o.total_savings || 0) > 0) body += row('TOTAL SAVINGS ' + money(o.total_savings), '', { sub: true });
-    if ((o.refunded_amount || 0) > 0) body += row('Refunded', '-' + money(o.refunded_amount), { sub: true });
+    if (!currenciesDiffer(o) && (o.refunded_amount || 0) > 0) body += row('Refunded', '-' + money(o.refunded_amount), { sub: true });
     body += row('Paid', money(o.paid_amount));
+    if (currenciesDiffer(o)) {
+      body += row('Collected', money(o.pay_amount, o.pay_currency));
+      if ((o.refunded_pay_amount || 0) > 0) body += row('Refunded', '-' + money(o.refunded_pay_amount, o.pay_currency), { sub: true });
+    }
     return cardOpen('<span>Amount</span>') + body + '</div>';
   }
 
@@ -1052,6 +1072,7 @@
       '<div class="modal-foot"><button class="btn btn-default" data-cancel>Cancel</button>' +
         '<button class="btn btn-primary" data-ok>' + (okText || 'Save') + '</button></div>';
     backdrop.appendChild(m); document.body.appendChild(backdrop);
+    if (window.I18N) window.I18N.apply(backdrop);
     const close = () => backdrop.remove();
     m.querySelector('[data-x]').onclick = close;
     m.querySelector('[data-cancel]').onclick = close;
@@ -1138,11 +1159,34 @@
   }
 
   // Refund modal (RefundOrderModal.tsx): Refund amount + Reason for refund, ok=Save
+  function currenciesDiffer(o) {
+    const checkout = (o && o.currency) || 'USD';
+    const paidIn = (o && o.pay_currency) || checkout;
+    return paidIn !== checkout;
+  }
+
+  function refundablePay(o) {
+    return Math.max(0, Number(o.pay_amount || 0) - Number(o.refunded_pay_amount || 0));
+  }
+
   function openRefundModal(o) {
-    const body =
+    const checkoutCode = o.currency || activeCurrency || 'USD';
+    const payCode = o.pay_currency || checkoutCode;
+    const differ = payCode !== checkoutCode;
+    const spec = CURRENCY_DISPLAY[payCode] || { prefix: '$', decimals: 2 };
+    const step = spec.decimals === 0 ? '1' : '0.01';
+    const placeholder = spec.decimals === 0 ? '0' : '0.00';
+    const cap = differ ? refundablePay(o) : Number(o.paid_amount || 0);
+    const summary = differ
+      ? '<div style="margin-bottom:14px;padding:10px 12px;border:1px solid var(--hair);border-radius:8px;background:var(--panel)">' +
+          '<div class="flex items-center justify-between" style="padding:4px 0;font-size:13.5px"><span>Paid</span><span style="font-weight:600">' + money(o.paid_amount, checkoutCode) + '</span></div>' +
+          '<div class="flex items-center justify-between" style="padding:4px 0;font-size:13.5px"><span>Collected</span><span style="font-weight:600">' + money(o.pay_amount, payCode) + '</span></div>' +
+        '</div>'
+      : '';
+    const body = summary +
       '<div class="mb-3"><label class="ctrl-label" style="text-transform:none">Refund amount <span style="color:var(--err)">*</span></label>' +
-        '<div style="position:relative;margin-top:4px"><span class="muted" style="position:absolute;left:12px;top:8px">$</span>' +
-        '<input class="input" id="rf-amt" type="number" step="0.01" min="0" placeholder="0.00" style="padding-left:24px" /></div></div>' +
+        '<div style="position:relative;margin-top:4px"><span class="muted" style="position:absolute;left:12px;top:8px">' + esc(spec.prefix) + '</span>' +
+        '<input class="input" id="rf-amt" type="number" step="' + step + '" min="0" placeholder="' + placeholder + '" style="padding-left:' + (spec.prefix.length > 1 ? 36 : 24) + 'px" /></div></div>' +
       '<div><label class="ctrl-label" style="text-transform:none">Reason for refund <span style="color:var(--err)">*</span></label>' +
         '<input class="input" id="rf-reason" placeholder="Please enter Refund reason" style="margin-top:4px" />' +
         '<div class="muted" style="font-size:12px;margin-top:6px">Only you and other staff can see this reason</div></div>' +
@@ -1155,19 +1199,30 @@
         const reason = m.querySelector('#rf-reason').value.trim();
         const e = m.querySelector('#rf-err');
         if (!amt || amt <= 0) { e.textContent = 'Please enter Refund amount'; e.style.display = 'block'; return; }
-        if (amt > o.paid_amount + 0.001) { e.textContent = 'Refund cannot exceed the paid amount (' + money(o.paid_amount) + ').'; e.style.display = 'block'; return; }
+        if (amt > cap + 0.001) {
+          e.textContent = differ
+            ? 'Refund cannot exceed the collected amount (' + money(cap, payCode) + ').'
+            : 'Refund cannot exceed the paid amount (' + money(o.paid_amount) + ').';
+          e.style.display = 'block';
+          return;
+        }
         if (!reason) { e.textContent = 'Please enter Refund reason'; e.style.display = 'block'; return; }
         const refundedAt = mockTimestamp();
-        o.refunded_amount = Number(o.refunded_amount || 0) + amt;
-        o.paid_amount = Math.max(0, Number(o.paid_amount || 0) - amt);
-        if (o.paid_amount < 0.001) o.status = 'refund';
+        if (differ) {
+          o.refunded_pay_amount = Number(o.refunded_pay_amount || 0) + amt;
+          if (refundablePay(o) < 0.001) o.status = 'refund';
+        } else {
+          o.refunded_amount = Number(o.refunded_amount || 0) + amt;
+          o.paid_amount = Math.max(0, Number(o.paid_amount || 0) - amt);
+          if (o.paid_amount < 0.001) o.status = 'refund';
+        }
         if (o.payment) {
           const fully = o.status === 'refund';
           o.payment.status = fully ? 'refunded' : 'captured';
           o.payment.refund = fully ? 'Fully refunded' : 'Partially refunded';
         }
         o.timeline = o.timeline || [];
-        o.timeline.push({ label: (o.status === 'refund' ? 'Full' : 'Partial') + ' refund of ' + money(amt) + ' issued · ' + reason, time: refundedAt });
+        o.timeline.push({ label: (o.status === 'refund' ? 'Full' : 'Partial') + ' refund of ' + money(amt, payCode) + ' issued · ' + reason, time: refundedAt });
         syncListOrder(o);
         close();
         renderDetail(o.order_id);
